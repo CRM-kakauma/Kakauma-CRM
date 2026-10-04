@@ -1,0 +1,62 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1790010095910,
+      "tag": "0000_kakauma_analytics_core",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790010799251,
+      "tag": "0001_funnel_stage_scoped",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790718693513,
+      "tag": "0002_add_net_revenue",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790718940728,
+      "tag": "0003_add_affiliate_cost",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790719152788,
+      "tag": "0004_funnel_labels_ptbr",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790791478589,
+      "tag": "0005_sales_breakdown",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790793002042,
+      "tag": "0006_funnel_identity_all_payments",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790793444207,
+      "tag": "0007_net_revenue_fallback",
+      "breakpoints": true
+    }
+  ]
+}

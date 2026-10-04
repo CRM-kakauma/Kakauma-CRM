@@ -22,7 +22,9 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as TasksRouteImport } from './routes/tasks'
 import { Route as ApiIndexRouteImport } from './routes/api.index'
 import { Route as ApiEventsRouteImport } from './routes/api/events'
+import { Route as ApiCronCrmProcessRouteImport } from './routes/api/cron/crm-process'
 import { Route as ApiPublicEventsRouteImport } from './routes/api/public/events'
+import { Route as ApiWebhooksB4youRouteImport } from './routes/api/webhooks/b4you'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -89,9 +91,19 @@ const ApiEventsRoute = ApiEventsRouteImport.update({
   path: '/api/events',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCronCrmProcessRoute = ApiCronCrmProcessRouteImport.update({
+  id: '/api/cron/crm-process',
+  path: '/api/cron/crm-process',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicEventsRoute = ApiPublicEventsRouteImport.update({
   id: '/api/public/events',
   path: '/api/public/events',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiWebhooksB4youRoute = ApiWebhooksB4youRouteImport.update({
+  id: '/api/webhooks/b4you',
+  path: '/api/webhooks/b4you',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -109,7 +121,9 @@ export interface FileRoutesByFullPath {
   '/tasks': typeof TasksRoute
   '/api/events': typeof ApiEventsRoute
   '/api/': typeof ApiIndexRoute
+  '/api/cron/crm-process': typeof ApiCronCrmProcessRoute
   '/api/public/events': typeof ApiPublicEventsRoute
+  '/api/webhooks/b4you': typeof ApiWebhooksB4youRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -125,7 +139,9 @@ export interface FileRoutesByTo {
   '/tasks': typeof TasksRoute
   '/api/events': typeof ApiEventsRoute
   '/api': typeof ApiIndexRoute
+  '/api/cron/crm-process': typeof ApiCronCrmProcessRoute
   '/api/public/events': typeof ApiPublicEventsRoute
+  '/api/webhooks/b4you': typeof ApiWebhooksB4youRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -142,7 +158,9 @@ export interface FileRoutesById {
   '/tasks': typeof TasksRoute
   '/api/events': typeof ApiEventsRoute
   '/api/': typeof ApiIndexRoute
+  '/api/cron/crm-process': typeof ApiCronCrmProcessRoute
   '/api/public/events': typeof ApiPublicEventsRoute
+  '/api/webhooks/b4you': typeof ApiWebhooksB4youRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -160,7 +178,9 @@ export interface FileRouteTypes {
     | '/tasks'
     | '/api/events'
     | '/api/'
+    | '/api/cron/crm-process'
     | '/api/public/events'
+    | '/api/webhooks/b4you'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -176,7 +196,9 @@ export interface FileRouteTypes {
     | '/tasks'
     | '/api/events'
     | '/api'
+    | '/api/cron/crm-process'
     | '/api/public/events'
+    | '/api/webhooks/b4you'
   id:
     | '__root__'
     | '/'
@@ -192,7 +214,9 @@ export interface FileRouteTypes {
     | '/tasks'
     | '/api/events'
     | '/api/'
+    | '/api/cron/crm-process'
     | '/api/public/events'
+    | '/api/webhooks/b4you'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -209,7 +233,9 @@ export interface RootRouteChildren {
   TasksRoute: typeof TasksRoute
   ApiEventsRoute: typeof ApiEventsRoute
   ApiIndexRoute: typeof ApiIndexRoute
+  ApiCronCrmProcessRoute: typeof ApiCronCrmProcessRoute
   ApiPublicEventsRoute: typeof ApiPublicEventsRoute
+  ApiWebhooksB4youRoute: typeof ApiWebhooksB4youRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -305,11 +331,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiEventsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/cron/crm-process': {
+      id: '/api/cron/crm-process'
+      path: '/api/cron/crm-process'
+      fullPath: '/api/cron/crm-process'
+      preLoaderRoute: typeof ApiCronCrmProcessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/events': {
       id: '/api/public/events'
       path: '/api/public/events'
       fullPath: '/api/public/events'
       preLoaderRoute: typeof ApiPublicEventsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/webhooks/b4you': {
+      id: '/api/webhooks/b4you'
+      path: '/api/webhooks/b4you'
+      fullPath: '/api/webhooks/b4you'
+      preLoaderRoute: typeof ApiWebhooksB4youRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -329,7 +369,9 @@ const rootRouteChildren: RootRouteChildren = {
   TasksRoute: TasksRoute,
   ApiEventsRoute: ApiEventsRoute,
   ApiIndexRoute: ApiIndexRoute,
+  ApiCronCrmProcessRoute: ApiCronCrmProcessRoute,
   ApiPublicEventsRoute: ApiPublicEventsRoute,
+  ApiWebhooksB4youRoute: ApiWebhooksB4youRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

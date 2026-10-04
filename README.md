@@ -13,6 +13,17 @@ Os dados do CRM ficam no `localStorage` do navegador nesta fase. Toda leitura/es
 `src/services/crm/index.ts`; para ligar o backend basta reimplementar essas funções.
 O botão "Restaurar dados de exemplo" em Configurações recria a base de demonstração.
 
+## Backend orientado a eventos (fase 1)
+
+Webhooks da B4you entram em `POST /api/webhooks/b4you`, são guardados intactos em `crm.events`,
+deduplicados, normalizados e aplicados ao modelo do CRM (clientes, pedidos, cobranças, assinaturas,
+reembolsos, entregas, atribuição). Detalhes, regras e operação: [`docs/crm/ARCHITECTURE.md`](docs/crm/ARCHITECTURE.md).
+
+```sh
+scripts/crm-test-db.sh crm_test                                   # Postgres local descartável
+CRM_TEST_DATABASE_URL=postgres://user:pass@localhost/crm_test npm run test:crm
+```
+
 ## Desenvolvimento
 
 ```sh

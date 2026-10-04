@@ -10,11 +10,16 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ContactsRouteImport } from './routes/contacts'
+import { Route as CrmRouteImport } from './routes/crm'
 import { Route as EventsRouteImport } from './routes/events'
 import { Route as FunnelsRouteImport } from './routes/funnels'
 import { Route as JourneyRouteImport } from './routes/journey'
+import { Route as PipelineRouteImport } from './routes/pipeline'
+import { Route as RecoveryRouteImport } from './routes/recovery'
 import { Route as SalesRouteImport } from './routes/sales'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as TasksRouteImport } from './routes/tasks'
 import { Route as ApiIndexRouteImport } from './routes/api.index'
 import { Route as ApiEventsRouteImport } from './routes/api/events'
 import { Route as ApiPublicEventsRouteImport } from './routes/api/public/events'
@@ -22,6 +27,16 @@ import { Route as ApiPublicEventsRouteImport } from './routes/api/public/events'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactsRoute = ContactsRouteImport.update({
+  id: '/contacts',
+  path: '/contacts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CrmRoute = CrmRouteImport.update({
+  id: '/crm',
+  path: '/crm',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EventsRoute = EventsRouteImport.update({
@@ -39,6 +54,16 @@ const JourneyRoute = JourneyRouteImport.update({
   path: '/journey',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PipelineRoute = PipelineRouteImport.update({
+  id: '/pipeline',
+  path: '/pipeline',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RecoveryRoute = RecoveryRouteImport.update({
+  id: '/recovery',
+  path: '/recovery',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SalesRoute = SalesRouteImport.update({
   id: '/sales',
   path: '/sales',
@@ -47,6 +72,11 @@ const SalesRoute = SalesRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TasksRoute = TasksRouteImport.update({
+  id: '/tasks',
+  path: '/tasks',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiIndexRoute = ApiIndexRouteImport.update({
@@ -67,22 +97,32 @@ const ApiPublicEventsRoute = ApiPublicEventsRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/contacts': typeof ContactsRoute
+  '/crm': typeof CrmRoute
   '/events': typeof EventsRoute
   '/funnels': typeof FunnelsRoute
   '/journey': typeof JourneyRoute
+  '/pipeline': typeof PipelineRoute
+  '/recovery': typeof RecoveryRoute
   '/sales': typeof SalesRoute
   '/settings': typeof SettingsRoute
+  '/tasks': typeof TasksRoute
   '/api/events': typeof ApiEventsRoute
   '/api/': typeof ApiIndexRoute
   '/api/public/events': typeof ApiPublicEventsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/contacts': typeof ContactsRoute
+  '/crm': typeof CrmRoute
   '/events': typeof EventsRoute
   '/funnels': typeof FunnelsRoute
   '/journey': typeof JourneyRoute
+  '/pipeline': typeof PipelineRoute
+  '/recovery': typeof RecoveryRoute
   '/sales': typeof SalesRoute
   '/settings': typeof SettingsRoute
+  '/tasks': typeof TasksRoute
   '/api/events': typeof ApiEventsRoute
   '/api': typeof ApiIndexRoute
   '/api/public/events': typeof ApiPublicEventsRoute
@@ -90,11 +130,16 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/contacts': typeof ContactsRoute
+  '/crm': typeof CrmRoute
   '/events': typeof EventsRoute
   '/funnels': typeof FunnelsRoute
   '/journey': typeof JourneyRoute
+  '/pipeline': typeof PipelineRoute
+  '/recovery': typeof RecoveryRoute
   '/sales': typeof SalesRoute
   '/settings': typeof SettingsRoute
+  '/tasks': typeof TasksRoute
   '/api/events': typeof ApiEventsRoute
   '/api/': typeof ApiIndexRoute
   '/api/public/events': typeof ApiPublicEventsRoute
@@ -103,33 +148,48 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/contacts'
+    | '/crm'
     | '/events'
     | '/funnels'
     | '/journey'
+    | '/pipeline'
+    | '/recovery'
     | '/sales'
     | '/settings'
+    | '/tasks'
     | '/api/events'
     | '/api/'
     | '/api/public/events'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/contacts'
+    | '/crm'
     | '/events'
     | '/funnels'
     | '/journey'
+    | '/pipeline'
+    | '/recovery'
     | '/sales'
     | '/settings'
+    | '/tasks'
     | '/api/events'
     | '/api'
     | '/api/public/events'
   id:
     | '__root__'
     | '/'
+    | '/contacts'
+    | '/crm'
     | '/events'
     | '/funnels'
     | '/journey'
+    | '/pipeline'
+    | '/recovery'
     | '/sales'
     | '/settings'
+    | '/tasks'
     | '/api/events'
     | '/api/'
     | '/api/public/events'
@@ -137,11 +197,16 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ContactsRoute: typeof ContactsRoute
+  CrmRoute: typeof CrmRoute
   EventsRoute: typeof EventsRoute
   FunnelsRoute: typeof FunnelsRoute
   JourneyRoute: typeof JourneyRoute
+  PipelineRoute: typeof PipelineRoute
+  RecoveryRoute: typeof RecoveryRoute
   SalesRoute: typeof SalesRoute
   SettingsRoute: typeof SettingsRoute
+  TasksRoute: typeof TasksRoute
   ApiEventsRoute: typeof ApiEventsRoute
   ApiIndexRoute: typeof ApiIndexRoute
   ApiPublicEventsRoute: typeof ApiPublicEventsRoute
@@ -154,6 +219,20 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contacts': {
+      id: '/contacts'
+      path: '/contacts'
+      fullPath: '/contacts'
+      preLoaderRoute: typeof ContactsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/crm': {
+      id: '/crm'
+      path: '/crm'
+      fullPath: '/crm'
+      preLoaderRoute: typeof CrmRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/events': {
@@ -177,6 +256,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof JourneyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pipeline': {
+      id: '/pipeline'
+      path: '/pipeline'
+      fullPath: '/pipeline'
+      preLoaderRoute: typeof PipelineRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/recovery': {
+      id: '/recovery'
+      path: '/recovery'
+      fullPath: '/recovery'
+      preLoaderRoute: typeof RecoveryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sales': {
       id: '/sales'
       path: '/sales'
@@ -189,6 +282,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tasks': {
+      id: '/tasks'
+      path: '/tasks'
+      fullPath: '/tasks'
+      preLoaderRoute: typeof TasksRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/': {
@@ -217,11 +317,16 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ContactsRoute: ContactsRoute,
+  CrmRoute: CrmRoute,
   EventsRoute: EventsRoute,
   FunnelsRoute: FunnelsRoute,
   JourneyRoute: JourneyRoute,
+  PipelineRoute: PipelineRoute,
+  RecoveryRoute: RecoveryRoute,
   SalesRoute: SalesRoute,
   SettingsRoute: SettingsRoute,
+  TasksRoute: TasksRoute,
   ApiEventsRoute: ApiEventsRoute,
   ApiIndexRoute: ApiIndexRoute,
   ApiPublicEventsRoute: ApiPublicEventsRoute,

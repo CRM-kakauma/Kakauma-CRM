@@ -1,6 +1,20 @@
 import { useState, type ReactNode } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Activity, BarChart3, Code2, Filter, Menu, Route as RouteIcon, Settings, ShoppingBag } from "lucide-react";
+import {
+  Activity,
+  BarChart3,
+  CheckSquare,
+  Code2,
+  Filter,
+  KanbanSquare,
+  LayoutDashboard,
+  LifeBuoy,
+  Menu,
+  Route as RouteIcon,
+  Settings,
+  ShoppingBag,
+  Users,
+} from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { PeriodSelector } from "@/components/period-selector";
@@ -8,7 +22,17 @@ import { cn } from "@/lib/utils";
 
 const LOGO = "https://kakauma.com.br/assets/kakauma-logo-CFkJSghB.png";
 
-const NAV: { to: string; label: string; icon: typeof BarChart3 }[] = [
+type NavItem = { to: string; label: string; icon: typeof BarChart3 };
+
+const NAV_CRM: NavItem[] = [
+  { to: "/crm", label: "Painel CRM", icon: LayoutDashboard },
+  { to: "/contacts", label: "Contatos", icon: Users },
+  { to: "/pipeline", label: "Pipeline", icon: KanbanSquare },
+  { to: "/recovery", label: "Recuperação", icon: LifeBuoy },
+  { to: "/tasks", label: "Tarefas", icon: CheckSquare },
+];
+
+const NAV: NavItem[] = [
   { to: "/", label: "Visão Geral", icon: BarChart3 },
   { to: "/funnels", label: "Funis", icon: Filter },
   { to: "/sales", label: "Vendas", icon: ShoppingBag },
@@ -44,7 +68,10 @@ function NavList({ onNavigate }: { onNavigate?: (() => void) | undefined }) {
   };
 
   return (
-    <nav className="flex flex-1 flex-col gap-1">
+    <nav className="flex flex-1 flex-col gap-1 overflow-y-auto">
+      <p className="label-eyebrow px-3 pb-1">CRM</p>
+      {NAV_CRM.map((n) => item(n.to, n.label, n.icon))}
+      <p className="label-eyebrow mt-4 px-3 pb-1">Analytics</p>
       {NAV.map((n) => item(n.to, n.label, n.icon))}
       <div className="my-3 h-px bg-border" />
       {NAV_SYSTEM.map((n) => item(n.to, n.label, n.icon))}
@@ -62,9 +89,9 @@ function SidebarContent({ onNavigate }: { onNavigate?: (() => void) | undefined 
       </Link>
       <NavList onNavigate={onNavigate} />
       <div className="rounded-lg bg-muted/60 px-3 py-2.5">
-        <p className="text-xs font-medium text-foreground">Analytics MVP</p>
+        <p className="text-xs font-medium text-foreground">CRM em modo demonstração</p>
         <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
-          Toda métrica é derivada dos eventos armazenados.
+          Os dados do CRM ficam neste navegador até o backend ser conectado.
         </p>
       </div>
     </div>
@@ -73,6 +100,9 @@ function SidebarContent({ onNavigate }: { onNavigate?: (() => void) | undefined 
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
+  const pathname = useRouterState({ select: (st) => st.location.pathname });
+  // The period filter only drives the analytics screens.
+  const isCrm = NAV_CRM.some((n) => pathname.startsWith(n.to));
 
   return (
     <div className="min-h-screen bg-background">
@@ -94,10 +124,12 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Sheet>
 
           <div className="flex-1">
-            <p className="text-sm font-semibold tracking-tight">Kakauma Analytics</p>
-            <p className="hidden text-xs text-muted-foreground sm:block">Período selecionado</p>
+            <p className="text-sm font-semibold tracking-tight">Kakauma CRM</p>
+            <p className="hidden text-xs text-muted-foreground sm:block">
+              {isCrm ? "Relacionamento e vendas" : "Período selecionado"}
+            </p>
           </div>
-          <PeriodSelector />
+          {!isCrm && <PeriodSelector />}
         </header>
 
         <main className="mx-auto w-full max-w-[1400px] px-4 py-6 sm:px-6 lg:py-8">{children}</main>

@@ -36,7 +36,8 @@ todo estado é derivado e pode ser reconstruído reprocessando `crm.events`.
 | Endpoint do webhook | `src/routes/api/webhooks/b4you.ts` |
 | Worker de retry / backfill | `src/routes/api/cron/crm-process.ts` |
 | State engine (lifecycle, risco, qualidade, LTV, CX, Customer 360) | `drizzle/migrations/0010_crm_state_engine.sql` |
-| Testes (42) | `tests/crm/*.test.ts` |
+| Segmentação + automação | `drizzle/migrations/0011_crm_segments_automations.sql`, `src/server/crm/automation.ts` |
+| Testes (54) | `tests/crm/*.test.ts` |
 
 O schema `crm` é **privado**: RLS ligado, sem acesso para `anon`/`authenticated`. O app só fala com ele
 por funções `public.crm_*` (SECURITY DEFINER) liberadas apenas para `service_role`.

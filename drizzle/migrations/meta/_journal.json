@@ -78,6 +78,13 @@
       "when": 1790793624207,
       "tag": "0010_crm_state_engine",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1790793684207,
+      "tag": "0011_crm_segments_automations",
+      "breakpoints": true
     }
   ]
 }

@@ -162,3 +162,10 @@ export async function backfillFromLegacy(rpc: Rpc, limit = 5000): Promise<number
   if (error) throw new Error(error.message);
   return Number(data ?? 0);
 }
+
+/** Re-evaluates time-based state (DUE, CHURN_RISK, CHURNED, "recent" windows) for customers not refreshed lately. */
+export async function refreshCustomers(rpc: Rpc, limit = 500): Promise<number> {
+  const { data, error } = await rpc("crm_refresh_customers", { p_limit: limit });
+  if (error) throw new Error(error.message);
+  return Number(data ?? 0);
+}

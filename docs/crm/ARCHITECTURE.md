@@ -35,7 +35,8 @@ todo estado é derivado e pode ser reconstruído reprocessando `crm.events`.
 | Pipeline (webhook → store → normalize → engine) | `src/server/crm/pipeline.ts` |
 | Endpoint do webhook | `src/routes/api/webhooks/b4you.ts` |
 | Worker de retry / backfill | `src/routes/api/cron/crm-process.ts` |
-| Testes (33) | `tests/crm/*.test.ts` |
+| State engine (lifecycle, risco, qualidade, LTV, CX, Customer 360) | `drizzle/migrations/0010_crm_state_engine.sql` |
+| Testes (42) | `tests/crm/*.test.ts` |
 
 O schema `crm` é **privado**: RLS ligado, sem acesso para `anon`/`authenticated`. O app só fala com ele
 por funções `public.crm_*` (SECURITY DEFINER) liberadas apenas para `service_role`.
@@ -110,11 +111,43 @@ confirmação com payloads reais (anonimizados) de cada evento:
 Sem `charge_id`, cobranças são deduplicadas por `sale_id` (ou `assinatura + dia` em renovações) e o caso é
 registrado em `crm.data_quality_issues` (`missing_charge_id`).
 
-## Próximas fases (ordem da especificação)
+## Fase 2 — State engine
 
-- **Fase 2 — Customer 360 + State/Lifecycle/Risk**: views do Customer 360, lifecycle do cliente
-  (LEAD → … → REPEAT_CUSTOMER), risk engine (HIGH_VALUE_AT_RISK, CHURN_RISK), score de qualidade do
-  assinante, CX (tempo e atraso de entrega).
+Tudo é **recalculado a partir dos fatos** depois de cada evento e periodicamente (o worker chama
+`crm_refresh_customers`), porque alguns estados dependem só do tempo passar.
+
+**Lifecycle do cliente** (`customers.current_lifecycle_stage`):
+
+- Avulso: `LEAD → PROSPECT → CHECKOUT_STARTED → PURCHASED → DELIVERING → DELIVERED → ACTIVE_CUSTOMER → REPEAT_CUSTOMER`, e `CHURNED` após `churn_after_days` sem comprar.
+- Assinante (pela assinatura mais relevante): `NEW_SUBSCRIBER`, `ACTIVE_SUBSCRIBER`, `EXPIRING`, `RENEWED`,
+  `LATE`, `RECOVERED`, `CANCELLATION_REQUESTED`, `CANCELLED`, `REACTIVATED`, `CHURNED` (expirada).
+- Cada mudança gera um fato `LIFECYCLE_CHANGED` / `RISK_CHANGED` em `customer_events` (gatilho para automações).
+
+**Risco** (assinatura e cliente): `CHURN_RISK` (pediu cancelamento / inativo), `PAYMENT_RISK` (falhou),
+`AT_RISK` (atrasado, `DUE`, reembolso ou problema de entrega recente) e `HIGH_VALUE_AT_RISK` quando o
+cliente em risco tem LTV líquido ≥ `high_value_net_ltv`. `DUE` é inferido quando a data de cobrança passa
+sem pagamento — nunca vira atraso ou cancelamento sem evidência da B4you.
+
+**Subscription Quality Score** (0–100, `subscriptions.quality_score/quality_class/quality_factors`):
+base 50, +8 por ciclo pago (até +40), −10 por atraso, −10 por falha, −20 por reembolso, −15 se pediu
+cancelamento, +10 se alto valor, −10 por problema de entrega. Classes: `HIGH_QUALITY` (≥70),
+`MEDIUM_QUALITY` (≥40), `LOW_QUALITY`, `AT_RISK`, `HIGH_VALUE_AT_RISK`. Os fatores ficam gravados, então
+todo score é explicável. Pesos ajustáveis em `crm.settings` (`quality_weights`).
+
+**LTV**: `gross_ltv`, `net_ltv` (− reembolsos − chargebacks) e `contribution_ltv`
+(− taxas da plataforma − frete − comissões de afiliado). COGS, impostos e CAC entram quando houver fonte.
+
+**CX** (`crm.customer_experience`): tempo médio de entrega, atrasos, falhas, reembolsos, atrasos de
+assinatura, cancelamentos, recompras. `complaints` e `cx_score` ficam `null` até existir fonte.
+
+**Customer 360**: `public.crm_customer_360(customer_id)` devolve identidade, aquisição, compras,
+assinaturas (com cobranças por ciclo e score), financeiro, logística, experiência, estado de CRM e a
+linha do tempo. Busca: `public.crm_search_customers(texto, lifecycle, risco, tipo)`.
+
+**Configuração** (`crm.settings`): `activity_window_days` (90), `churn_after_days` (180), `recent_days` (30),
+`high_value_net_ltv` (500), `due_grace_days` (1), `quality_weights`.
+
+## Próximas fases (ordem da especificação)
 - **Fase 3 — Segmentação + Automação**: segmentos dinâmicos; regras `evento → condições → segmento → ação`
   consumindo `crm.customer_events`; log de execuções.
 - **Fase 4 — Analytics**: LTV bruto/líquido/contribuição, cohorts C1→C5, refund rate por

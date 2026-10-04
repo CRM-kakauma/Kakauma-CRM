@@ -5,6 +5,8 @@ import { createFileRoute } from "@tanstack/react-router";
  * processes events stored without inline processing (e.g. legacy backfill).
  * Authenticated with the Lovable cron secret (Authorization: Bearer ...).
  *
+ * It also re-evaluates time-based customer state (DUE, CHURN_RISK, CHURNED).
+ *
  * Body (optional JSON): { "limit": 200, "backfill": true }
  */
 export const Route = createFileRoute("/api/cron/crm-process")({
@@ -19,12 +21,14 @@ export const Route = createFileRoute("/api/cron/crm-process")({
           limit?: number;
           backfill?: boolean;
         };
-        const { backfillFromLegacy, processPending } = await import("@/server/crm/pipeline.server");
+        const { backfillFromLegacy, processPending, refreshCustomers } =
+          await import("@/server/crm/pipeline.server");
         const backfilled = body.backfill ? await backfillFromLegacy() : 0;
         const summary = await processPending({
           limit: Math.min(Math.max(body.limit ?? 200, 1), 1000),
         });
-        return Response.json({ ok: true, backfilled, ...summary });
+        const refreshed = await refreshCustomers();
+        return Response.json({ ok: true, backfilled, ...summary, refreshed });
       },
     },
   },

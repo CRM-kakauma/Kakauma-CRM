@@ -10,3 +10,4 @@ export const ingestWebhook = (source: string, rawBody: string) =>
 export const processPending = (opts: { limit?: number; id?: string } = {}) =>
   core.processPending(rpc, opts);
 export const backfillFromLegacy = (limit = 5000) => core.backfillFromLegacy(rpc, limit);
+export const refreshCustomers = (limit = 500) => core.refreshCustomers(rpc, limit);

@@ -52,6 +52,9 @@ export interface Me {
   role: "admin" | "operator" | "viewer";
   /** false when running locally without login */
   login?: boolean;
+  /** true when running on the in-memory database with fictitious data */
+  demo?: boolean;
+  demo_state?: "loading" | "ready" | "error";
 }
 
 export function useMe() {
@@ -69,6 +72,8 @@ export function useMe() {
     },
     staleTime: 60_000,
     retry: false,
+    // While the demo database is being built, poll so the screens know when it is ready.
+    refetchInterval: (q) => (q.state.data?.demo_state === "loading" ? 2000 : false),
   });
 }
 

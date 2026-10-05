@@ -1,4 +1,4 @@
-import { crmConfig, crmRpc, env, keyHeaders } from "./supabase.server.ts";
+import { crmConfig, crmRpc, demoMode, env, keyHeaders } from "./supabase.server.ts";
 
 /**
  * CRM login with Supabase Auth (e-mail + password) kept in httpOnly cookies.
@@ -108,7 +108,8 @@ export async function login(
  * Production builds always require login (import.meta.env.DEV is false there).
  */
 export function loginDisabled(): boolean {
-  return import.meta.env.DEV && env("CRM_REQUIRE_LOGIN") !== "true";
+  // Demo mode has no auth server, so it never asks for a login.
+  return import.meta.env.DEV && (env("CRM_REQUIRE_LOGIN") !== "true" || demoMode());
 }
 
 const LOCAL_SESSION: Session = {

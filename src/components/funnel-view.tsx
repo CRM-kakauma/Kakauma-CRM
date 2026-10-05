@@ -28,50 +28,57 @@ export function FunnelView({ funnel, dense = false }: { funnel: FunnelResult; de
       {funnel.stages.map((stage, i) => {
         const pct = i === 0 ? 100 : stage.conversion;
         return (
-        <div key={stage.key}>
-          <div className="rounded-xl border border-border bg-card p-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="min-w-40">
-                <p className="text-sm font-medium">
-                  <span className="mr-2 text-muted-foreground num">{i + 1}.</span>
-                  {stage.label}
-                </p>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  <span className="font-semibold text-foreground num">{formatNumber(stage.users)}</span>{" "}
-                  {stage.users === 1 ? "cliente" : "clientes"}
-                </p>
-              </div>
-              {i > 0 && (
-                <div className={cn("flex items-center gap-6 text-right", dense && "gap-4")}>
-                  <div>
-                    <p className="label-eyebrow">Avançaram</p>
-                    <p className="mt-0.5 text-sm font-semibold num">{formatPercent(stage.conversion)}</p>
-                  </div>
-                  <div>
-                    <p className="label-eyebrow">Desistiram</p>
-                    <p className="mt-0.5 text-sm font-semibold num text-muted-foreground">
-                      {formatNumber(stage.drop_off_users)}
-                      {!dense && ` (${formatPercent(stage.drop_off)})`}
-                    </p>
-                  </div>
+          <div key={stage.key}>
+            <div className="rounded-xl border border-border bg-card p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="min-w-40">
+                  <p className="text-sm font-medium">
+                    <span className="mr-2 text-muted-foreground num">{i + 1}.</span>
+                    {stage.label}
+                  </p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    <span className="font-semibold text-foreground num">
+                      {formatNumber(stage.users)}
+                    </span>{" "}
+                    {stage.users === 1 ? "cliente" : "clientes"}
+                  </p>
                 </div>
-              )}
+                {i > 0 && (
+                  <div className={cn("flex items-center gap-6 text-right", dense && "gap-4")}>
+                    <div>
+                      <p className="label-eyebrow">Avançaram</p>
+                      <p className="mt-0.5 text-sm font-semibold num">
+                        {formatPercent(stage.conversion)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="label-eyebrow">Desistiram</p>
+                      <p className="mt-0.5 text-sm font-semibold num text-muted-foreground">
+                        {formatNumber(stage.drop_off_users)}
+                        {!dense && ` (${formatPercent(stage.drop_off)})`}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-muted">
+                {pct > 0 && (
+                  <div
+                    className={cn(
+                      "h-full rounded-full transition-all",
+                      BAR_TONE[i] ?? "bg-primary",
+                    )}
+                    style={{ width: `${Math.min(100, pct)}%` }}
+                  />
+                )}
+              </div>
             </div>
-            <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-muted">
-              {pct > 0 && (
-                <div
-                  className={cn("h-full rounded-full transition-all", BAR_TONE[i] ?? "bg-primary")}
-                  style={{ width: `${Math.min(100, pct)}%` }}
-                />
-              )}
-            </div>
+            {i < funnel.stages.length - 1 && (
+              <div className="flex justify-center py-1">
+                <ArrowDown className="size-4 text-border-strong" />
+              </div>
+            )}
           </div>
-          {i < funnel.stages.length - 1 && (
-            <div className="flex justify-center py-1">
-              <ArrowDown className="size-4 text-border-strong" />
-            </div>
-          )}
-        </div>
         );
       })}
     </div>
@@ -93,34 +100,43 @@ export function MethodSplit({ funnel }: { funnel: FunnelResult }) {
       {items.map((item) => {
         const has = item.data.generated > 0;
         return (
-        <div key={item.key} className="surface p-5">
-          <div className="flex items-center justify-between">
-            <p className="label-eyebrow">{item.key}</p>
-            <span
-              className={cn("rounded-md px-2 py-0.5 text-xs font-semibold num", item.soft, item.tone)}
-            >
-              {has ? `${formatPercent(item.data.conversion)} aprovados` : "sem dados"}
-            </span>
-          </div>
-          <div className="mt-4 grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-xs text-muted-foreground">Gerados</p>
-              <p className="mt-1 text-lg font-semibold num">{formatNumber(item.data.generated)}</p>
+          <div key={item.key} className="surface p-5">
+            <div className="flex items-center justify-between">
+              <p className="label-eyebrow">{item.key}</p>
+              <span
+                className={cn(
+                  "rounded-md px-2 py-0.5 text-xs font-semibold num",
+                  item.soft,
+                  item.tone,
+                )}
+              >
+                {has ? `${formatPercent(item.data.conversion)} aprovados` : "sem dados"}
+              </span>
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Pagos</p>
-              <p className="mt-1 text-lg font-semibold num">{formatNumber(item.data.approved)}</p>
+            <div className="mt-4 grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-muted-foreground">Gerados</p>
+                <p className="mt-1 text-lg font-semibold num">
+                  {formatNumber(item.data.generated)}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Pagos</p>
+                <p className="mt-1 text-lg font-semibold num">{formatNumber(item.data.approved)}</p>
+              </div>
+            </div>
+            <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-muted">
+              {has && item.data.conversion > 0 && (
+                <div
+                  className={cn(
+                    "h-full rounded-full",
+                    item.key === "PIX" ? "bg-primary" : "bg-accent",
+                  )}
+                  style={{ width: `${Math.min(100, item.data.conversion)}%` }}
+                />
+              )}
             </div>
           </div>
-          <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-muted">
-            {has && item.data.conversion > 0 && (
-              <div
-                className={cn("h-full rounded-full", item.key === "PIX" ? "bg-primary" : "bg-accent")}
-                style={{ width: `${Math.min(100, item.data.conversion)}%` }}
-              />
-            )}
-          </div>
-        </div>
         );
       })}
     </div>

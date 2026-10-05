@@ -102,7 +102,18 @@ function Operations({ me }: { me: Me }) {
         </p>
       </Section>
 
-      {isAdmin && <ImportLegacy onDone={refresh} />}
+      {me.demo ? (
+        <Section title="Modo demonstração">
+          <p className="surface p-4 text-sm text-muted-foreground">
+            O CRM está rodando num banco em memória com <strong>dados fictícios</strong> (recriados
+            toda vez que o servidor sobe). Para usar seus dados reais, configure o Supabase do CRM
+            no <code>.env</code> (veja docs/crm/LOCAL_SETUP.md) e reinicie o{" "}
+            <code>npm run dev</code>: a importação do histórico aparece aqui.
+          </p>
+        </Section>
+      ) : (
+        isAdmin && <ImportLegacy onDone={refresh} />
+      )}
 
       <Section
         title="Fila de erros"

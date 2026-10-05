@@ -62,8 +62,30 @@ export function keyHeaders(key: string): Record<string, string> {
   return key.startsWith("sb_") ? { apikey: key } : { apikey: key, authorization: `Bearer ${key}` };
 }
 
-/** public.crm_* functions through PostgREST, as service_role. */
+/**
+ * Demo mode: local development without CRM_SUPABASE_URL (or with CRM_DEMO=true)
+ * runs on an in-memory database with fictitious data. Never in production builds.
+ */
+export function demoMode(): boolean {
+  if (!import.meta.env.DEV) return false;
+  return env("CRM_DEMO") === "true" || !env("CRM_SUPABASE_URL");
+}
+
+/** public.crm_* functions through PostgREST, as service_role (or the demo database). */
 export const crmRpc: Rpc = async (fn, args) => {
+  if (demoMode()) {
+    const { demoRpc } = await import("./demo/demo.server.ts");
+    try {
+      return await (
+        await demoRpc()
+      )(fn, args);
+    } catch (e) {
+      return {
+        data: null,
+        error: { message: `Banco de demonstração falhou: ${(e as Error).message}` },
+      };
+    }
+  }
   const { url, serviceKey } = crmConfig();
   let res: Response;
   try {

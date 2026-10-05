@@ -346,7 +346,7 @@ function Retention({ range }: { range: Range }) {
         <div
           className="rounded-md px-2 py-1.5 text-center text-xs font-medium num"
           style={{
-            background: `color-mix(in oklch, var(--primary) ${Math.round(10 + r * 0.75)}%, var(--card))`,
+            background: `color-mix(in srgb, var(--primary) ${Math.round(10 + r * 0.75)}%, var(--card))`,
             color: r > 55 ? "var(--primary-foreground)" : "var(--foreground)",
           }}
           title={`${pct(r)} de ${eligible} assinaturas elegíveis`}

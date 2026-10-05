@@ -113,6 +113,19 @@ function SidebarContent({ onNavigate }: { onNavigate?: (() => void) | undefined 
   );
 }
 
+function DemoBadge() {
+  const { data: me } = useMe();
+  if (!me?.demo) return null;
+  return (
+    <span
+      className="rounded-md bg-warning-soft px-2 py-1 text-xs font-medium text-warning-foreground"
+      title="Sem Supabase do CRM configurado: o CRM roda num banco em memória com webhooks fictícios, recriados a cada vez que o servidor sobe."
+    >
+      Dados fictícios · demonstração
+    </span>
+  );
+}
+
 function UserBox() {
   const { data: me } = useMe();
   const navigate = useNavigate();
@@ -128,13 +141,15 @@ function UserBox() {
       <div className="min-w-0 flex-1">
         <p className="truncate text-xs font-medium text-foreground">{me.email}</p>
         <p className="text-[11px] text-muted-foreground">
-          {me.login === false
-            ? "Modo local, sem login"
-            : me.role === "admin"
-              ? "Administrador"
-              : me.role === "operator"
-                ? "Operador"
-                : "Leitura"}
+          {me.demo
+            ? "Demonstração · dados fictícios"
+            : me.login === false
+              ? "Modo local, sem login"
+              : me.role === "admin"
+                ? "Administrador"
+                : me.role === "operator"
+                  ? "Operador"
+                  : "Leitura"}
         </p>
       </div>
       {me.login !== false && (
@@ -180,6 +195,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               {showPeriod ? "Período selecionado" : "Relacionamento e vendas"}
             </p>
           </div>
+          <DemoBadge />
           {showPeriod && <PeriodSelector />}
         </header>
 

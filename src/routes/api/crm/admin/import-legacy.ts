@@ -20,6 +20,18 @@ export const Route = createFileRoute("/api/crm/admin/import-legacy")({
           if (!session) return json({ error: "unauthenticated" }, 401);
           if (session.role !== "admin")
             return json({ error: "forbidden" }, 403, session.setCookies);
+          const { demoMode } = await import("@/server/crm/supabase.server");
+          if (demoMode()) {
+            return json(
+              {
+                error: "demo_mode",
+                message:
+                  "Modo demonstração (dados fictícios): configure o Supabase do CRM no .env para importar dados reais.",
+              },
+              400,
+              session.setCookies,
+            );
+          }
           const legacy = legacyConfig();
           if (!legacy) {
             return json(

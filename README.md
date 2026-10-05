@@ -9,7 +9,8 @@ CRM da Kakauma construído sobre a base do **Kakauma Analytics** (TanStack Start
 | CRM | `/crm`, `/customers`, `/recovery`, `/segments`, `/automations`, `/insights`, `/operations` | Supabase **próprio do CRM** (`CRM_SUPABASE_*`), com login |
 | Analytics (legado) | `/`, `/funnels`, `/sales`, `/journey`, `/events`, `/api` | Supabase antigo (`VITE_SUPABASE_*`) |
 
-**Rodar localmente:** siga [`docs/crm/LOCAL_SETUP.md`](docs/crm/LOCAL_SETUP.md).
+**Rodar localmente:** `npm install && npm run dev` e abra <http://localhost:8080/crm> — sem configuração, roda em
+modo demonstração com dados fictícios. Para dados reais, siga [`docs/crm/LOCAL_SETUP.md`](docs/crm/LOCAL_SETUP.md).
 
 ## Backend orientado a eventos
 

@@ -43,10 +43,7 @@ export function PeriodProvider({ children }: { children: ReactNode }) {
   }));
 
   const value = useMemo<PeriodValue>(() => {
-    const days = Math.max(
-      1,
-      Math.round((range.to.getTime() - range.from.getTime()) / 86_400_000),
-    );
+    const days = Math.max(1, Math.round((range.to.getTime() - range.from.getTime()) / 86_400_000));
     const bucket: Bucket = days <= 14 ? "day" : days <= 120 ? "day" : "week";
     return {
       preset,

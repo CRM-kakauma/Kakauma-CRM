@@ -131,8 +131,15 @@ export function TypePill({ type }: { type: string | null }) {
 }
 
 export function Loading({ rows = 3 }: { rows?: number }) {
+  const { data: me } = useMe();
   return (
     <div className="space-y-3">
+      {me?.demo_state === "loading" && (
+        <p className="text-sm text-muted-foreground">
+          Preparando os dados fictícios de demonstração (só na primeira vez que o servidor sobe, ~15
+          s)…
+        </p>
+      )}
       {Array.from({ length: rows }).map((_, i) => (
         <Skeleton key={i} className="h-16 w-full rounded-xl" />
       ))}

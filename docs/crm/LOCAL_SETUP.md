@@ -1,5 +1,22 @@
 # Rodar o Kakauma CRM no seu computador
 
+## Jeito rápido: modo demonstração (dados fictícios)
+
+Sem configurar nada:
+
+```bash
+git pull origin claude/amazing-johnson-l94x8l
+npm install
+npm run dev
+```
+
+Abra <http://localhost:8080/crm>. Sem o Supabase do CRM no `.env`, o app roda num banco em memória com
+**webhooks fictícios** (~140 clientes, compras, assinaturas, entregas, reembolsos, campanhas e gasto de mídia),
+processados pelo motor real — todas as telas funcionam. A faixa "Dados fictícios · demonstração" fica no
+topo. A primeira carga leva ~15 s; os dados são recriados a cada vez que o servidor sobe.
+
+Quando quiser usar seus **dados reais**, siga os passos abaixo.
+
 Leva uns 15 minutos. Você vai: criar um projeto Supabase só para o CRM, colocar as chaves no `.env`,
 criar as tabelas e importar o histórico de webhooks que o analytics antigo já guardou.
 

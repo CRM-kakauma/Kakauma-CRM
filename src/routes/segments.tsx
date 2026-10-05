@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { RuleBuilder, type Rule } from "@/components/crm/rule-builder";
 import { crmCall, useCrm, type Me } from "@/lib/crm-api";
 
 export const Route = createFileRoute("/segments")({
@@ -46,14 +46,6 @@ const CATEGORY: Record<string, string> = {
   custom: "Personalizado",
 };
 
-const EXAMPLE = `{
-  "all": [
-    { "field": "value_tier", "op": "=", "value": "high" },
-    { "field": "has_active_subscription", "op": "is_true" },
-    { "field": "state", "op": "in", "value": ["SP", "RJ"] }
-  ]
-}`;
-
 function Segments({ me }: { me: Me }) {
   const { data, isLoading, error } = useCrm<Segment[]>("crm_list_segments");
   const [editing, setEditing] = useState<Segment | "new" | null>(null);
@@ -70,7 +62,7 @@ function Segments({ me }: { me: Me }) {
         title="Segmentos"
         description="Grupos dinâmicos: a participação é recalculada a cada evento e periodicamente."
       >
-        {me.role === "admin" && (
+        {me.role !== "viewer" && (
           <Button onClick={() => setEditing("new")}>
             <Plus className="size-4" /> Novo segmento
           </Button>
@@ -101,7 +93,7 @@ function Segments({ me }: { me: Me }) {
                         </p>
                         <p className="text-[11px] text-muted-foreground">clientes</p>
                       </Link>
-                      {!s.is_system && me.role === "admin" && (
+                      {!s.is_system && me.role !== "viewer" && (
                         <Button size="sm" variant="ghost" onClick={() => setEditing(s)}>
                           Editar
                         </Button>
@@ -126,31 +118,30 @@ function Segments({ me }: { me: Me }) {
 
 function SegmentDialog({ segment, onClose }: { segment: Segment | null; onClose: () => void }) {
   const qc = useQueryClient();
-  const { data: fields = [] } = useCrm<string[]>("crm_rule_fields");
   const [name, setName] = useState(segment?.name ?? "");
   const [key, setKey] = useState(segment?.key ?? "");
-  const [definition, setDefinition] = useState(
-    segment ? JSON.stringify(segment.definition, null, 2) : EXAMPLE,
-  );
+  const [definition, setDefinition] = useState<Rule>((segment?.definition as Rule) ?? {});
   const [err, setErr] = useState<string | null>(null);
 
   const save = useMutation({
-    mutationFn: async () => {
-      let def: unknown;
-      try {
-        def = JSON.parse(definition);
-      } catch {
-        throw new Error("A regra não é um JSON válido.");
-      }
-      return crmCall<number>("crm_upsert_segment", {
+    mutationFn: () =>
+      crmCall<number>("crm_upsert_segment", {
         p_key: key,
         p_name: name,
-        p_definition: def,
+        p_definition: definition,
         p_category: "custom",
-      });
-    },
+      }),
     onSuccess: (members) => {
       toast.success("Segmento salvo", { description: `${members} cliente(s) no segmento agora.` });
+      void qc.invalidateQueries({ queryKey: ["crm"] });
+      onClose();
+    },
+    onError: (e) => setErr((e as Error).message),
+  });
+  const remove = useMutation({
+    mutationFn: () => crmCall("crm_delete_segment", { p_key: key }),
+    onSuccess: () => {
+      toast.success("Segmento excluído");
       void qc.invalidateQueries({ queryKey: ["crm"] });
       onClose();
     },
@@ -159,13 +150,11 @@ function SegmentDialog({ segment, onClose }: { segment: Segment | null; onClose:
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>{segment ? "Editar segmento" : "Novo segmento"}</DialogTitle>
           <DialogDescription>
-            Regra em JSON: <code>all</code> / <code>any</code> / <code>not</code> com condições{" "}
-            <code>{"{field, op, value}"}</code>. Operadores: = != &gt; &gt;= &lt; &lt;= in not_in
-            contains is_null is_not_null is_true is_false.
+            Monte a regra; a contagem abaixo mostra quantos clientes entram agora.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -187,19 +176,21 @@ function SegmentDialog({ segment, onClose }: { segment: Segment | null; onClose:
             />
           </div>
         </div>
-        <div className="grid gap-1.5">
-          <Label>Regra</Label>
-          <Textarea
-            rows={10}
-            value={definition}
-            onChange={(e) => setDefinition(e.target.value)}
-            className="font-mono text-xs"
-            spellCheck={false}
-          />
-          <p className="text-[11px] text-muted-foreground">Campos: {fields.join(", ")}</p>
-        </div>
+        <RuleBuilder value={definition} onChange={setDefinition} />
         {err && <p className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{err}</p>}
-        <DialogFooter>
+        <DialogFooter className="gap-2">
+          {segment && (
+            <Button
+              variant="ghost"
+              className="mr-auto text-danger hover:text-danger"
+              disabled={remove.isPending}
+              onClick={() =>
+                window.confirm(`Excluir o segmento "${segment.name}"?`) && remove.mutate()
+              }
+            >
+              Excluir
+            </Button>
+          )}
           <Button variant="ghost" onClick={onClose}>
             Cancelar
           </Button>

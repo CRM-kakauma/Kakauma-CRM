@@ -99,6 +99,13 @@
       "when": 1790793804207,
       "tag": "0013_crm_app_access",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1790793864207,
+      "tag": "0014_crm_management",
+      "breakpoints": true
     }
   ]
 }

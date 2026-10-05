@@ -190,3 +190,12 @@ test("gateway: only allow-listed functions, minimum role, server-side actor", ()
   assert.equal(authorizeRpc("crm_dashboard", { "x;drop": 1 }, admin).ok, false);
   assert.equal(authorizeRpc("toString", {}, admin).ok, false);
 });
+
+test("gateway: operator edits segments/automations but not settings or users", () => {
+  const op = { role: "operator" as const, email: "o@x.com" };
+  assert.equal(authorizeRpc("crm_upsert_automation", { p_key: "x" }, op).ok, true);
+  assert.equal(authorizeRpc("crm_delete_segment", { p_key: "x" }, op).ok, true);
+  assert.equal(authorizeRpc("crm_update_setting", { p_key: "x" }, op).ok, false);
+  assert.equal(authorizeRpc("crm_set_user_access", {}, op).ok, false);
+  assert.equal(authorizeRpc("crm_list_audit", {}, op).ok, false);
+});

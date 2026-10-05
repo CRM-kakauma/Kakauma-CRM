@@ -154,3 +154,40 @@ export function json(body: unknown, status = 200, setCookies: string[] = []) {
   for (const c of setCookies) headers.append("set-cookie", c);
   return new Response(JSON.stringify(body), { status, headers });
 }
+
+/** Creates (or updates the password of) a Supabase Auth user and grants a CRM role. Admin only. */
+export async function createCrmUser(email: string, password: string, role: Role) {
+  const { url, serviceKey } = crmConfig();
+  const headers = { ...keyHeaders(serviceKey), "content-type": "application/json" };
+  let userId: string | null = null;
+  const created = await fetch(`${url}/auth/v1/admin/users`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ email, password, email_confirm: true }),
+  });
+  if (created.ok) {
+    userId = ((await created.json()) as { id: string }).id;
+  } else {
+    // Already exists: find it and update the password.
+    for (let page = 1; page < 50 && !userId; page++) {
+      const r = await fetch(`${url}/auth/v1/admin/users?page=${page}&per_page=100`, { headers });
+      if (!r.ok) throw new Error(`Supabase Auth: HTTP ${r.status}`);
+      const { users } = (await r.json()) as { users: { id: string; email?: string }[] };
+      userId = users.find((u) => u.email?.toLowerCase() === email.toLowerCase())?.id ?? null;
+      if (users.length < 100) break;
+    }
+    if (!userId) throw new Error(`Supabase Auth recusou o usuário: HTTP ${created.status}`);
+    const upd = await fetch(`${url}/auth/v1/admin/users/${userId}`, {
+      method: "PUT",
+      headers,
+      body: JSON.stringify({ password, email_confirm: true }),
+    });
+    if (!upd.ok) throw new Error(`Supabase Auth: HTTP ${upd.status}`);
+  }
+  const { error } = await crmRpc("crm_grant_access", {
+    p_user_id: userId,
+    p_email: email,
+    p_role: role,
+  });
+  if (error) throw new Error(error.message);
+}

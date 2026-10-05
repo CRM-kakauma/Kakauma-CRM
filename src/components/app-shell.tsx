@@ -13,6 +13,7 @@ import {
   Menu,
   Route as RouteIcon,
   Settings,
+  ShieldCheck,
   ShoppingBag,
   Tags,
   Users,
@@ -46,6 +47,7 @@ const NO_PERIOD = [
   "/segments",
   "/automations",
   "/operations",
+  "/admin",
   "/settings",
   "/api",
   "/events",
@@ -68,6 +70,7 @@ const NAV_FOOTER = [{ to: "/settings", label: "Configurações", icon: Settings 
 
 function NavList({ onNavigate }: { onNavigate?: (() => void) | undefined }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { data: me } = useMe();
 
   const item = (to: string, label: string, Icon: typeof BarChart3) => {
     const active = to === "/" ? pathname === "/" : pathname.startsWith(to);
@@ -91,6 +94,7 @@ function NavList({ onNavigate }: { onNavigate?: (() => void) | undefined }) {
     <nav className="flex flex-1 flex-col gap-1 overflow-y-auto">
       <p className="label-eyebrow px-3 pb-1">CRM</p>
       {NAV_CRM.map((n) => item(n.to, n.label, n.icon))}
+      {me?.role === "admin" && item("/admin", "Administração", ShieldCheck)}
       <p className="label-eyebrow mt-4 px-3 pb-1">Analytics (legado)</p>
       {NAV.map((n) => item(n.to, n.label, n.icon))}
       <div className="my-3 h-px bg-border" />

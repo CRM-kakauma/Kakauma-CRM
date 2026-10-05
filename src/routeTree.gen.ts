@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AutomationsRouteImport } from './routes/automations'
 import { Route as CrmRouteImport } from './routes/crm'
 import { Route as EventsRouteImport } from './routes/events'
@@ -31,6 +32,7 @@ import { Route as ApiCronCrmProcessRouteImport } from './routes/api/cron/crm-pro
 import { Route as ApiPublicEventsRouteImport } from './routes/api/public/events'
 import { Route as ApiWebhooksB4youRouteImport } from './routes/api/webhooks/b4you'
 import { Route as ApiCrmAdminImportLegacyRouteImport } from './routes/api/crm/admin/import-legacy'
+import { Route as ApiCrmAdminUsersRouteImport } from './routes/api/crm/admin/users'
 import { Route as ApiCrmAuthLoginRouteImport } from './routes/api/crm/auth/login'
 import { Route as ApiCrmAuthLogoutRouteImport } from './routes/api/crm/auth/logout'
 import { Route as ApiCrmAuthMeRouteImport } from './routes/api/crm/auth/me'
@@ -38,6 +40,11 @@ import { Route as ApiCrmAuthMeRouteImport } from './routes/api/crm/auth/me'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AutomationsRoute = AutomationsRouteImport.update({
@@ -145,6 +152,11 @@ const ApiCrmAdminImportLegacyRoute = ApiCrmAdminImportLegacyRouteImport.update({
   path: '/api/crm/admin/import-legacy',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCrmAdminUsersRoute = ApiCrmAdminUsersRouteImport.update({
+  id: '/api/crm/admin/users',
+  path: '/api/crm/admin/users',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiCrmAuthLoginRoute = ApiCrmAuthLoginRouteImport.update({
   id: '/api/crm/auth/login',
   path: '/api/crm/auth/login',
@@ -163,6 +175,7 @@ const ApiCrmAuthMeRoute = ApiCrmAuthMeRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/automations': typeof AutomationsRoute
   '/crm': typeof CrmRoute
   '/events': typeof EventsRoute
@@ -184,12 +197,14 @@ export interface FileRoutesByFullPath {
   '/api/public/events': typeof ApiPublicEventsRoute
   '/api/webhooks/b4you': typeof ApiWebhooksB4youRoute
   '/api/crm/admin/import-legacy': typeof ApiCrmAdminImportLegacyRoute
+  '/api/crm/admin/users': typeof ApiCrmAdminUsersRoute
   '/api/crm/auth/login': typeof ApiCrmAuthLoginRoute
   '/api/crm/auth/logout': typeof ApiCrmAuthLogoutRoute
   '/api/crm/auth/me': typeof ApiCrmAuthMeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/automations': typeof AutomationsRoute
   '/crm': typeof CrmRoute
   '/events': typeof EventsRoute
@@ -211,6 +226,7 @@ export interface FileRoutesByTo {
   '/api/public/events': typeof ApiPublicEventsRoute
   '/api/webhooks/b4you': typeof ApiWebhooksB4youRoute
   '/api/crm/admin/import-legacy': typeof ApiCrmAdminImportLegacyRoute
+  '/api/crm/admin/users': typeof ApiCrmAdminUsersRoute
   '/api/crm/auth/login': typeof ApiCrmAuthLoginRoute
   '/api/crm/auth/logout': typeof ApiCrmAuthLogoutRoute
   '/api/crm/auth/me': typeof ApiCrmAuthMeRoute
@@ -218,6 +234,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/automations': typeof AutomationsRoute
   '/crm': typeof CrmRoute
   '/events': typeof EventsRoute
@@ -239,6 +256,7 @@ export interface FileRoutesById {
   '/api/public/events': typeof ApiPublicEventsRoute
   '/api/webhooks/b4you': typeof ApiWebhooksB4youRoute
   '/api/crm/admin/import-legacy': typeof ApiCrmAdminImportLegacyRoute
+  '/api/crm/admin/users': typeof ApiCrmAdminUsersRoute
   '/api/crm/auth/login': typeof ApiCrmAuthLoginRoute
   '/api/crm/auth/logout': typeof ApiCrmAuthLogoutRoute
   '/api/crm/auth/me': typeof ApiCrmAuthMeRoute
@@ -247,6 +265,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
     | '/automations'
     | '/crm'
     | '/events'
@@ -268,12 +287,14 @@ export interface FileRouteTypes {
     | '/api/public/events'
     | '/api/webhooks/b4you'
     | '/api/crm/admin/import-legacy'
+    | '/api/crm/admin/users'
     | '/api/crm/auth/login'
     | '/api/crm/auth/logout'
     | '/api/crm/auth/me'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/admin'
     | '/automations'
     | '/crm'
     | '/events'
@@ -295,12 +316,14 @@ export interface FileRouteTypes {
     | '/api/public/events'
     | '/api/webhooks/b4you'
     | '/api/crm/admin/import-legacy'
+    | '/api/crm/admin/users'
     | '/api/crm/auth/login'
     | '/api/crm/auth/logout'
     | '/api/crm/auth/me'
   id:
     | '__root__'
     | '/'
+    | '/admin'
     | '/automations'
     | '/crm'
     | '/events'
@@ -322,6 +345,7 @@ export interface FileRouteTypes {
     | '/api/public/events'
     | '/api/webhooks/b4you'
     | '/api/crm/admin/import-legacy'
+    | '/api/crm/admin/users'
     | '/api/crm/auth/login'
     | '/api/crm/auth/logout'
     | '/api/crm/auth/me'
@@ -329,6 +353,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRoute
   AutomationsRoute: typeof AutomationsRoute
   CrmRoute: typeof CrmRoute
   EventsRoute: typeof EventsRoute
@@ -350,6 +375,7 @@ export interface RootRouteChildren {
   ApiPublicEventsRoute: typeof ApiPublicEventsRoute
   ApiWebhooksB4youRoute: typeof ApiWebhooksB4youRoute
   ApiCrmAdminImportLegacyRoute: typeof ApiCrmAdminImportLegacyRoute
+  ApiCrmAdminUsersRoute: typeof ApiCrmAdminUsersRoute
   ApiCrmAuthLoginRoute: typeof ApiCrmAuthLoginRoute
   ApiCrmAuthLogoutRoute: typeof ApiCrmAuthLogoutRoute
   ApiCrmAuthMeRoute: typeof ApiCrmAuthMeRoute
@@ -362,6 +388,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/automations': {
@@ -511,6 +544,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCrmAdminImportLegacyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/crm/admin/users': {
+      id: '/api/crm/admin/users'
+      path: '/api/crm/admin/users'
+      fullPath: '/api/crm/admin/users'
+      preLoaderRoute: typeof ApiCrmAdminUsersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/crm/auth/login': {
       id: '/api/crm/auth/login'
       path: '/api/crm/auth/login'
@@ -537,6 +577,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRoute,
   AutomationsRoute: AutomationsRoute,
   CrmRoute: CrmRoute,
   EventsRoute: EventsRoute,
@@ -558,6 +599,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicEventsRoute: ApiPublicEventsRoute,
   ApiWebhooksB4youRoute: ApiWebhooksB4youRoute,
   ApiCrmAdminImportLegacyRoute: ApiCrmAdminImportLegacyRoute,
+  ApiCrmAdminUsersRoute: ApiCrmAdminUsersRoute,
   ApiCrmAuthLoginRoute: ApiCrmAuthLoginRoute,
   ApiCrmAuthLogoutRoute: ApiCrmAuthLogoutRoute,
   ApiCrmAuthMeRoute: ApiCrmAuthMeRoute,

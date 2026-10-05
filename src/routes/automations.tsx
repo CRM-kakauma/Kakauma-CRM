@@ -7,6 +7,9 @@ import { FilterSelect } from "@/components/crm/filter-select";
 import { ApiErrorBox, Empty, Loading, Pill, RequireAuth } from "@/components/crm/ui";
 import { count, dateTime } from "@/lib/crm-format";
 import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
+import { AutomationDialog } from "@/components/crm/automation-dialog";
+import type { Rule } from "@/components/crm/rule-builder";
 import {
   Table,
   TableBody,
@@ -33,7 +36,14 @@ export const Route = createFileRoute("/automations")({
 interface Automation {
   key: string;
   name: string;
+  description: string | null;
   trigger_fact: string;
+  trigger_filter: Record<string, unknown>;
+  conditions: Rule;
+  action_type: "message" | "internal_alert";
+  action_config: { channel?: string; template?: string; message?: string };
+  max_trigger_age_hours: number;
+  priority: number;
   active: boolean;
   delay_minutes: number;
   cooldown_hours: number;
@@ -70,6 +80,8 @@ const RUN_TONE: Record<string, "success" | "primary" | "warning" | "danger" | "m
 function Automations({ me }: { me: Me }) {
   const qc = useQueryClient();
   const [filter, setFilter] = useState("all");
+  const [editing, setEditing] = useState<Automation | "new" | null>(null);
+  const canEdit = me.role !== "viewer";
   const list = useCrm<Automation[]>("crm_list_automations");
   const runs = useCrm<Run[]>("crm_list_automation_runs", {
     p_key: filter === "all" ? null : filter,
@@ -91,7 +103,9 @@ function Automations({ me }: { me: Me }) {
       <PageHeader
         title="Automações"
         description="Fato → filtro → condições (reavaliadas na hora do envio) → ação. Sem canal conectado, tudo é registrado como simulação com a mensagem pronta."
-      />
+      >
+        {canEdit && <Button onClick={() => setEditing("new")}>Nova automação</Button>}
+      </PageHeader>
       <ApiErrorBox error={list.error} />
       {list.isLoading ? (
         <Loading rows={5} />
@@ -108,6 +122,7 @@ function Automations({ me }: { me: Me }) {
                 <TableHead className="text-right">Puladas</TableHead>
                 <TableHead className="text-right">Agendadas</TableHead>
                 <TableHead className="text-right">Ativa</TableHead>
+                <TableHead />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -132,10 +147,17 @@ function Automations({ me }: { me: Me }) {
                   <TableCell className="text-right">
                     <Switch
                       checked={a.active}
-                      disabled={me.role !== "admin" || toggle.isPending}
+                      disabled={!canEdit || toggle.isPending}
                       onCheckedChange={(v) => toggle.mutate({ key: a.key, active: v })}
                       aria-label={`Ligar/desligar ${a.name}`}
                     />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {canEdit && (
+                      <Button size="sm" variant="ghost" onClick={() => setEditing(a)}>
+                        Editar
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
@@ -204,6 +226,12 @@ function Automations({ me }: { me: Me }) {
             </div>
           ))}
         </div>
+      )}
+      {editing && (
+        <AutomationDialog
+          automation={editing === "new" ? null : editing}
+          onClose={() => setEditing(null)}
+        />
       )}
     </>
   );

@@ -21,12 +21,22 @@ export const RPC_PERMISSIONS: Record<string, { role: Role; actor?: true }> = {
   crm_ops_overview: { role: "viewer" },
   crm_list_settings: { role: "viewer" },
   crm_rule_fields: { role: "viewer" },
-  crm_upsert_segment: { role: "admin", actor: true },
-  crm_set_automation_active: { role: "admin", actor: true },
+  crm_trigger_facts: { role: "viewer" },
+  crm_preview_rule: { role: "viewer" },
+  // operator: day-to-day CRM work
+  crm_upsert_segment: { role: "operator", actor: true },
+  crm_delete_segment: { role: "operator", actor: true },
+  crm_set_automation_active: { role: "operator", actor: true },
+  crm_upsert_automation: { role: "operator", actor: true },
+  // admin: data, rules, people
   crm_requeue_dead_letters: { role: "admin", actor: true },
+  crm_requeue_event: { role: "admin", actor: true },
   crm_update_setting: { role: "admin", actor: true },
   crm_import_marketing_spend: { role: "admin" },
   crm_refresh_customers: { role: "admin" },
+  crm_list_app_users: { role: "admin" },
+  crm_set_user_access: { role: "admin", actor: true },
+  crm_list_audit: { role: "admin" },
 };
 
 const RANK: Record<Role, number> = { viewer: 1, operator: 2, admin: 3 };

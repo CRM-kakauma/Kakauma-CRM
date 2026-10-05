@@ -44,6 +44,14 @@ function Operations({ me }: { me: Me }) {
     },
     onError: (e) => toast.error((e as Error).message),
   });
+  const requeueOne = useMutation({
+    mutationFn: (eventId: string) => crmCall<string>("crm_requeue_event", { p_event_id: eventId }),
+    onSuccess: (id) => {
+      toast.success("Evento devolvido para a fila", { description: id });
+      void refresh();
+    },
+    onError: (e) => toast.error((e as Error).message),
+  });
 
   if (ops.error) return <ApiErrorBox error={ops.error} />;
   if (ops.isLoading || !ops.data) return <Loading rows={5} />;
@@ -143,7 +151,20 @@ function Operations({ me }: { me: Me }) {
                     {dateTime(x["created_at"])} · {x["event_id"] ?? "sem evento"}
                   </span>
                 </div>
-                <p className="mt-1 font-mono text-xs text-danger">{x["error"]}</p>
+                <div className="mt-1 flex items-start justify-between gap-2">
+                  <p className="font-mono text-xs text-danger">{x["error"]}</p>
+                  {isAdmin && x["event_id"] ? (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 shrink-0"
+                      onClick={() => requeueOne.mutate(x["event_id"])}
+                      disabled={requeueOne.isPending}
+                    >
+                      <RotateCcw className="size-3.5" /> Reprocessar
+                    </Button>
+                  ) : null}
+                </div>
               </div>
             ))}
           </div>

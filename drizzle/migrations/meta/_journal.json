@@ -85,6 +85,13 @@
       "when": 1790793684207,
       "tag": "0011_crm_segments_automations",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1790793744207,
+      "tag": "0012_crm_analytics",
+      "breakpoints": true
     }
   ]
 }

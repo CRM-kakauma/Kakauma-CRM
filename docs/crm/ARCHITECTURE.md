@@ -37,7 +37,8 @@ todo estado é derivado e pode ser reconstruído reprocessando `crm.events`.
 | Worker de retry / backfill | `src/routes/api/cron/crm-process.ts` |
 | State engine (lifecycle, risco, qualidade, LTV, CX, Customer 360) | `drizzle/migrations/0010_crm_state_engine.sql` |
 | Segmentação + automação | `drizzle/migrations/0011_crm_segments_automations.sql`, `src/server/crm/automation.ts` |
-| Testes (54) | `tests/crm/*.test.ts` |
+| Analytics | `drizzle/migrations/0012_crm_analytics.sql` |
+| Testes (64) | `tests/crm/*.test.ts` |
 
 O schema `crm` é **privado**: RLS ligado, sem acesso para `anon`/`authenticated`. O app só fala com ele
 por funções `public.crm_*` (SECURITY DEFINER) liberadas apenas para `service_role`.
@@ -148,9 +149,32 @@ linha do tempo. Busca: `public.crm_search_customers(texto, lifecycle, risco, tip
 **Configuração** (`crm.settings`): `activity_window_days` (90), `churn_after_days` (180), `recent_days` (30),
 `high_value_net_ltv` (500), `due_grace_days` (1), `quality_weights`.
 
+## Fase 4 — Analytics
+
+Calculado sob demanda a partir dos fatos (nada de agregados que desatualizam). Regras:
+
+- **Taxa sem base é `null`**, nunca 0 nem estimativa (ex.: churn sem assinaturas ativas no início do período).
+- **Retenção só conta quem teve tempo**: uma assinatura é elegível para o ciclo *n* quando já passaram
+  (n−1) ciclos + carência desde o início. Cohorts jovens não aparecem como churn. Duração do ciclo vem de
+  `subscription.frequency` (mensal 30, bimestral 60, trimestral 90…; desconhecida → `default_cycle_days`).
+- **Taxa de renovação** = renovações devidas no período (cobrança anterior + ciclo, já fora da carência)
+  que foram pagas.
+- **CAC só com gasto importado** (`crm.marketing_spend` via `crm_import_marketing_spend`). Sem gasto → `null`.
+- Meses de cohort no fuso `report_timezone` (America/Sao_Paulo).
+
+| Função (`public.`) | O que responde |
+| --- | --- |
+| `crm_dashboard(from, to)` | Aquisição (clientes adquiridos, gasto, CAC, conversão, receita de campanha), commerce (pedidos, bruto, reembolsos, líquido, taxas, AOV, refund rate, saldo a liberar), assinatura (ativos, novos, renovações, renewal rate, churn, atraso, recuperação, churn pós-atraso, pedidos de cancelamento, conclusão, save rate, reativação), logística (enviados, em trânsito, entregues, atrasados, falhas, prazo médio, frete) e cliente (LTVs médios, alto valor, em risco, reativados) |
+| `crm_funnel(from, to)` | Checkout → abandono → pagamento → aprovado → entregue, conversões e conversão por método (PIX, cartão, boleto) |
+| `crm_cohorts(dim, from, to)` | Por mês da 1ª compra/assinatura, origem, campanha, criativo, produto, oferta, funil, afiliado, UF, método: clientes, LTV bruto/líquido/contribuição médio, refund, recompra, churn, renovação, retenção C1–C5 |
+| `crm_retention(dim, from, to)` | Assinaturas C1→C5 (elegíveis, atingiram, taxa) e passos C1→C2… C4→C5 |
+| `crm_refund_metrics(dim, from, to)` | Refund count/rate/receita por produto, oferta, campanha, origem, afiliado, método |
+| `crm_campaign_quality(nível, from, to)` | Por origem/campanha/criativo/funil: cliques, checkouts, compras, receita, reembolsos, clientes adquiridos, LTV líquido e de contribuição médio, assinaturas, renovações, churn, gasto, CAC, LTV/CAC e quadrante `HIGH/LOW_SALES × HIGH/LOW_LTV` (vs. mediana) |
+
+Limitações conhecidas: a B4you não envia "checkout iniciado" (início do funil = abandono, PIX/boleto gerado
+ou compra); cliques e CAC dependem da importação de gasto; COGS e impostos ainda não entram no LTV.
+
 ## Próximas fases (ordem da especificação)
-- **Fase 3 — Segmentação + Automação**: segmentos dinâmicos; regras `evento → condições → segmento → ação`
-  consumindo `crm.customer_events`; log de execuções.
-- **Fase 4 — Analytics**: LTV bruto/líquido/contribuição, cohorts C1→C5, refund rate por
-  produto/oferta/campanha/afiliado/método, qualidade de campanha, CAC (requer custo de mídia).
-- **Fase 5 — UI**: trocar os dados de demonstração do front (`src/services/crm`) pelos dados reais.
+
+- **Fase 5 — UI**: trocar os dados de demonstração do front (`src/services/crm`) pelos dados reais e
+  criar as telas de Customer 360, segmentos, automações e dashboards (exige login/RBAC antes de expor dados).

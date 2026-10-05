@@ -1,20 +1,25 @@
 import { useState, type ReactNode } from "react";
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
   BarChart3,
-  CheckSquare,
   Code2,
   Filter,
-  KanbanSquare,
   LayoutDashboard,
   LifeBuoy,
+  LineChart,
+  LogOut,
   Menu,
   Route as RouteIcon,
   Settings,
   ShoppingBag,
+  Tags,
   Users,
+  Workflow,
+  Wrench,
 } from "lucide-react";
+import { useMe } from "@/lib/crm-api";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { PeriodSelector } from "@/components/period-selector";
@@ -25,11 +30,26 @@ const LOGO = "https://kakauma.com.br/assets/kakauma-logo-CFkJSghB.png";
 type NavItem = { to: string; label: string; icon: typeof BarChart3 };
 
 const NAV_CRM: NavItem[] = [
-  { to: "/crm", label: "Painel CRM", icon: LayoutDashboard },
-  { to: "/contacts", label: "Contatos", icon: Users },
-  { to: "/pipeline", label: "Pipeline", icon: KanbanSquare },
+  { to: "/crm", label: "Painel", icon: LayoutDashboard },
+  { to: "/customers", label: "Clientes", icon: Users },
   { to: "/recovery", label: "Recuperação", icon: LifeBuoy },
-  { to: "/tasks", label: "Tarefas", icon: CheckSquare },
+  { to: "/segments", label: "Segmentos", icon: Tags },
+  { to: "/automations", label: "Automações", icon: Workflow },
+  { to: "/insights", label: "Insights", icon: LineChart },
+  { to: "/operations", label: "Operação", icon: Wrench },
+];
+
+// CRM screens without a period filter.
+const NO_PERIOD = [
+  "/customers",
+  "/recovery",
+  "/segments",
+  "/automations",
+  "/operations",
+  "/settings",
+  "/api",
+  "/events",
+  "/journey",
 ];
 
 const NAV: NavItem[] = [
@@ -71,7 +91,7 @@ function NavList({ onNavigate }: { onNavigate?: (() => void) | undefined }) {
     <nav className="flex flex-1 flex-col gap-1 overflow-y-auto">
       <p className="label-eyebrow px-3 pb-1">CRM</p>
       {NAV_CRM.map((n) => item(n.to, n.label, n.icon))}
-      <p className="label-eyebrow mt-4 px-3 pb-1">Analytics</p>
+      <p className="label-eyebrow mt-4 px-3 pb-1">Analytics (legado)</p>
       {NAV.map((n) => item(n.to, n.label, n.icon))}
       <div className="my-3 h-px bg-border" />
       {NAV_SYSTEM.map((n) => item(n.to, n.label, n.icon))}
@@ -84,16 +104,36 @@ function NavList({ onNavigate }: { onNavigate?: (() => void) | undefined }) {
 function SidebarContent({ onNavigate }: { onNavigate?: (() => void) | undefined }) {
   return (
     <div className="flex h-full flex-col gap-6 p-4">
-      <Link to="/" onClick={onNavigate} className="flex items-center gap-2 px-2 pt-1">
+      <Link to="/crm" onClick={onNavigate} className="flex items-center gap-2 px-2 pt-1">
         <img src={LOGO} alt="Kakauma" className="h-7 w-auto" />
       </Link>
       <NavList onNavigate={onNavigate} />
-      <div className="rounded-lg bg-muted/60 px-3 py-2.5">
-        <p className="text-xs font-medium text-foreground">CRM em modo demonstração</p>
-        <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
-          Os dados do CRM ficam neste navegador até o backend ser conectado.
+      <UserBox />
+    </div>
+  );
+}
+
+function UserBox() {
+  const { data: me } = useMe();
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+  if (!me) return null;
+  async function logout() {
+    await fetch("/api/crm/auth/logout", { method: "POST", credentials: "same-origin" });
+    qc.clear();
+    void navigate({ to: "/login" });
+  }
+  return (
+    <div className="flex items-center gap-2 rounded-lg bg-muted/60 px-3 py-2.5">
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-xs font-medium text-foreground">{me.email}</p>
+        <p className="text-[11px] text-muted-foreground">
+          {me.role === "admin" ? "Administrador" : me.role === "operator" ? "Operador" : "Leitura"}
         </p>
       </div>
+      <Button variant="ghost" size="icon" className="size-8" onClick={logout} aria-label="Sair">
+        <LogOut className="size-4" />
+      </Button>
     </div>
   );
 }
@@ -101,8 +141,11 @@ function SidebarContent({ onNavigate }: { onNavigate?: (() => void) | undefined 
 export function AppShell({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const pathname = useRouterState({ select: (st) => st.location.pathname });
-  // The period filter only drives the analytics screens.
-  const isCrm = NAV_CRM.some((n) => pathname.startsWith(n.to));
+  const showPeriod = !NO_PERIOD.some((p) => pathname.startsWith(p));
+
+  if (pathname === "/login") {
+    return <div className="min-h-screen bg-background">{children}</div>;
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -126,10 +169,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="flex-1">
             <p className="text-sm font-semibold tracking-tight">Kakauma CRM</p>
             <p className="hidden text-xs text-muted-foreground sm:block">
-              {isCrm ? "Relacionamento e vendas" : "Período selecionado"}
+              {showPeriod ? "Período selecionado" : "Relacionamento e vendas"}
             </p>
           </div>
-          {!isCrm && <PeriodSelector />}
+          {showPeriod && <PeriodSelector />}
         </header>
 
         <main className="mx-auto w-full max-w-[1400px] px-4 py-6 sm:px-6 lg:py-8">{children}</main>

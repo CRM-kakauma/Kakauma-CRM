@@ -25,45 +25,50 @@ todo estado é derivado e pode ser reconstruído reprocessando `crm.events`.
 
 ## Onde está cada coisa
 
-| Camada | Arquivo |
-| --- | --- |
-| Schema (tabelas, imutabilidade, auditoria, segurança) | `drizzle/migrations/0008_crm_event_store.sql` |
-| Motor (ingestão, retries, DLQ, engines, agregados) | `drizzle/migrations/0009_crm_event_engine.sql` |
-| Contrato do evento normalizado | `src/server/crm/types.ts` |
-| Normalizador B4you v1 | `src/server/crm/normalize/b4you.ts` |
-| Remoção de dados de cartão | `src/server/crm/redact.ts` |
-| Pipeline (webhook → store → normalize → engine) | `src/server/crm/pipeline.ts` |
-| Endpoint do webhook | `src/routes/api/webhooks/b4you.ts` |
-| Worker de retry / backfill | `src/routes/api/cron/crm-process.ts` |
-| State engine (lifecycle, risco, qualidade, LTV, CX, Customer 360) | `drizzle/migrations/0010_crm_state_engine.sql` |
-| Segmentação + automação | `drizzle/migrations/0011_crm_segments_automations.sql`, `src/server/crm/automation.ts` |
-| Analytics | `drizzle/migrations/0012_crm_analytics.sql` |
-| Testes (64) | `tests/crm/*.test.ts` |
+| Camada                                                            | Arquivo                                                                                    |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Schema (tabelas, imutabilidade, auditoria, segurança)             | `drizzle/migrations/0008_crm_event_store.sql`                                              |
+| Motor (ingestão, retries, DLQ, engines, agregados)                | `drizzle/migrations/0009_crm_event_engine.sql`                                             |
+| Contrato do evento normalizado                                    | `src/server/crm/types.ts`                                                                  |
+| Normalizador B4you v1                                             | `src/server/crm/normalize/b4you.ts`                                                        |
+| Remoção de dados de cartão                                        | `src/server/crm/redact.ts`                                                                 |
+| Pipeline (webhook → store → normalize → engine)                   | `src/server/crm/pipeline.ts`                                                               |
+| Endpoint do webhook                                               | `src/routes/api/webhooks/b4you.ts`                                                         |
+| Worker de retry / backfill                                        | `src/routes/api/cron/crm-process.ts`                                                       |
+| State engine (lifecycle, risco, qualidade, LTV, CX, Customer 360) | `drizzle/migrations/0010_crm_state_engine.sql`                                             |
+| Segmentação + automação                                           | `drizzle/migrations/0011_crm_segments_automations.sql`, `src/server/crm/automation.ts`     |
+| Analytics                                                         | `drizzle/migrations/0012_crm_analytics.sql`                                                |
+| Acesso (RBAC), auditoria por usuário, funções das telas           | `drizzle/migrations/0013_crm_app_access.sql`                                               |
+| Login, sessão por cookie, gateway de RPC                          | `src/server/crm/auth.server.ts`, `gateway.ts`, `src/routes/api/crm/*`                      |
+| Telas do CRM                                                      | `src/routes/{crm,customers.*,recovery,segments,automations,insights,operations,login}.tsx` |
+| Instalação local                                                  | `docs/crm/LOCAL_SETUP.md`, `scripts/crm-migrate.mjs`, `scripts/crm-create-admin.mjs`       |
+| Testes (71)                                                       | `tests/crm/*.test.ts`                                                                      |
 
 O schema `crm` é **privado**: RLS ligado, sem acesso para `anon`/`authenticated`. O app só fala com ele
 por funções `public.crm_*` (SECURITY DEFINER) liberadas apenas para `service_role`.
 
 ## Regras críticas → onde são garantidas
 
-| # | Regra | Garantia |
-| --- | --- | --- |
-| 1 | `subscription_id` identifica a assinatura | PK de `crm.subscriptions` |
-| 2 | `charge_id` identifica a cobrança | PK de `subscription_charges`, `transactions.transaction_key` |
-| 3 | `sale_id` identifica a venda | `orders.sale_id` único; nunca usado como assinatura |
-| 4 | Renovação não cria assinatura | `apply_paid_charge` cria só nova `subscription_charge` + ciclo |
-| 5 | Refund não apaga compra | `apply_refund` grava `refunds` + `financial_events`; pedido só muda status |
-| 6 | Cancelamento ≠ refund | handlers separados; teste `refund does not cancel` |
-| 7 | Late ≠ cancelamento | `SUBSCRIPTION_LATE` mexe em `payment_state`/`risk_state` |
-| 8 | Expiring ≠ cancelamento | `SUBSCRIPTION_EXPIRING` mexe só em `lifecycle_state`/`expiring_at` |
-| 9 | Tracking ≠ compra | `apply_tracking` só toca `fulfillments` |
-| 10 | PIX gerado ≠ pago | `PAYMENT_PENDING` nunca marca pago, mesmo com `status=paid` |
-| 11 | UTM nula em renovação ≠ orgânico | atribuição `inherited` aponta para a aquisição |
-| 12 | `original_price` ≠ receita | receita só de `charges[].amount`; sem valor → dead letter |
-| 13 | Estado não vem do `event_name` | status vem de `subscription.status` confirmado e mais recente |
-| 14 | Evento bruto preservado | trigger `events_immutable` bloqueia UPDATE de payload e DELETE |
-| 15 | Idempotência | `(source, idempotency_key)` no bruto + `dedupe_key` em todo fato financeiro |
+| #   | Regra                                     | Garantia                                                                    |
+| --- | ----------------------------------------- | --------------------------------------------------------------------------- |
+| 1   | `subscription_id` identifica a assinatura | PK de `crm.subscriptions`                                                   |
+| 2   | `charge_id` identifica a cobrança         | PK de `subscription_charges`, `transactions.transaction_key`                |
+| 3   | `sale_id` identifica a venda              | `orders.sale_id` único; nunca usado como assinatura                         |
+| 4   | Renovação não cria assinatura             | `apply_paid_charge` cria só nova `subscription_charge` + ciclo              |
+| 5   | Refund não apaga compra                   | `apply_refund` grava `refunds` + `financial_events`; pedido só muda status  |
+| 6   | Cancelamento ≠ refund                     | handlers separados; teste `refund does not cancel`                          |
+| 7   | Late ≠ cancelamento                       | `SUBSCRIPTION_LATE` mexe em `payment_state`/`risk_state`                    |
+| 8   | Expiring ≠ cancelamento                   | `SUBSCRIPTION_EXPIRING` mexe só em `lifecycle_state`/`expiring_at`          |
+| 9   | Tracking ≠ compra                         | `apply_tracking` só toca `fulfillments`                                     |
+| 10  | PIX gerado ≠ pago                         | `PAYMENT_PENDING` nunca marca pago, mesmo com `status=paid`                 |
+| 11  | UTM nula em renovação ≠ orgânico          | atribuição `inherited` aponta para a aquisição                              |
+| 12  | `original_price` ≠ receita                | receita só de `charges[].amount`; sem valor → dead letter                   |
+| 13  | Estado não vem do `event_name`            | status vem de `subscription.status` confirmado e mais recente               |
+| 14  | Evento bruto preservado                   | trigger `events_immutable` bloqueia UPDATE de payload e DELETE              |
+| 15  | Idempotência                              | `(source, idempotency_key)` no bruto + `dedupe_key` em todo fato financeiro |
 
 Idempotência em duas camadas:
+
 1. **Bruto**: chave = id do evento do provedor, ou `sha256(payload)`. O payload já contém event_name,
    sale_id, subscription_id, charge_id e timestamps, então equivale ao hash da especificação.
 2. **Fatos**: `paid:<charge>`, `refund:<id>`… Se a B4you reenviar o mesmo fato com payload diferente
@@ -154,7 +159,7 @@ linha do tempo. Busca: `public.crm_search_customers(texto, lifecycle, risco, tip
 Calculado sob demanda a partir dos fatos (nada de agregados que desatualizam). Regras:
 
 - **Taxa sem base é `null`**, nunca 0 nem estimativa (ex.: churn sem assinaturas ativas no início do período).
-- **Retenção só conta quem teve tempo**: uma assinatura é elegível para o ciclo *n* quando já passaram
+- **Retenção só conta quem teve tempo**: uma assinatura é elegível para o ciclo _n_ quando já passaram
   (n−1) ciclos + carência desde o início. Cohorts jovens não aparecem como churn. Duração do ciclo vem de
   `subscription.frequency` (mensal 30, bimestral 60, trimestral 90…; desconhecida → `default_cycle_days`).
 - **Taxa de renovação** = renovações devidas no período (cobrança anterior + ciclo, já fora da carência)
@@ -162,19 +167,38 @@ Calculado sob demanda a partir dos fatos (nada de agregados que desatualizam). R
 - **CAC só com gasto importado** (`crm.marketing_spend` via `crm_import_marketing_spend`). Sem gasto → `null`.
 - Meses de cohort no fuso `report_timezone` (America/Sao_Paulo).
 
-| Função (`public.`) | O que responde |
-| --- | --- |
-| `crm_dashboard(from, to)` | Aquisição (clientes adquiridos, gasto, CAC, conversão, receita de campanha), commerce (pedidos, bruto, reembolsos, líquido, taxas, AOV, refund rate, saldo a liberar), assinatura (ativos, novos, renovações, renewal rate, churn, atraso, recuperação, churn pós-atraso, pedidos de cancelamento, conclusão, save rate, reativação), logística (enviados, em trânsito, entregues, atrasados, falhas, prazo médio, frete) e cliente (LTVs médios, alto valor, em risco, reativados) |
-| `crm_funnel(from, to)` | Checkout → abandono → pagamento → aprovado → entregue, conversões e conversão por método (PIX, cartão, boleto) |
-| `crm_cohorts(dim, from, to)` | Por mês da 1ª compra/assinatura, origem, campanha, criativo, produto, oferta, funil, afiliado, UF, método: clientes, LTV bruto/líquido/contribuição médio, refund, recompra, churn, renovação, retenção C1–C5 |
-| `crm_retention(dim, from, to)` | Assinaturas C1→C5 (elegíveis, atingiram, taxa) e passos C1→C2… C4→C5 |
-| `crm_refund_metrics(dim, from, to)` | Refund count/rate/receita por produto, oferta, campanha, origem, afiliado, método |
-| `crm_campaign_quality(nível, from, to)` | Por origem/campanha/criativo/funil: cliques, checkouts, compras, receita, reembolsos, clientes adquiridos, LTV líquido e de contribuição médio, assinaturas, renovações, churn, gasto, CAC, LTV/CAC e quadrante `HIGH/LOW_SALES × HIGH/LOW_LTV` (vs. mediana) |
+| Função (`public.`)                      | O que responde                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `crm_dashboard(from, to)`               | Aquisição (clientes adquiridos, gasto, CAC, conversão, receita de campanha), commerce (pedidos, bruto, reembolsos, líquido, taxas, AOV, refund rate, saldo a liberar), assinatura (ativos, novos, renovações, renewal rate, churn, atraso, recuperação, churn pós-atraso, pedidos de cancelamento, conclusão, save rate, reativação), logística (enviados, em trânsito, entregues, atrasados, falhas, prazo médio, frete) e cliente (LTVs médios, alto valor, em risco, reativados) |
+| `crm_funnel(from, to)`                  | Checkout → abandono → pagamento → aprovado → entregue, conversões e conversão por método (PIX, cartão, boleto)                                                                                                                                                                                                                                                                                                                                                                      |
+| `crm_cohorts(dim, from, to)`            | Por mês da 1ª compra/assinatura, origem, campanha, criativo, produto, oferta, funil, afiliado, UF, método: clientes, LTV bruto/líquido/contribuição médio, refund, recompra, churn, renovação, retenção C1–C5                                                                                                                                                                                                                                                                       |
+| `crm_retention(dim, from, to)`          | Assinaturas C1→C5 (elegíveis, atingiram, taxa) e passos C1→C2… C4→C5                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `crm_refund_metrics(dim, from, to)`     | Refund count/rate/receita por produto, oferta, campanha, origem, afiliado, método                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `crm_campaign_quality(nível, from, to)` | Por origem/campanha/criativo/funil: cliques, checkouts, compras, receita, reembolsos, clientes adquiridos, LTV líquido e de contribuição médio, assinaturas, renovações, churn, gasto, CAC, LTV/CAC e quadrante `HIGH/LOW_SALES × HIGH/LOW_LTV` (vs. mediana)                                                                                                                                                                                                                       |
 
 Limitações conhecidas: a B4you não envia "checkout iniciado" (início do funil = abandono, PIX/boleto gerado
 ou compra); cliques e CAC dependem da importação de gasto; COGS e impostos ainda não entram no LTV.
 
+## Fase 5 — Telas e acesso
+
+- **Projeto Supabase próprio do CRM** (`CRM_SUPABASE_*`), separado do analytics legado. Migrações do CRM
+  (0008+) aplicadas por `npm run crm:migrate`.
+- **Login**: Supabase Auth (e-mail/senha) feito pelo servidor; tokens em cookies `httpOnly` (o navegador
+  nunca vê chaves nem tokens). Acesso exige linha ativa em `crm.app_users` com papel `admin`, `operator` ou
+  `viewer` (`npm run crm:create-admin`).
+- **Gateway** `/api/crm/rpc`: só funções da lista (`gateway.ts`), com papel mínimo; mutações recebem o e-mail do
+  usuário como `p_actor` (definido no servidor), e o log de auditoria registra quem mudou segmentos,
+  automações e configurações.
+- **Telas**: Painel, Clientes + Customer 360, Recuperação (situações abertas reais), Segmentos (criar com regra
+  JSON validada), Automações (ligar/desligar, execuções com a mensagem), Insights (funil, campanhas, cohorts,
+  retenção, reembolsos) e Operação (saúde da ingestão, fila de erros, qualidade de dados, importação do
+  histórico, investimento em mídia, regras e limites).
+- As telas de demonstração (contatos, pipeline, tarefas com dados fictícios) foram removidas.
+- O analytics antigo continua no menu como "legado", usando o Supabase antigo.
+
 ## Próximas fases (ordem da especificação)
 
-- **Fase 5 — UI**: trocar os dados de demonstração do front (`src/services/crm`) pelos dados reais e
-  criar as telas de Customer 360, segmentos, automações e dashboards (exige login/RBAC antes de expor dados).
+- **Publicar** (Lovable/Vercel/Cloudflare) para receber webhooks em tempo real e agendar o worker.
+- **Payloads reais da B4you** para confirmar o normalizador.
+- **Canal de mensagens** para as automações (hoje: simulação).
+- Pipeline comercial e tarefas manuais (removidos da demo) quando houver necessidade real.

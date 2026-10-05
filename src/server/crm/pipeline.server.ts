@@ -1,11 +1,8 @@
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import * as core from "./pipeline.ts";
-import type { Rpc } from "./pipeline.ts";
 import { runAutomations as runAutomationsCore } from "./automation.ts";
+import { crmRpc as rpc, env } from "./supabase.server.ts";
 
-// The crm_* functions are not in the generated Supabase types yet.
-const rpc: Rpc = (fn, args) => (supabaseAdmin.rpc as unknown as Rpc)(fn, args);
-
+// Everything runs against the CRM's own Supabase project (CRM_SUPABASE_* in .env).
 export const ingestWebhook = (source: string, rawBody: string) =>
   core.ingestWebhook(rpc, source, rawBody);
 export const processPending = (opts: { limit?: number; id?: string } = {}) =>
@@ -15,6 +12,6 @@ export const refreshCustomers = (limit = 500) => core.refreshCustomers(rpc, limi
 export const runAutomations = (limit = 100) =>
   runAutomationsCore(rpc, {
     limit,
-    webhookUrl: process.env["CRM_AUTOMATION_WEBHOOK_URL"],
-    webhookSecret: process.env["CRM_AUTOMATION_WEBHOOK_SECRET"],
+    webhookUrl: env("CRM_AUTOMATION_WEBHOOK_URL"),
+    webhookSecret: env("CRM_AUTOMATION_WEBHOOK_SECRET"),
   });

@@ -87,8 +87,8 @@ function ApiPage() {
             POST /api/events{"\n"}POST /api/public/events
           </pre>
           <p className="mt-4 text-sm text-muted-foreground">
-            O endpoint valida o payload, valida o tipo de evento, cria o cliente se necessário, salva
-            o evento e atualiza a transação ou assinatura relacionada.
+            O endpoint valida o payload, valida o tipo de evento, cria o cliente se necessário,
+            salva o evento e atualiza a transação ou assinatura relacionada.
           </p>
           <p className="mt-3 rounded-lg bg-primary-soft px-3 py-2 text-xs text-primary">
             <strong>Idempotência:</strong> event_id é único. Reenviar o mesmo event_id não duplica

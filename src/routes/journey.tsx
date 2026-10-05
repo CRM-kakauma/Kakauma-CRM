@@ -140,7 +140,10 @@ function JourneyPage() {
 
               <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 {[
-                  { label: "Total Gasto", value: formatCurrency(customer.data.metrics.total_spent) },
+                  {
+                    label: "Total Gasto",
+                    value: formatCurrency(customer.data.metrics.total_spent),
+                  },
                   { label: "Transações", value: formatNumber(customer.data.metrics.transactions) },
                   { label: "Reembolsos", value: formatNumber(customer.data.metrics.refunds) },
                   { label: "Chargebacks", value: formatNumber(customer.data.metrics.chargebacks) },
@@ -193,7 +196,9 @@ function JourneyPage() {
                               <span className="block text-sm font-medium">{meta.label}</span>
                               <span className="block text-xs text-muted-foreground num">
                                 {formatDate(e.timestamp)} · {formatTime(e.timestamp)}
-                                {e.external_transaction_id ? ` · #${e.external_transaction_id}` : ""}
+                                {e.external_transaction_id
+                                  ? ` · #${e.external_transaction_id}`
+                                  : ""}
                               </span>
                             </span>
                             {e.value != null && (

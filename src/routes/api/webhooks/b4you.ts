@@ -10,7 +10,8 @@ export const Route = createFileRoute("/api/webhooks/b4you")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const expected = process.env["B4YOU_WEBHOOK_TOKEN"];
+        const { env } = await import("@/server/crm/supabase.server");
+        const expected = env("B4YOU_WEBHOOK_TOKEN");
         if (expected) {
           const url = new URL(request.url);
           const given =

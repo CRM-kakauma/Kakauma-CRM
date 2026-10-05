@@ -6,14 +6,12 @@ CRM da Kakauma construído sobre a base do **Kakauma Analytics** (TanStack Start
 
 | Área | Rotas | Dados |
 | --- | --- | --- |
-| Analytics | `/`, `/funnels`, `/sales`, `/journey`, `/events`, `/api` | Supabase (eventos B4you) |
-| CRM | `/crm`, `/contacts`, `/pipeline`, `/recovery`, `/tasks` | **Mock local** (`src/services/crm`) — será ligado ao backend |
+| CRM | `/crm`, `/customers`, `/recovery`, `/segments`, `/automations`, `/insights`, `/operations` | Supabase **próprio do CRM** (`CRM_SUPABASE_*`), com login |
+| Analytics (legado) | `/`, `/funnels`, `/sales`, `/journey`, `/events`, `/api` | Supabase antigo (`VITE_SUPABASE_*`) |
 
-Os dados do CRM ficam no `localStorage` do navegador nesta fase. Toda leitura/escrita passa por
-`src/services/crm/index.ts`; para ligar o backend basta reimplementar essas funções.
-O botão "Restaurar dados de exemplo" em Configurações recria a base de demonstração.
+**Rodar localmente:** siga [`docs/crm/LOCAL_SETUP.md`](docs/crm/LOCAL_SETUP.md).
 
-## Backend orientado a eventos (fase 1)
+## Backend orientado a eventos
 
 Webhooks da B4you entram em `POST /api/webhooks/b4you`, são guardados intactos em `crm.events`,
 deduplicados, normalizados e aplicados ao modelo do CRM (clientes, pedidos, cobranças, assinaturas,

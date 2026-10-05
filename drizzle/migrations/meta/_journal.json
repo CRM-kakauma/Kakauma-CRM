@@ -92,6 +92,13 @@
       "when": 1790793744207,
       "tag": "0012_crm_analytics",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1790793804207,
+      "tag": "0013_crm_app_access",
+      "breakpoints": true
     }
   ]
 }

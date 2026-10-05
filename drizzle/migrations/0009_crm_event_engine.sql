@@ -710,7 +710,8 @@ begin
       net_revenue = total_revenue + v_amount - total_refunds,
       last_charge_at = greatest(coalesce(last_charge_at, p_occurred), p_occurred),
       renewed_at = case when v_type = 'RENEWAL_PAYMENT' then greatest(coalesce(renewed_at, p_occurred), p_occurred) else renewed_at end,
-      payment_state = case when payment_state in ('LATE','FAILED','DUE') then 'RECOVERED' else 'CURRENT' end,
+      -- Only provider evidence (LATE/FAILED) makes a payment a "recovery"; DUE is an inference.
+      payment_state = case when payment_state in ('LATE','FAILED') then 'RECOVERED' else 'CURRENT' end,
       risk_state = case when risk_state in ('AT_RISK','PAYMENT_RISK','HIGH_VALUE_AT_RISK') then 'HEALTHY' else risk_state end,
       lifecycle_state = case
         when lifecycle_state in ('CANCELLED','CHURNED') then lifecycle_state
@@ -723,7 +724,7 @@ begin
       updated_at = now()
     where subscription_id = v_sub.subscription_id;
 
-    if v_sub.payment_state in ('LATE','FAILED','DUE') then
+    if v_sub.payment_state in ('LATE','FAILED') then
       perform crm.add_fact('recovered:' || v_key, 'SUBSCRIPTION_PAYMENT_RECOVERED', p_customer, p_ev, p_occurred, p_raw,
         jsonb_build_object('previous_payment_state', v_sub.payment_state));
     end if;

@@ -10,30 +10,39 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ContactsRouteImport } from './routes/contacts'
+import { Route as AutomationsRouteImport } from './routes/automations'
 import { Route as CrmRouteImport } from './routes/crm'
 import { Route as EventsRouteImport } from './routes/events'
 import { Route as FunnelsRouteImport } from './routes/funnels'
+import { Route as InsightsRouteImport } from './routes/insights'
 import { Route as JourneyRouteImport } from './routes/journey'
-import { Route as PipelineRouteImport } from './routes/pipeline'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as OperationsRouteImport } from './routes/operations'
 import { Route as RecoveryRouteImport } from './routes/recovery'
 import { Route as SalesRouteImport } from './routes/sales'
+import { Route as SegmentsRouteImport } from './routes/segments'
 import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as TasksRouteImport } from './routes/tasks'
 import { Route as ApiIndexRouteImport } from './routes/api.index'
 import { Route as ApiEventsRouteImport } from './routes/api/events'
+import { Route as CustomersIndexRouteImport } from './routes/customers.index'
+import { Route as CustomersCustomerIdRouteImport } from './routes/customers.$customerId'
+import { Route as ApiCrmRpcRouteImport } from './routes/api/crm/rpc'
 import { Route as ApiCronCrmProcessRouteImport } from './routes/api/cron/crm-process'
 import { Route as ApiPublicEventsRouteImport } from './routes/api/public/events'
 import { Route as ApiWebhooksB4youRouteImport } from './routes/api/webhooks/b4you'
+import { Route as ApiCrmAdminImportLegacyRouteImport } from './routes/api/crm/admin/import-legacy'
+import { Route as ApiCrmAuthLoginRouteImport } from './routes/api/crm/auth/login'
+import { Route as ApiCrmAuthLogoutRouteImport } from './routes/api/crm/auth/logout'
+import { Route as ApiCrmAuthMeRouteImport } from './routes/api/crm/auth/me'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ContactsRoute = ContactsRouteImport.update({
-  id: '/contacts',
-  path: '/contacts',
+const AutomationsRoute = AutomationsRouteImport.update({
+  id: '/automations',
+  path: '/automations',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CrmRoute = CrmRouteImport.update({
@@ -51,14 +60,24 @@ const FunnelsRoute = FunnelsRouteImport.update({
   path: '/funnels',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InsightsRoute = InsightsRouteImport.update({
+  id: '/insights',
+  path: '/insights',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const JourneyRoute = JourneyRouteImport.update({
   id: '/journey',
   path: '/journey',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PipelineRoute = PipelineRouteImport.update({
-  id: '/pipeline',
-  path: '/pipeline',
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OperationsRoute = OperationsRouteImport.update({
+  id: '/operations',
+  path: '/operations',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RecoveryRoute = RecoveryRouteImport.update({
@@ -71,14 +90,14 @@ const SalesRoute = SalesRouteImport.update({
   path: '/sales',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SegmentsRoute = SegmentsRouteImport.update({
+  id: '/segments',
+  path: '/segments',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TasksRoute = TasksRouteImport.update({
-  id: '/tasks',
-  path: '/tasks',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiIndexRoute = ApiIndexRouteImport.update({
@@ -89,6 +108,21 @@ const ApiIndexRoute = ApiIndexRouteImport.update({
 const ApiEventsRoute = ApiEventsRouteImport.update({
   id: '/api/events',
   path: '/api/events',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CustomersIndexRoute = CustomersIndexRouteImport.update({
+  id: '/customers/',
+  path: '/customers/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CustomersCustomerIdRoute = CustomersCustomerIdRouteImport.update({
+  id: '/customers/$customerId',
+  path: '/customers/$customerId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCrmRpcRoute = ApiCrmRpcRouteImport.update({
+  id: '/api/crm/rpc',
+  path: '/api/crm/rpc',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiCronCrmProcessRoute = ApiCronCrmProcessRouteImport.update({
@@ -106,136 +140,219 @@ const ApiWebhooksB4youRoute = ApiWebhooksB4youRouteImport.update({
   path: '/api/webhooks/b4you',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCrmAdminImportLegacyRoute = ApiCrmAdminImportLegacyRouteImport.update({
+  id: '/api/crm/admin/import-legacy',
+  path: '/api/crm/admin/import-legacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCrmAuthLoginRoute = ApiCrmAuthLoginRouteImport.update({
+  id: '/api/crm/auth/login',
+  path: '/api/crm/auth/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCrmAuthLogoutRoute = ApiCrmAuthLogoutRouteImport.update({
+  id: '/api/crm/auth/logout',
+  path: '/api/crm/auth/logout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCrmAuthMeRoute = ApiCrmAuthMeRouteImport.update({
+  id: '/api/crm/auth/me',
+  path: '/api/crm/auth/me',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/contacts': typeof ContactsRoute
+  '/automations': typeof AutomationsRoute
   '/crm': typeof CrmRoute
   '/events': typeof EventsRoute
   '/funnels': typeof FunnelsRoute
+  '/insights': typeof InsightsRoute
   '/journey': typeof JourneyRoute
-  '/pipeline': typeof PipelineRoute
+  '/login': typeof LoginRoute
+  '/operations': typeof OperationsRoute
   '/recovery': typeof RecoveryRoute
   '/sales': typeof SalesRoute
+  '/segments': typeof SegmentsRoute
   '/settings': typeof SettingsRoute
-  '/tasks': typeof TasksRoute
   '/api/events': typeof ApiEventsRoute
+  '/customers/$customerId': typeof CustomersCustomerIdRoute
   '/api/': typeof ApiIndexRoute
+  '/customers/': typeof CustomersIndexRoute
+  '/api/crm/rpc': typeof ApiCrmRpcRoute
   '/api/cron/crm-process': typeof ApiCronCrmProcessRoute
   '/api/public/events': typeof ApiPublicEventsRoute
   '/api/webhooks/b4you': typeof ApiWebhooksB4youRoute
+  '/api/crm/admin/import-legacy': typeof ApiCrmAdminImportLegacyRoute
+  '/api/crm/auth/login': typeof ApiCrmAuthLoginRoute
+  '/api/crm/auth/logout': typeof ApiCrmAuthLogoutRoute
+  '/api/crm/auth/me': typeof ApiCrmAuthMeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/contacts': typeof ContactsRoute
+  '/automations': typeof AutomationsRoute
   '/crm': typeof CrmRoute
   '/events': typeof EventsRoute
   '/funnels': typeof FunnelsRoute
+  '/insights': typeof InsightsRoute
   '/journey': typeof JourneyRoute
-  '/pipeline': typeof PipelineRoute
+  '/login': typeof LoginRoute
+  '/operations': typeof OperationsRoute
   '/recovery': typeof RecoveryRoute
   '/sales': typeof SalesRoute
+  '/segments': typeof SegmentsRoute
   '/settings': typeof SettingsRoute
-  '/tasks': typeof TasksRoute
   '/api/events': typeof ApiEventsRoute
+  '/customers/$customerId': typeof CustomersCustomerIdRoute
   '/api': typeof ApiIndexRoute
+  '/customers': typeof CustomersIndexRoute
+  '/api/crm/rpc': typeof ApiCrmRpcRoute
   '/api/cron/crm-process': typeof ApiCronCrmProcessRoute
   '/api/public/events': typeof ApiPublicEventsRoute
   '/api/webhooks/b4you': typeof ApiWebhooksB4youRoute
+  '/api/crm/admin/import-legacy': typeof ApiCrmAdminImportLegacyRoute
+  '/api/crm/auth/login': typeof ApiCrmAuthLoginRoute
+  '/api/crm/auth/logout': typeof ApiCrmAuthLogoutRoute
+  '/api/crm/auth/me': typeof ApiCrmAuthMeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/contacts': typeof ContactsRoute
+  '/automations': typeof AutomationsRoute
   '/crm': typeof CrmRoute
   '/events': typeof EventsRoute
   '/funnels': typeof FunnelsRoute
+  '/insights': typeof InsightsRoute
   '/journey': typeof JourneyRoute
-  '/pipeline': typeof PipelineRoute
+  '/login': typeof LoginRoute
+  '/operations': typeof OperationsRoute
   '/recovery': typeof RecoveryRoute
   '/sales': typeof SalesRoute
+  '/segments': typeof SegmentsRoute
   '/settings': typeof SettingsRoute
-  '/tasks': typeof TasksRoute
   '/api/events': typeof ApiEventsRoute
+  '/customers/$customerId': typeof CustomersCustomerIdRoute
   '/api/': typeof ApiIndexRoute
+  '/customers/': typeof CustomersIndexRoute
+  '/api/crm/rpc': typeof ApiCrmRpcRoute
   '/api/cron/crm-process': typeof ApiCronCrmProcessRoute
   '/api/public/events': typeof ApiPublicEventsRoute
   '/api/webhooks/b4you': typeof ApiWebhooksB4youRoute
+  '/api/crm/admin/import-legacy': typeof ApiCrmAdminImportLegacyRoute
+  '/api/crm/auth/login': typeof ApiCrmAuthLoginRoute
+  '/api/crm/auth/logout': typeof ApiCrmAuthLogoutRoute
+  '/api/crm/auth/me': typeof ApiCrmAuthMeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/contacts'
+    | '/automations'
     | '/crm'
     | '/events'
     | '/funnels'
+    | '/insights'
     | '/journey'
-    | '/pipeline'
+    | '/login'
+    | '/operations'
     | '/recovery'
     | '/sales'
+    | '/segments'
     | '/settings'
-    | '/tasks'
     | '/api/events'
+    | '/customers/$customerId'
     | '/api/'
+    | '/customers/'
+    | '/api/crm/rpc'
     | '/api/cron/crm-process'
     | '/api/public/events'
     | '/api/webhooks/b4you'
+    | '/api/crm/admin/import-legacy'
+    | '/api/crm/auth/login'
+    | '/api/crm/auth/logout'
+    | '/api/crm/auth/me'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/contacts'
+    | '/automations'
     | '/crm'
     | '/events'
     | '/funnels'
+    | '/insights'
     | '/journey'
-    | '/pipeline'
+    | '/login'
+    | '/operations'
     | '/recovery'
     | '/sales'
+    | '/segments'
     | '/settings'
-    | '/tasks'
     | '/api/events'
+    | '/customers/$customerId'
     | '/api'
+    | '/customers'
+    | '/api/crm/rpc'
     | '/api/cron/crm-process'
     | '/api/public/events'
     | '/api/webhooks/b4you'
+    | '/api/crm/admin/import-legacy'
+    | '/api/crm/auth/login'
+    | '/api/crm/auth/logout'
+    | '/api/crm/auth/me'
   id:
     | '__root__'
     | '/'
-    | '/contacts'
+    | '/automations'
     | '/crm'
     | '/events'
     | '/funnels'
+    | '/insights'
     | '/journey'
-    | '/pipeline'
+    | '/login'
+    | '/operations'
     | '/recovery'
     | '/sales'
+    | '/segments'
     | '/settings'
-    | '/tasks'
     | '/api/events'
+    | '/customers/$customerId'
     | '/api/'
+    | '/customers/'
+    | '/api/crm/rpc'
     | '/api/cron/crm-process'
     | '/api/public/events'
     | '/api/webhooks/b4you'
+    | '/api/crm/admin/import-legacy'
+    | '/api/crm/auth/login'
+    | '/api/crm/auth/logout'
+    | '/api/crm/auth/me'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  ContactsRoute: typeof ContactsRoute
+  AutomationsRoute: typeof AutomationsRoute
   CrmRoute: typeof CrmRoute
   EventsRoute: typeof EventsRoute
   FunnelsRoute: typeof FunnelsRoute
+  InsightsRoute: typeof InsightsRoute
   JourneyRoute: typeof JourneyRoute
-  PipelineRoute: typeof PipelineRoute
+  LoginRoute: typeof LoginRoute
+  OperationsRoute: typeof OperationsRoute
   RecoveryRoute: typeof RecoveryRoute
   SalesRoute: typeof SalesRoute
+  SegmentsRoute: typeof SegmentsRoute
   SettingsRoute: typeof SettingsRoute
-  TasksRoute: typeof TasksRoute
   ApiEventsRoute: typeof ApiEventsRoute
+  CustomersCustomerIdRoute: typeof CustomersCustomerIdRoute
   ApiIndexRoute: typeof ApiIndexRoute
+  CustomersIndexRoute: typeof CustomersIndexRoute
+  ApiCrmRpcRoute: typeof ApiCrmRpcRoute
   ApiCronCrmProcessRoute: typeof ApiCronCrmProcessRoute
   ApiPublicEventsRoute: typeof ApiPublicEventsRoute
   ApiWebhooksB4youRoute: typeof ApiWebhooksB4youRoute
+  ApiCrmAdminImportLegacyRoute: typeof ApiCrmAdminImportLegacyRoute
+  ApiCrmAuthLoginRoute: typeof ApiCrmAuthLoginRoute
+  ApiCrmAuthLogoutRoute: typeof ApiCrmAuthLogoutRoute
+  ApiCrmAuthMeRoute: typeof ApiCrmAuthMeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -247,11 +364,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/contacts': {
-      id: '/contacts'
-      path: '/contacts'
-      fullPath: '/contacts'
-      preLoaderRoute: typeof ContactsRouteImport
+    '/automations': {
+      id: '/automations'
+      path: '/automations'
+      fullPath: '/automations'
+      preLoaderRoute: typeof AutomationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/crm': {
@@ -275,6 +392,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FunnelsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/insights': {
+      id: '/insights'
+      path: '/insights'
+      fullPath: '/insights'
+      preLoaderRoute: typeof InsightsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/journey': {
       id: '/journey'
       path: '/journey'
@@ -282,11 +406,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof JourneyRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/pipeline': {
-      id: '/pipeline'
-      path: '/pipeline'
-      fullPath: '/pipeline'
-      preLoaderRoute: typeof PipelineRouteImport
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/operations': {
+      id: '/operations'
+      path: '/operations'
+      fullPath: '/operations'
+      preLoaderRoute: typeof OperationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/recovery': {
@@ -303,18 +434,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SalesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/segments': {
+      id: '/segments'
+      path: '/segments'
+      fullPath: '/segments'
+      preLoaderRoute: typeof SegmentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/tasks': {
-      id: '/tasks'
-      path: '/tasks'
-      fullPath: '/tasks'
-      preLoaderRoute: typeof TasksRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/': {
@@ -329,6 +460,27 @@ declare module '@tanstack/react-router' {
       path: '/api/events'
       fullPath: '/api/events'
       preLoaderRoute: typeof ApiEventsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/customers/': {
+      id: '/customers/'
+      path: '/customers'
+      fullPath: '/customers/'
+      preLoaderRoute: typeof CustomersIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/customers/$customerId': {
+      id: '/customers/$customerId'
+      path: '/customers/$customerId'
+      fullPath: '/customers/$customerId'
+      preLoaderRoute: typeof CustomersCustomerIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/crm/rpc': {
+      id: '/api/crm/rpc'
+      path: '/api/crm/rpc'
+      fullPath: '/api/crm/rpc'
+      preLoaderRoute: typeof ApiCrmRpcRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/cron/crm-process': {
@@ -352,26 +504,63 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiWebhooksB4youRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/crm/admin/import-legacy': {
+      id: '/api/crm/admin/import-legacy'
+      path: '/api/crm/admin/import-legacy'
+      fullPath: '/api/crm/admin/import-legacy'
+      preLoaderRoute: typeof ApiCrmAdminImportLegacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/crm/auth/login': {
+      id: '/api/crm/auth/login'
+      path: '/api/crm/auth/login'
+      fullPath: '/api/crm/auth/login'
+      preLoaderRoute: typeof ApiCrmAuthLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/crm/auth/logout': {
+      id: '/api/crm/auth/logout'
+      path: '/api/crm/auth/logout'
+      fullPath: '/api/crm/auth/logout'
+      preLoaderRoute: typeof ApiCrmAuthLogoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/crm/auth/me': {
+      id: '/api/crm/auth/me'
+      path: '/api/crm/auth/me'
+      fullPath: '/api/crm/auth/me'
+      preLoaderRoute: typeof ApiCrmAuthMeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  ContactsRoute: ContactsRoute,
+  AutomationsRoute: AutomationsRoute,
   CrmRoute: CrmRoute,
   EventsRoute: EventsRoute,
   FunnelsRoute: FunnelsRoute,
+  InsightsRoute: InsightsRoute,
   JourneyRoute: JourneyRoute,
-  PipelineRoute: PipelineRoute,
+  LoginRoute: LoginRoute,
+  OperationsRoute: OperationsRoute,
   RecoveryRoute: RecoveryRoute,
   SalesRoute: SalesRoute,
+  SegmentsRoute: SegmentsRoute,
   SettingsRoute: SettingsRoute,
-  TasksRoute: TasksRoute,
   ApiEventsRoute: ApiEventsRoute,
+  CustomersCustomerIdRoute: CustomersCustomerIdRoute,
   ApiIndexRoute: ApiIndexRoute,
+  CustomersIndexRoute: CustomersIndexRoute,
+  ApiCrmRpcRoute: ApiCrmRpcRoute,
   ApiCronCrmProcessRoute: ApiCronCrmProcessRoute,
   ApiPublicEventsRoute: ApiPublicEventsRoute,
   ApiWebhooksB4youRoute: ApiWebhooksB4youRoute,
+  ApiCrmAdminImportLegacyRoute: ApiCrmAdminImportLegacyRoute,
+  ApiCrmAuthLoginRoute: ApiCrmAuthLoginRoute,
+  ApiCrmAuthLogoutRoute: ApiCrmAuthLogoutRoute,
+  ApiCrmAuthMeRoute: ApiCrmAuthMeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

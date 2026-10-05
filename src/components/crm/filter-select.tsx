@@ -11,11 +11,14 @@ export function FilterSelect({
   onChange,
   all,
   options,
+  hideAll = false,
 }: {
   value: string;
   onChange: (v: string) => void;
   all: string;
   options: { value: string; label: string }[];
+  /** Hide the "all" entry (for selects where a value is always chosen). */
+  hideAll?: boolean;
 }) {
   return (
     <Select value={value} onValueChange={onChange}>
@@ -23,7 +26,7 @@ export function FilterSelect({
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="all">{all}</SelectItem>
+        {!hideAll && <SelectItem value="all">{all}</SelectItem>}
         {options.map((o) => (
           <SelectItem key={o.value} value={o.value}>
             {o.label}

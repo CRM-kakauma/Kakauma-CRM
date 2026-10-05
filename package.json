@@ -10,7 +10,9 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "test:crm": "node --test --test-concurrency=1 tests/crm/*.test.ts"
+    "test:crm": "node --test --test-concurrency=1 tests/crm/*.test.ts",
+    "crm:migrate": "node --env-file=.env scripts/crm-migrate.mjs",
+    "crm:create-admin": "node --env-file=.env scripts/crm-create-admin.mjs"
   },
   "overrides": {
     "rolldown": "1.2.1"

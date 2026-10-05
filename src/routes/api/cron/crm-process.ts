@@ -14,9 +14,19 @@ export const Route = createFileRoute("/api/cron/crm-process")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const { authenticateCronRequest } = await import("@/integrations/supabase/cron-auth");
-        const denied = await authenticateCronRequest(request);
-        if (denied) return denied;
+        // Same check as the Lovable cron helper, but the secret may also come from .env (local dev).
+        const { env } = await import("@/server/crm/supabase.server");
+        const secrets = [env("LOVABLE_CRON_SECRET"), env("LOVABLE_CRON_SECRET_PREVIOUS")].filter(
+          (x): x is string => !!x,
+        );
+        if (!secrets.length) return new Response("Server configuration error", { status: 500 });
+        const token = /^Bearer ([^\s,]+)$/.exec(request.headers.get("authorization") ?? "")?.[1];
+        if (!token) return new Response("Unauthorized", { status: 401 });
+        const { createHash, timingSafeEqual } = await import("node:crypto");
+        const digest = (v: string) => createHash("sha256").update(v, "utf8").digest();
+        if (!secrets.some((s) => timingSafeEqual(digest(token), digest(s)))) {
+          return new Response("Unauthorized", { status: 401 });
+        }
 
         const body = (await request.json().catch(() => ({}))) as {
           limit?: number;

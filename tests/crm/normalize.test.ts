@@ -155,3 +155,38 @@ test("card secrets are redacted before storage, everything else untouched", () =
   const clean = { a: 1, sale_id: "4111111111111234" };
   assert.equal(redactCardData(clean).payload, clean);
 });
+
+// ---------------------------------------------------------------- RPC gateway (phase 5)
+import { authorizeRpc } from "../../src/server/crm/gateway.ts";
+
+test("gateway: only allow-listed functions, minimum role, server-side actor", () => {
+  const viewer = { role: "viewer" as const, email: "v@x.com" };
+  const admin = { role: "admin" as const, email: "a@x.com" };
+  assert.deepEqual(authorizeRpc("crm_ingest_event", {}, admin), {
+    ok: false,
+    status: 404,
+    error: "unknown_function",
+  });
+  assert.deepEqual(authorizeRpc("crm_grant_access", {}, admin), {
+    ok: false,
+    status: 404,
+    error: "unknown_function",
+  });
+  assert.deepEqual(
+    authorizeRpc("crm_set_automation_active", { p_key: "x", p_active: false }, viewer),
+    {
+      ok: false,
+      status: 403,
+      error: "forbidden",
+    },
+  );
+  const ok = authorizeRpc("crm_set_automation_active", { p_key: "x", p_active: false }, admin);
+  assert.deepEqual(ok, {
+    ok: true,
+    fn: "crm_set_automation_active",
+    args: { p_key: "x", p_active: false, p_actor: "a@x.com" },
+  });
+  assert.equal(authorizeRpc("crm_dashboard", { p_actor: "spoof" }, admin).ok, false);
+  assert.equal(authorizeRpc("crm_dashboard", { "x;drop": 1 }, admin).ok, false);
+  assert.equal(authorizeRpc("toString", {}, admin).ok, false);
+});

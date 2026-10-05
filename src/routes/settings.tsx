@@ -1,9 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
-import { RotateCcw } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { resetDemoData } from "@/services/crm";
+import { useQuery } from "@tanstack/react-query";
 import { PageHeader } from "@/components/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,20 +37,6 @@ async function counts() {
 
 function SettingsPage() {
   const { data, isLoading } = useQuery({ queryKey: ["counts"], queryFn: counts });
-  const queryClient = useQueryClient();
-
-  async function resetCrm() {
-    if (
-      !window.confirm(
-        "Apagar as alterações do CRM neste navegador e restaurar os dados de exemplo?",
-      )
-    )
-      return;
-    await resetDemoData();
-    await queryClient.invalidateQueries({ queryKey: ["crm"] });
-    toast.success("Dados de exemplo restaurados");
-  }
-
   return (
     <>
       <PageHeader title="Configurações" description="Workspace, moeda e estado atual dos dados." />
@@ -97,17 +79,6 @@ function SettingsPage() {
           Neste MVP as métricas são derivadas exclusivamente dos eventos armazenados. Afiliados,
           cohorts, alertas e permissões chegam nas próximas etapas.
         </p>
-      </section>
-
-      <section className="mt-6 surface p-5">
-        <h2 className="text-base font-semibold">CRM — modo demonstração</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Contatos, negócios, recuperações e tarefas ficam salvos apenas neste navegador até o
-          backend do CRM ser conectado.
-        </p>
-        <Button variant="outline" className="mt-4 gap-2" onClick={resetCrm}>
-          <RotateCcw className="size-4" /> Restaurar dados de exemplo
-        </Button>
       </section>
     </>
   );

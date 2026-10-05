@@ -183,6 +183,29 @@ describe("CRM state engine (phase 2)", { skip: !sql && "CRM_TEST_DATABASE_URL no
     );
   });
 
+  test("replaying history: an inferred DUE is never reported as a payment recovery", async () => {
+    // Old events processed today: after the first charge, next_charge is already in the past (DUE by inference).
+    const p = person("R1");
+    const s = { id: "SUB-R1", status: "active" };
+    await send(paid(p, "SR1", "CR1", 50, 90, { subscription: { ...s, next_charge: ago(60) } }));
+    assert.equal((await sub("SUB-R1"))["payment_state"], "DUE");
+    await send(
+      b4("renewed-subscription", {
+        customer: p,
+        sale_id: "SR2",
+        payment_method: "pix",
+        paid_at: ago(60),
+        charges: [{ id: "CR2", amount: 50 }],
+        subscription: { ...s, next_charge: ago(-5) },
+      }),
+    );
+    const st = await sub("SUB-R1");
+    assert.equal(st["payment_state"], "CURRENT");
+    const rec =
+      await sql!`select 1 from crm.customer_events where subscription_id = 'SUB-R1' and fact_type = 'SUBSCRIPTION_PAYMENT_RECOVERED'`;
+    assert.equal(rec.length, 0);
+  });
+
   test("high-value subscriber at risk is HIGH_VALUE_AT_RISK; cancellation request is CHURN_RISK", async () => {
     const p = person("H1");
     const s = { id: "SUB-H1", status: "active", plan: { name: "Trimestral" } };

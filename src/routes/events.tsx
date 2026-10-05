@@ -125,7 +125,11 @@ function EventsPage() {
                   const meta = eventMeta(e.event_type);
                   const tone = TONE_CLASSES[meta.tone];
                   return (
-                    <tr key={e.id} onClick={() => setSelected(e)} className="cursor-pointer border-b border-border/70 last:border-0 hover:bg-muted/40">
+                    <tr
+                      key={e.id}
+                      onClick={() => setSelected(e)}
+                      className="cursor-pointer border-b border-border/70 last:border-0 hover:bg-muted/40"
+                    >
                       <td className="whitespace-nowrap px-4 py-3 num text-muted-foreground">
                         {formatDate(e.timestamp)} · {formatTime(e.timestamp)}
                       </td>

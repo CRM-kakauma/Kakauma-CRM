@@ -1,7 +1,7 @@
 # Rodar o Kakauma CRM no seu computador
 
 Leva uns 15 minutos. Você vai: criar um projeto Supabase só para o CRM, colocar as chaves no `.env`,
-criar as tabelas, criar seu usuário e importar o histórico de webhooks que o analytics antigo já guardou.
+criar as tabelas e importar o histórico de webhooks que o analytics antigo já guardou.
 
 ## 1. Criar o projeto Supabase do CRM
 
@@ -50,20 +50,26 @@ npm run crm:migrate
 
 Deve listar `aplicando 0008… ok` até `0013… ok`. Pode rodar de novo quando quiser: só aplica o que falta.
 
-## 6. Criar seu usuário
-
-```bash
-npm run crm:create-admin -- seu-email@kakauma.com.br "uma-senha-forte-com-10+"
-```
-
-## 7. Subir e entrar
+## 6. Subir
 
 ```bash
 npm run dev
 ```
 
-Abra <http://localhost:8080/login> e entre com o e-mail e a senha do passo 6.
-(Não digite nada no Terminal enquanto o servidor estiver rodando; use outra aba com **Cmd+T**.)
+Abra <http://localhost:8080/crm>. **Rodando local, o CRM abre direto, sem login** (o rodapé do menu mostra
+"Modo local, sem login"). Não digite nada no Terminal enquanto o servidor estiver rodando; use outra aba
+com **Cmd+T**.
+
+## 7. (Opcional) Ligar o login
+
+Quando quiser login também no local:
+
+```bash
+npm run crm:create-admin -- seu-email@kakauma.com.br "uma-senha-forte-com-10+"
+```
+
+e adicione `CRM_REQUIRE_LOGIN=true` no `.env`. Em produção (app publicado) o login é **sempre** obrigatório,
+independentemente dessa variável.
 
 ## 8. Trazer os dados reais
 

@@ -50,6 +50,8 @@ export function useCrm<T = unknown>(
 export interface Me {
   email: string;
   role: "admin" | "operator" | "viewer";
+  /** false when running locally without login */
+  login?: boolean;
 }
 
 export function useMe() {

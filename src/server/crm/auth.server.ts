@@ -1,4 +1,4 @@
-import { crmConfig, crmRpc, keyHeaders } from "./supabase.server.ts";
+import { crmConfig, crmRpc, env, keyHeaders } from "./supabase.server.ts";
 
 /**
  * CRM login with Supabase Auth (e-mail + password) kept in httpOnly cookies.
@@ -103,7 +103,23 @@ export async function login(
 }
 
 /** Current session from cookies, refreshing an expired access token transparently. */
+/**
+ * Local development runs without login unless CRM_REQUIRE_LOGIN=true.
+ * Production builds always require login (import.meta.env.DEV is false there).
+ */
+export function loginDisabled(): boolean {
+  return import.meta.env.DEV && env("CRM_REQUIRE_LOGIN") !== "true";
+}
+
+const LOCAL_SESSION: Session = {
+  userId: "00000000-0000-0000-0000-000000000000",
+  email: "local (sem login)",
+  role: "admin",
+  setCookies: [],
+};
+
 export async function getSession(request: Request): Promise<Session | null> {
+  if (loginDisabled()) return LOCAL_SESSION;
   const c = readCookies(request);
   let setCookies: string[] = [];
   let user = c[AT] ? await userFromToken(c[AT]) : null;

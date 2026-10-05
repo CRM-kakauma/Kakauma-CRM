@@ -128,12 +128,20 @@ function UserBox() {
       <div className="min-w-0 flex-1">
         <p className="truncate text-xs font-medium text-foreground">{me.email}</p>
         <p className="text-[11px] text-muted-foreground">
-          {me.role === "admin" ? "Administrador" : me.role === "operator" ? "Operador" : "Leitura"}
+          {me.login === false
+            ? "Modo local, sem login"
+            : me.role === "admin"
+              ? "Administrador"
+              : me.role === "operator"
+                ? "Operador"
+                : "Leitura"}
         </p>
       </div>
-      <Button variant="ghost" size="icon" className="size-8" onClick={logout} aria-label="Sair">
-        <LogOut className="size-4" />
-      </Button>
+      {me.login !== false && (
+        <Button variant="ghost" size="icon" className="size-8" onClick={logout} aria-label="Sair">
+          <LogOut className="size-4" />
+        </Button>
+      )}
     </div>
   );
 }

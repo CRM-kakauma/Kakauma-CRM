@@ -1,6 +1,7 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
+import { useMe } from "@/lib/crm-api";
 import { Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +25,10 @@ function LoginPage() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const { data: me } = useMe();
+  useEffect(() => {
+    if (me?.login === false) void navigate({ to: "/crm" });
+  }, [me, navigate]);
 
   async function submit(e: FormEvent) {
     e.preventDefault();

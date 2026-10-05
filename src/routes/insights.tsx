@@ -57,6 +57,7 @@ function Insights() {
     <>
       <PageHeader
         title="Insights"
+        help="painel"
         description={`${label} · cohorts consideram clientes/assinaturas iniciados no período. "—" = sem base.`}
       />
       <Tabs defaultValue="funnel">

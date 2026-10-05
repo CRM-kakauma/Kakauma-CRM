@@ -2,8 +2,12 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import * as core from "../pipeline.ts";
 import { runAutomations } from "../automation.ts";
+import { runFlows } from "../messages.ts";
 import type { Rpc } from "../pipeline.ts";
 import { buildDemoData } from "./seed.ts";
+
+/** text[] parameters (every other array/object is sent as jsonb). */
+const TEXT_ARRAYS = new Set(["p_redacted", "p_events"]);
 
 /**
  * Demo mode (local development only): when no CRM Supabase project is
@@ -36,7 +40,7 @@ function makeRpc(db: PGliteLike): Rpc {
     const values = keys.map((k) => args[k]);
     const params = keys.map((k, i) => {
       const v = args[k];
-      if (Array.isArray(v) && k === "p_redacted") return `${k} => $${i + 1}::text[]`;
+      if (Array.isArray(v) && TEXT_ARRAYS.has(k)) return `${k} => $${i + 1}::text[]`;
       if (v !== null && typeof v === "object") return `${k} => $${i + 1}::jsonb`;
       return `${k} => $${i + 1}`;
     });
@@ -81,6 +85,10 @@ async function boot(): Promise<Rpc> {
 
   const rpc = makeRpc(db);
   const { webhooks, spend } = buildDemoData();
+  // The starter flows go live before the events, so recent facts enter them.
+  for (const key of ["recuperacao_pagamento", "boas_vindas"]) {
+    await rpc("crm_publish_flow", { p_key: key, p_actor: "demo" });
+  }
   for (const p of webhooks) {
     await core.ingestWebhook(rpc, "b4you", JSON.stringify(p));
   }
@@ -91,6 +99,7 @@ async function boot(): Promise<Rpc> {
   }
   await rpc("crm_update_setting", { p_key: "tax_rate_pct", p_value: 6 });
   await runAutomations(rpc, { limit: 500 }); // no channel → DRY_RUN with rendered messages
+  await runFlows(rpc, { limit: 500 });
   status = { state: "ready", webhooks: webhooks.length, ms: Date.now() - started };
   console.log(`[crm demo] ${webhooks.length} webhooks fictícios processados em ${status.ms} ms`);
   return rpc;

@@ -3,6 +3,9 @@ import type { Rpc } from "../../src/server/crm/pipeline.ts";
 
 export const TEST_DB_URL = process.env["CRM_TEST_DATABASE_URL"];
 
+/** text[] parameters (every other array/object is sent as jsonb). */
+const TEXT_ARRAYS = new Set(["p_redacted", "p_events"]);
+
 /** Direct-connection implementation of the Supabase RPC call used by the pipeline. */
 export function makeRpc(sql: postgres.Sql): Rpc {
   return async (fn, args) => {
@@ -10,7 +13,7 @@ export function makeRpc(sql: postgres.Sql): Rpc {
     const params = Object.keys(args).map((k, i) => {
       const v = args[k];
       values.push(v); // the driver serializes jsonb / array parameters itself
-      if (Array.isArray(v) && k === "p_redacted") return `${k} => $${i + 1}::text[]`;
+      if (Array.isArray(v) && TEXT_ARRAYS.has(k)) return `${k} => $${i + 1}::text[]`;
       if (v !== null && typeof v === "object") return `${k} => $${i + 1}::jsonb`;
       return `${k} => $${i + 1}`;
     });

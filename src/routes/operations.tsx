@@ -65,6 +65,7 @@ function Operations({ me }: { me: Me }) {
     <>
       <PageHeader
         title="Operação"
+        help="operacao"
         description="Saúde da ingestão de eventos, qualidade de dados e importações."
       />
 

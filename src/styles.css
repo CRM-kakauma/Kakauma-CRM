@@ -10,8 +10,7 @@
  */
 
 @theme inline {
-  --font-sans:
-    "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
 
   --radius-sm: calc(var(--radius) - 4px);
@@ -181,4 +180,48 @@
 
 @utility num {
   font-variant-numeric: tabular-nums;
+}
+
+/* Flow builder: branches drawn like an org chart (horizontal bar + vertical stems). */
+@layer components {
+  .flow-canvas {
+    background-color: var(--color-muted);
+    background-image: radial-gradient(
+      color-mix(in srgb, var(--color-muted-foreground) 25%, transparent) 1px,
+      transparent 1px
+    );
+    background-size: 18px 18px;
+  }
+  .flow-stem {
+    width: 2px;
+    background: color-mix(in srgb, var(--color-muted-foreground) 45%, transparent);
+  }
+  .flow-branches {
+    display: flex;
+    align-items: flex-start;
+  }
+  .flow-branch {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 18px;
+  }
+  .flow-branch::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    border-top: 2px solid color-mix(in srgb, var(--color-muted-foreground) 45%, transparent);
+  }
+  .flow-branch:first-child::before {
+    left: 50%;
+  }
+  .flow-branch:last-child::before {
+    right: 50%;
+  }
+  .flow-branch:only-child::before {
+    display: none;
+  }
 }

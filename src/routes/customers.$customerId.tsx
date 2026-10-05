@@ -45,6 +45,7 @@ import {
   type Me,
 } from "@/lib/crm-api";
 import { cn } from "@/lib/utils";
+import { CHANNEL_LABEL } from "@/lib/crm-messages";
 
 export const Route = createFileRoute("/customers/$customerId")({
   head: () => ({ meta: [{ title: "Cliente 360 — Kakauma CRM" }] }),
@@ -419,7 +420,95 @@ function Customer360({ me }: { me: Me }) {
               )}
             </div>
           </Section>
-          <Section title="Automações e comunicações">
+          <Section title="Fluxos">
+            {!(crm["flows"] ?? []).length ? (
+              <Empty>Não passou por nenhum fluxo.</Empty>
+            ) : (
+              <ul className="space-y-2">
+                {crm["flows"].map((f: C360, i: number) => (
+                  <li
+                    key={i}
+                    className="surface flex items-center justify-between gap-2 p-3 text-sm"
+                  >
+                    <Link
+                      to="/flows/$key"
+                      params={{ key: f["flow"] }}
+                      className="font-medium hover:text-primary"
+                    >
+                      {f["name"]}
+                    </Link>
+                    <span className="text-right text-xs text-muted-foreground">
+                      <Pill
+                        tone={
+                          f["status"] === "GOAL"
+                            ? "success"
+                            : ["ACTIVE", "WAITING"].includes(f["status"])
+                              ? "primary"
+                              : "muted"
+                        }
+                      >
+                        {ENROLL_PT[f["status"]] ?? f["status"]}
+                      </Pill>
+                      <br />
+                      {dateTime(f["entered_at"])}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Section>
+          <Section title="Mensagens">
+            <Optouts
+              customerId={id["customer_id"]}
+              optouts={crm["optouts"] ?? []}
+              canEdit={me.role !== "viewer"}
+            />
+            {!(crm["messages"] ?? []).length ? (
+              <Empty>Nenhuma mensagem de fluxo.</Empty>
+            ) : (
+              <ul className="mt-3 space-y-2">
+                {crm["messages"].map((m: C360) => (
+                  <li key={m["message_id"]} className="surface p-3 text-sm">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium">
+                        {CHANNEL_LABEL[m["channel"] as keyof typeof CHANNEL_LABEL] ?? m["channel"]}
+                        {m["flow"] ? (
+                          <span className="font-normal text-muted-foreground"> · {m["flow"]}</span>
+                        ) : null}
+                      </span>
+                      <Pill
+                        tone={
+                          m["status"] === "SENT"
+                            ? "success"
+                            : m["status"] === "DRY_RUN"
+                              ? "primary"
+                              : m["status"] === "SKIPPED"
+                                ? "warning"
+                                : "muted"
+                        }
+                      >
+                        {MSG_PT[m["status"]] ?? m["status"]}
+                      </Pill>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {dateTime(m["at"])}
+                      {m["skip_reason"] ? ` · ${m["skip_reason"]}` : ""}
+                    </p>
+                    {m["rendered"] && (
+                      <p className="mt-2 line-clamp-3 rounded-lg bg-muted/60 px-3 py-2 text-xs">
+                        {m["rendered"]["subject"] ??
+                          m["rendered"]["text"] ??
+                          m["rendered"]["body"] ??
+                          m["rendered"]["cards"]?.[0]?.["title"] ??
+                          ""}
+                      </p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Section>
+          <Section title="Automações simples">
             {!crm["automations"].length ? (
               <Empty>Nenhuma automação disparada.</Empty>
             ) : (
@@ -463,6 +552,71 @@ function Customer360({ me }: { me: Me }) {
         </div>
       </div>
     </>
+  );
+}
+
+const ENROLL_PT: Record<string, string> = {
+  ACTIVE: "em andamento",
+  WAITING: "aguardando",
+  COMPLETED: "concluiu",
+  GOAL: "meta atingida",
+  EXITED: "saiu",
+  FAILED: "erro",
+};
+const MSG_PT: Record<string, string> = {
+  QUEUED: "na fila",
+  PROCESSING: "enviando",
+  SENT: "enviada",
+  DRY_RUN: "simulação",
+  SKIPPED: "não enviada",
+  FAILED: "falhou",
+};
+
+/** Channels the customer does not want marketing on (LGPD opt-out). */
+function Optouts({
+  customerId,
+  optouts,
+  canEdit,
+}: {
+  customerId: string;
+  optouts: string[];
+  canEdit: boolean;
+}) {
+  const qc = useQueryClient();
+  const set = useMutation({
+    mutationFn: (v: { channel: string; out: boolean }) =>
+      crmCall("crm_set_optout", {
+        p_customer_id: customerId,
+        p_channel: v.channel,
+        p_opt_out: v.out,
+      }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["crm"] }),
+    onError: (e) => toast.error((e as Error).message),
+  });
+  return (
+    <div className="surface p-3 text-xs">
+      <p className="mb-2 font-medium">Recebe marketing por</p>
+      <div className="flex flex-wrap gap-3">
+        {(["email", "sms", "whatsapp", "rcs"] as const).map((ch) => {
+          const out = optouts.includes(ch) || optouts.includes("all");
+          return (
+            <label key={ch} className="flex items-center gap-1.5">
+              <input
+                type="checkbox"
+                checked={!out}
+                disabled={!canEdit || optouts.includes("all") || set.isPending}
+                onChange={(e) => set.mutate({ channel: ch, out: !e.target.checked })}
+              />
+              {CHANNEL_LABEL[ch]}
+            </label>
+          );
+        })}
+      </div>
+      <p className="mt-2 text-muted-foreground">
+        Desmarcado = a pessoa pediu para não receber. Mensagens transacionais (pagamento, entrega)
+        continuam.
+      </p>
+    </div>
   );
 }
 

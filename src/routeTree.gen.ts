@@ -27,6 +27,12 @@ import { Route as ApiIndexRouteImport } from './routes/api.index'
 import { Route as ApiEventsRouteImport } from './routes/api/events'
 import { Route as CustomersIndexRouteImport } from './routes/customers.index'
 import { Route as CustomersCustomerIdRouteImport } from './routes/customers.$customerId'
+import { Route as FlowsIndexRouteImport } from './routes/flows.index'
+import { Route as FlowsKeyRouteImport } from './routes/flows.$key'
+import { Route as HelpIndexRouteImport } from './routes/help.index'
+import { Route as HelpSlugRouteImport } from './routes/help.$slug'
+import { Route as MessagesIndexRouteImport } from './routes/messages.index'
+import { Route as MessagesKeyRouteImport } from './routes/messages.$key'
 import { Route as ApiCrmRpcRouteImport } from './routes/api/crm/rpc'
 import { Route as ApiCronCrmProcessRouteImport } from './routes/api/cron/crm-process'
 import { Route as ApiPublicEventsRouteImport } from './routes/api/public/events'
@@ -127,6 +133,36 @@ const CustomersCustomerIdRoute = CustomersCustomerIdRouteImport.update({
   path: '/customers/$customerId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FlowsIndexRoute = FlowsIndexRouteImport.update({
+  id: '/flows/',
+  path: '/flows/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FlowsKeyRoute = FlowsKeyRouteImport.update({
+  id: '/flows/$key',
+  path: '/flows/$key',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HelpIndexRoute = HelpIndexRouteImport.update({
+  id: '/help/',
+  path: '/help/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HelpSlugRoute = HelpSlugRouteImport.update({
+  id: '/help/$slug',
+  path: '/help/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MessagesIndexRoute = MessagesIndexRouteImport.update({
+  id: '/messages/',
+  path: '/messages/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MessagesKeyRoute = MessagesKeyRouteImport.update({
+  id: '/messages/$key',
+  path: '/messages/$key',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiCrmRpcRoute = ApiCrmRpcRouteImport.update({
   id: '/api/crm/rpc',
   path: '/api/crm/rpc',
@@ -190,8 +226,14 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/api/events': typeof ApiEventsRoute
   '/customers/$customerId': typeof CustomersCustomerIdRoute
+  '/flows/$key': typeof FlowsKeyRoute
+  '/help/$slug': typeof HelpSlugRoute
+  '/messages/$key': typeof MessagesKeyRoute
   '/api/': typeof ApiIndexRoute
   '/customers/': typeof CustomersIndexRoute
+  '/flows/': typeof FlowsIndexRoute
+  '/help/': typeof HelpIndexRoute
+  '/messages/': typeof MessagesIndexRoute
   '/api/crm/rpc': typeof ApiCrmRpcRoute
   '/api/cron/crm-process': typeof ApiCronCrmProcessRoute
   '/api/public/events': typeof ApiPublicEventsRoute
@@ -219,8 +261,14 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/api/events': typeof ApiEventsRoute
   '/customers/$customerId': typeof CustomersCustomerIdRoute
+  '/flows/$key': typeof FlowsKeyRoute
+  '/help/$slug': typeof HelpSlugRoute
+  '/messages/$key': typeof MessagesKeyRoute
   '/api': typeof ApiIndexRoute
   '/customers': typeof CustomersIndexRoute
+  '/flows': typeof FlowsIndexRoute
+  '/help': typeof HelpIndexRoute
+  '/messages': typeof MessagesIndexRoute
   '/api/crm/rpc': typeof ApiCrmRpcRoute
   '/api/cron/crm-process': typeof ApiCronCrmProcessRoute
   '/api/public/events': typeof ApiPublicEventsRoute
@@ -249,8 +297,14 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/api/events': typeof ApiEventsRoute
   '/customers/$customerId': typeof CustomersCustomerIdRoute
+  '/flows/$key': typeof FlowsKeyRoute
+  '/help/$slug': typeof HelpSlugRoute
+  '/messages/$key': typeof MessagesKeyRoute
   '/api/': typeof ApiIndexRoute
   '/customers/': typeof CustomersIndexRoute
+  '/flows/': typeof FlowsIndexRoute
+  '/help/': typeof HelpIndexRoute
+  '/messages/': typeof MessagesIndexRoute
   '/api/crm/rpc': typeof ApiCrmRpcRoute
   '/api/cron/crm-process': typeof ApiCronCrmProcessRoute
   '/api/public/events': typeof ApiPublicEventsRoute
@@ -280,8 +334,14 @@ export interface FileRouteTypes {
     | '/settings'
     | '/api/events'
     | '/customers/$customerId'
+    | '/flows/$key'
+    | '/help/$slug'
+    | '/messages/$key'
     | '/api/'
     | '/customers/'
+    | '/flows/'
+    | '/help/'
+    | '/messages/'
     | '/api/crm/rpc'
     | '/api/cron/crm-process'
     | '/api/public/events'
@@ -309,8 +369,14 @@ export interface FileRouteTypes {
     | '/settings'
     | '/api/events'
     | '/customers/$customerId'
+    | '/flows/$key'
+    | '/help/$slug'
+    | '/messages/$key'
     | '/api'
     | '/customers'
+    | '/flows'
+    | '/help'
+    | '/messages'
     | '/api/crm/rpc'
     | '/api/cron/crm-process'
     | '/api/public/events'
@@ -338,8 +404,14 @@ export interface FileRouteTypes {
     | '/settings'
     | '/api/events'
     | '/customers/$customerId'
+    | '/flows/$key'
+    | '/help/$slug'
+    | '/messages/$key'
     | '/api/'
     | '/customers/'
+    | '/flows/'
+    | '/help/'
+    | '/messages/'
     | '/api/crm/rpc'
     | '/api/cron/crm-process'
     | '/api/public/events'
@@ -368,8 +440,14 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   ApiEventsRoute: typeof ApiEventsRoute
   CustomersCustomerIdRoute: typeof CustomersCustomerIdRoute
+  FlowsKeyRoute: typeof FlowsKeyRoute
+  HelpSlugRoute: typeof HelpSlugRoute
+  MessagesKeyRoute: typeof MessagesKeyRoute
   ApiIndexRoute: typeof ApiIndexRoute
   CustomersIndexRoute: typeof CustomersIndexRoute
+  FlowsIndexRoute: typeof FlowsIndexRoute
+  HelpIndexRoute: typeof HelpIndexRoute
+  MessagesIndexRoute: typeof MessagesIndexRoute
   ApiCrmRpcRoute: typeof ApiCrmRpcRoute
   ApiCronCrmProcessRoute: typeof ApiCronCrmProcessRoute
   ApiPublicEventsRoute: typeof ApiPublicEventsRoute
@@ -509,6 +587,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CustomersCustomerIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/flows/': {
+      id: '/flows/'
+      path: '/flows'
+      fullPath: '/flows/'
+      preLoaderRoute: typeof FlowsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/flows/$key': {
+      id: '/flows/$key'
+      path: '/flows/$key'
+      fullPath: '/flows/$key'
+      preLoaderRoute: typeof FlowsKeyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/help/': {
+      id: '/help/'
+      path: '/help'
+      fullPath: '/help/'
+      preLoaderRoute: typeof HelpIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/help/$slug': {
+      id: '/help/$slug'
+      path: '/help/$slug'
+      fullPath: '/help/$slug'
+      preLoaderRoute: typeof HelpSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/messages/': {
+      id: '/messages/'
+      path: '/messages'
+      fullPath: '/messages/'
+      preLoaderRoute: typeof MessagesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/messages/$key': {
+      id: '/messages/$key'
+      path: '/messages/$key'
+      fullPath: '/messages/$key'
+      preLoaderRoute: typeof MessagesKeyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/crm/rpc': {
       id: '/api/crm/rpc'
       path: '/api/crm/rpc'
@@ -592,8 +712,14 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   ApiEventsRoute: ApiEventsRoute,
   CustomersCustomerIdRoute: CustomersCustomerIdRoute,
+  FlowsKeyRoute: FlowsKeyRoute,
+  HelpSlugRoute: HelpSlugRoute,
+  MessagesKeyRoute: MessagesKeyRoute,
   ApiIndexRoute: ApiIndexRoute,
   CustomersIndexRoute: CustomersIndexRoute,
+  FlowsIndexRoute: FlowsIndexRoute,
+  HelpIndexRoute: HelpIndexRoute,
+  MessagesIndexRoute: MessagesIndexRoute,
   ApiCrmRpcRoute: ApiCrmRpcRoute,
   ApiCronCrmProcessRoute: ApiCronCrmProcessRoute,
   ApiPublicEventsRoute: ApiPublicEventsRoute,

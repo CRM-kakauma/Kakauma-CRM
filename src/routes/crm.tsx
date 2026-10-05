@@ -31,6 +31,7 @@ function Dashboard() {
     <>
       <PageHeader
         title="Painel"
+        help="painel"
         description={`Calculado a partir dos eventos da B4you · ${label}. "—" = sem base para calcular.`}
       />
       <ApiErrorBox error={error} />

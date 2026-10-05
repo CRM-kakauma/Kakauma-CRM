@@ -76,6 +76,7 @@ function Customers() {
     <>
       <PageHeader
         title="Clientes"
+        help="clientes"
         description={
           segment
             ? `Membros do segmento "${segment}"`

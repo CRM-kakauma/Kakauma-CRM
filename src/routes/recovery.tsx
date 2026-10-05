@@ -75,6 +75,7 @@ function Recovery() {
     <>
       <PageHeader
         title="Recuperação"
+        help="recuperacao"
         description="Situações abertas agora, a partir dos eventos. Some daqui sozinho quando o cliente paga, renova ou o prazo passa."
       />
       <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

@@ -101,8 +101,9 @@ function Automations({ me }: { me: Me }) {
   return (
     <>
       <PageHeader
-        title="Automações"
-        description="Fato → filtro → condições (reavaliadas na hora do envio) → ação. Sem canal conectado, tudo é registrado como simulação com a mensagem pronta."
+        title="Automações simples"
+        help="fluxos"
+        description="Uma mensagem quando um fato acontece (fato → filtro → condições → ação). Para jornadas com várias etapas, esperas e testes A/B, use Fluxos."
       >
         {canEdit && <Button onClick={() => setEditing("new")}>Nova automação</Button>}
       </PageHeader>

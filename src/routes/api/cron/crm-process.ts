@@ -6,7 +6,8 @@ import { createFileRoute } from "@tanstack/react-router";
  * Authenticated with the Lovable cron secret (Authorization: Bearer ...).
  *
  * It also re-evaluates time-based customer state (DUE, CHURN_RISK, CHURNED)
- * and executes due automation runs (DRY_RUN until a channel webhook is configured).
+ * executes due automation runs, advances flows and delivers their messages
+ * (DRY_RUN until a channel webhook is configured).
  *
  * Body (optional JSON): { "limit": 200, "backfill": true }
  */
@@ -32,7 +33,7 @@ export const Route = createFileRoute("/api/cron/crm-process")({
           limit?: number;
           backfill?: boolean;
         };
-        const { backfillFromLegacy, processPending, refreshCustomers, runAutomations } =
+        const { backfillFromLegacy, processPending, refreshCustomers, runAutomations, runFlows } =
           await import("@/server/crm/pipeline.server");
         const backfilled = body.backfill ? await backfillFromLegacy() : 0;
         const summary = await processPending({
@@ -40,7 +41,8 @@ export const Route = createFileRoute("/api/cron/crm-process")({
         });
         const refreshed = await refreshCustomers();
         const automations = await runAutomations();
-        return Response.json({ ok: true, backfilled, ...summary, refreshed, automations });
+        const flows = await runFlows();
+        return Response.json({ ok: true, backfilled, ...summary, refreshed, automations, flows });
       },
     },
   },

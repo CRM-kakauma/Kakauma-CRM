@@ -219,9 +219,26 @@ ou compra); cliques e CAC dependem da importação de gasto; COGS e impostos ain
   via `crm.redact_raw_event`), links de pagamento, rastreio, click ids e mensagens renderizadas. Valores e
   histórico continuam nos relatórios; se a pessoa voltar a comprar, vira um cliente novo.
 
+## Fluxos e mensagens (0016)
+
+- **Mensagens** (`crm.message_templates`): modelos de e-mail (blocos), SMS (medidor GSM-7/Unicode), WhatsApp
+  (categoria, cabeçalho, botões) e RCS (texto, cartão, carrossel, sugestões, SMS alternativo). Regras de cada
+  canal em `crm.template_errors`; renderização em `src/lib/crm-messages.ts`, a mesma usada pelos simuladores
+  e pelo envio. Finalidade **marketing** respeita opt-out (`crm.channel_optouts`), janela de envio
+  (`send_window`) e limite diário; **transacional** não.
+- **Fluxos** (`crm.flows`, grafo de etapas): trigger, enviar, esperar, aguardar evento (aconteceu / não
+  aconteceu), condição (sim / não), teste A/B (sorteio fixo por inscrição), alerta para a equipe, sair; meta
+  (fato que encerra como conversão). Publicar grava `crm.flow_versions`; inscrições (`crm.flow_enrollments`)
+  ficam na versão em que entraram; um cliente vivo por fluxo; “só uma vez” opcional. Fatos entram por trigger
+  em `crm.customer_events`; o worker (`crm.flow_tick` + `src/server/crm/messages.ts`) avança e entrega pela
+  fila `crm.messages` (DRY_RUN sem canal; webhook assinado com `CRM_AUTOMATION_WEBHOOK_URL`). Grafo
+  validado no banco (alcance, ciclos, saídas, mensagens existentes, regras).
+- **Simulação**: `crm_simulate_flow` percorre o rascunho para um cliente real, sem efeitos.
+- **Ajuda**: `/help` (conteúdo em `src/lib/crm-help.ts`), com link “Como funciona?” em cada tela.
+
 ## Próximas fases (ordem da especificação)
 
 - **Publicar** (Lovable/Vercel/Cloudflare) para receber webhooks em tempo real e agendar o worker.
 - **Payloads reais da B4you** para confirmar o normalizador.
-- **Canal de mensagens** para as automações (hoje: simulação).
+- **Provedores de envio** (e-mail, SMS, WhatsApp/Meta com modelos aprovados, RCS) ligados ao webhook de saída (hoje: simulação).
 - Pipeline comercial e tarefas manuais (removidos da demo) quando houver necessidade real.

@@ -8,6 +8,9 @@ import {
   Filter,
   LayoutDashboard,
   LifeBuoy,
+  Mail,
+  BookOpen,
+  GitFork,
   LineChart,
   LogOut,
   Menu,
@@ -35,7 +38,9 @@ const NAV_CRM: NavItem[] = [
   { to: "/customers", label: "Clientes", icon: Users },
   { to: "/recovery", label: "Recuperação", icon: LifeBuoy },
   { to: "/segments", label: "Segmentos", icon: Tags },
-  { to: "/automations", label: "Automações", icon: Workflow },
+  { to: "/flows", label: "Fluxos", icon: GitFork },
+  { to: "/messages", label: "Mensagens", icon: Mail },
+  { to: "/automations", label: "Automações simples", icon: Workflow },
   { to: "/insights", label: "Insights", icon: LineChart },
   { to: "/operations", label: "Operação", icon: Wrench },
 ];
@@ -46,6 +51,9 @@ const NO_PERIOD = [
   "/recovery",
   "/segments",
   "/automations",
+  "/flows",
+  "/messages",
+  "/help",
   "/operations",
   "/admin",
   "/settings",
@@ -66,7 +74,10 @@ const NAV_SYSTEM = [
   { to: "/api", label: "API", icon: Code2 },
 ];
 
-const NAV_FOOTER = [{ to: "/settings", label: "Configurações", icon: Settings }];
+const NAV_FOOTER = [
+  { to: "/help", label: "Ajuda", icon: BookOpen },
+  { to: "/settings", label: "Configurações", icon: Settings },
+];
 
 function NavList({ onNavigate }: { onNavigate?: (() => void) | undefined }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });

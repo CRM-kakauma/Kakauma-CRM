@@ -53,6 +53,7 @@ function Admin({ me }: { me: Me }) {
     <>
       <PageHeader
         title="Administração"
+        help="administracao"
         description="Pessoas com acesso ao CRM e o registro de tudo que foi alterado."
       />
       <Tabs defaultValue="users">

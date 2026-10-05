@@ -60,6 +60,7 @@ function Segments({ me }: { me: Me }) {
     <>
       <PageHeader
         title="Segmentos"
+        help="segmentos"
         description="Grupos dinâmicos: a participação é recalculada a cada evento e periodicamente."
       >
         {me.role !== "viewer" && (

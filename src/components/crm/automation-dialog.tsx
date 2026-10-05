@@ -64,7 +64,7 @@ const VARIABLES = [
 ];
 
 /** Trigger facts whose data can be filtered, and the editor for that filter. */
-function TriggerFilter({
+export function TriggerFilter({
   fact,
   value,
   onChange,

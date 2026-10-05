@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { legacyGuard } from "@/lib/legacy";
 import { useQuery } from "@tanstack/react-query";
 import { PageHeader } from "@/components/page-header";
 import { BlockSkeleton, EmptyState, ErrorState } from "@/components/states";
@@ -7,6 +8,7 @@ import { formatCurrency, formatNumber } from "@/lib/format";
 import { fetchBreakdown, type BreakdownRow } from "@/services/analytics";
 
 export const Route = createFileRoute("/sales")({
+  beforeLoad: legacyGuard,
   head: () => ({
     meta: [
       { title: "Vendas por Origem e Produto — Kakauma Analytics" },

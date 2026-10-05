@@ -24,6 +24,7 @@ import {
   Wrench,
 } from "lucide-react";
 import { useMe } from "@/lib/crm-api";
+import { LEGACY_ENABLED } from "@/lib/legacy";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { PeriodSelector } from "@/components/period-selector";
@@ -106,12 +107,18 @@ function NavList({ onNavigate }: { onNavigate?: (() => void) | undefined }) {
       <p className="label-eyebrow px-3 pb-1">CRM</p>
       {NAV_CRM.map((n) => item(n.to, n.label, n.icon))}
       {me?.role === "admin" && item("/admin", "Administração", ShieldCheck)}
-      <p className="label-eyebrow mt-4 px-3 pb-1">Analytics (legado)</p>
-      {NAV.map((n) => item(n.to, n.label, n.icon))}
+      {LEGACY_ENABLED && (
+        <>
+          <p className="label-eyebrow mt-4 px-3 pb-1">Analytics (legado)</p>
+          {NAV.map((n) => item(n.to, n.label, n.icon))}
+          <div className="my-3 h-px bg-border" />
+          {NAV_SYSTEM.map((n) => item(n.to, n.label, n.icon))}
+        </>
+      )}
       <div className="my-3 h-px bg-border" />
-      {NAV_SYSTEM.map((n) => item(n.to, n.label, n.icon))}
-      <div className="my-3 h-px bg-border" />
-      {NAV_FOOTER.map((n) => item(n.to, n.label, n.icon))}
+      {NAV_FOOTER.filter((n) => LEGACY_ENABLED || n.to !== "/settings").map((n) =>
+        item(n.to, n.label, n.icon),
+      )}
     </nav>
   );
 }

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { legacyGuard } from "@/lib/legacy";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Search } from "lucide-react";
@@ -13,6 +14,7 @@ import { fetchCustomer, fetchRecentUsers, searchUsers, type UserHit } from "@/se
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/journey")({
+  beforeLoad: legacyGuard,
   head: () => ({
     meta: [
       { title: "Jornada do Cliente — Kakauma Analytics" },

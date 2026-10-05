@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { legacyGuard } from "@/lib/legacy";
 import { useQuery } from "@tanstack/react-query";
 import { PageHeader } from "@/components/page-header";
 import { FunnelView, MethodSplit } from "@/components/funnel-view";
@@ -9,6 +10,7 @@ import { fetchFunnel, fetchOverview } from "@/services/analytics";
 import { formatNumber } from "@/lib/format";
 
 export const Route = createFileRoute("/funnels")({
+  beforeLoad: legacyGuard,
   head: () => ({
     meta: [
       { title: "Funis — Kakauma Analytics" },

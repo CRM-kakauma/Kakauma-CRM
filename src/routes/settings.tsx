@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { legacyGuard } from "@/lib/legacy";
 import { useQuery } from "@tanstack/react-query";
 import { PageHeader } from "@/components/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -6,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatNumber } from "@/lib/format";
 
 export const Route = createFileRoute("/settings")({
+  beforeLoad: legacyGuard,
   head: () => ({
     meta: [
       { title: "Configurações — Kakauma Analytics" },

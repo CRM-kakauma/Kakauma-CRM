@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { legacyGuard } from "@/lib/legacy";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -8,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { EVENT_TYPES } from "@/lib/events";
 
 export const Route = createFileRoute("/api/")({
+  beforeLoad: legacyGuard,
   head: () => ({
     meta: [
       { title: "Event API — Kakauma Analytics" },

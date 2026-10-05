@@ -3,8 +3,9 @@ import { createFileRoute } from "@tanstack/react-router";
 /**
  * B4you webhook endpoint for the CRM event store.
  *
- * Optional shared secret: when B4YOU_WEBHOOK_TOKEN is set, the request must
- * carry it as ?token=... or in the x-webhook-token header.
+ * Shared secret B4YOU_WEBHOOK_TOKEN (required in production, optional in local
+ * development): the request must carry it as ?token=... or in the
+ * x-webhook-token header.
  */
 export const Route = createFileRoute("/api/webhooks/b4you")({
   server: {
@@ -12,6 +13,13 @@ export const Route = createFileRoute("/api/webhooks/b4you")({
       POST: async ({ request }) => {
         const { env } = await import("@/server/crm/supabase.server");
         const expected = env("B4YOU_WEBHOOK_TOKEN");
+        // In production the endpoint is public: without a token anyone could post fake sales.
+        if (!expected && !import.meta.env.DEV) {
+          return Response.json(
+            { ok: false, error: "B4YOU_WEBHOOK_TOKEN não configurado no servidor" },
+            { status: 503 },
+          );
+        }
         if (expected) {
           const url = new URL(request.url);
           const given =
@@ -23,8 +31,14 @@ export const Route = createFileRoute("/api/webhooks/b4you")({
           }
         }
         const { ingestWebhook } = await import("@/server/crm/pipeline.server");
-        const result = await ingestWebhook("b4you", await request.text());
-        return Response.json(result.body, { status: result.status });
+        try {
+          const result = await ingestWebhook("b4you", await request.text());
+          return Response.json(result.body, { status: result.status });
+        } catch (e) {
+          // JSON 5xx: the B4you retries, nothing is lost
+          console.error("[crm] webhook failed", e);
+          return Response.json({ ok: false, error: (e as Error).message }, { status: 503 });
+        }
       },
     },
   },

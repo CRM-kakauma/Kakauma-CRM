@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { legacyGuard } from "@/lib/legacy";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Search } from "lucide-react";
@@ -20,6 +21,7 @@ import { EventDetailSheet } from "@/components/event-detail-sheet";
 import type { EventRow } from "@/services/analytics";
 
 export const Route = createFileRoute("/events")({
+  beforeLoad: legacyGuard,
   head: () => ({
     meta: [
       { title: "Eventos — Kakauma Analytics" },

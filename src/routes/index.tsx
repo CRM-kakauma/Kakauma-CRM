@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { legacyGuard } from "@/lib/legacy";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -28,6 +29,7 @@ import { fetchFunnel, fetchOverview, fetchTimeseries, type Bucket } from "@/serv
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/")({
+  beforeLoad: legacyGuard,
   head: () => ({
     meta: [
       { title: "Visão Geral — Kakauma Analytics" },

@@ -196,6 +196,29 @@ ou compra); cliques e CAC dependem da importação de gasto; COGS e impostos ain
 - As telas de demonstração (contatos, pipeline, tarefas com dados fictícios) foram removidas.
 - O analytics antigo continua no menu como "legado", usando o Supabase antigo.
 
+## Gestão (0014)
+
+- **Editor de automações** (fato → filtro → condições → canal/mensagem com prévia) e **construtor visual de
+  regras** com contagem ao vivo (`crm_preview_rule`). Papel **operador** edita segmentos e automações.
+- **Administração** (`/admin`, só admin): usuários (convite, papel, ativo; o último admin não pode ser
+  rebaixado) e auditoria. Na fila de erros dá para **reprocessar um evento** (`crm_requeue_event`).
+
+## Lucro, CX, LTV e LGPD (0015)
+
+- **Lucro por cliente** = LTV de contribuição − CMV − impostos. CMV vem de `crm.product_costs` (custo por
+  produto × quantidade da oferta, ou custo da oferta, que tem prioridade), cadastrado em Operação → Custos e
+  impostos; impostos = `tax_rate_pct` × receita líquida. **Enquanto faltar custo de alguma venda paga ou a
+  alíquota, o lucro fica `null` ("incompleto")** — nada é estimado. Vendas reembolsadas mantêm o CMV
+  (premissa conservadora: a mercadoria normalmente não volta).
+- **CX score** (0–100): base 80, + recompras, − atrasos/falhas de entrega, reembolsos, chargebacks, atrasos
+  de assinatura e cancelamentos; pesos em `cx_weights`. `profit_ltv` e `cx_score` são campos de regra.
+- **Curva de LTV**: receita líquida acumulada por cliente, mês 0–12 desde a 1ª compra; cada mês só conta
+  clientes que já viveram aquele mês. **Retenção** agora vai de C1 a C12.
+- **Anonimização (LGPD)**, só admin, com motivo obrigatório: apaga dados pessoais do cliente e identidades, e
+  substitui campos pessoais **dentro dos payloads brutos** (único caminho que pode alterar `crm.events`,
+  via `crm.redact_raw_event`), links de pagamento, rastreio, click ids e mensagens renderizadas. Valores e
+  histórico continuam nos relatórios; se a pessoa voltar a comprar, vira um cliente novo.
+
 ## Próximas fases (ordem da especificação)
 
 - **Publicar** (Lovable/Vercel/Cloudflare) para receber webhooks em tempo real e agendar o worker.

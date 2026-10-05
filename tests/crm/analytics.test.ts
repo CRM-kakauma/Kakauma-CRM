@@ -273,7 +273,7 @@ describe("CRM analytics (phase 4)", { skip: !sql && "CRM_TEST_DATABASE_URL not s
     assert.equal(num(f.pix_conversion), 50); // A1 paid, A2 did not
   });
 
-  test("subscription retention C1→C5 only counts eligible subscriptions", async () => {
+  test("subscription retention C1→C12 only counts eligible subscriptions", async () => {
     const [r] = await call<any[]>("crm_retention", {
       p_dimension: "campaign",
       p_from: FROM,
@@ -288,12 +288,28 @@ describe("CRM analytics (phase 4)", { skip: !sql && "CRM_TEST_DATABASE_URL not s
           v.rate === null ? null : Number(v.rate),
         ]),
       ),
-      { c1: 100, c2: 66.7, c3: 33.3, c4: 33.3, c5: null }, // C5 needs 121 days; started 100 days ago
+      // C5 needs 121 days; started 100 days ago
+      {
+        c1: 100,
+        c2: 66.7,
+        c3: 33.3,
+        c4: 33.3,
+        c5: null,
+        c6: null,
+        c7: null,
+        c8: null,
+        c9: null,
+        c10: null,
+        c11: null,
+        c12: null,
+      },
     );
     assert.equal(num(r.steps.c1_c2.rate), 66.7);
     assert.equal(num(r.steps.c2_c3.rate), 50);
     assert.equal(num(r.steps.c3_c4.rate), 100);
     assert.equal(r.steps.c4_c5.rate, null);
+    assert.equal(r.steps.c11_c12.rate, null);
+    assert.equal(r.steps.c12_c13, undefined);
   });
 
   test("cohorts by campaign: LTV, refund rate, renewal", async () => {

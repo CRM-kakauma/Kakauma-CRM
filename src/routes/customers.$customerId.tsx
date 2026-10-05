@@ -1,5 +1,8 @@
+import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, Mail, MessageCircle } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { ArrowLeft, Mail, MessageCircle, ShieldOff } from "lucide-react";
 import {
   ApiErrorBox,
   Empty,
@@ -15,6 +18,16 @@ import {
 import { count, date, dateTime, money } from "@/lib/crm-format";
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
   Table,
   TableBody,
   TableCell,
@@ -22,12 +35,20 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { FACT_LABEL, RUN_STATUS_LABEL, SKIP_LABEL, label, useCrm } from "@/lib/crm-api";
+import {
+  FACT_LABEL,
+  RUN_STATUS_LABEL,
+  SKIP_LABEL,
+  crmCall,
+  label,
+  useCrm,
+  type Me,
+} from "@/lib/crm-api";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/customers/$customerId")({
   head: () => ({ meta: [{ title: "Cliente 360 — Kakauma CRM" }] }),
-  component: () => <RequireAuth>{() => <Customer360 />}</RequireAuth>,
+  component: () => <RequireAuth>{(me) => <Customer360 me={me} />}</RequireAuth>,
 });
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- the 360 payload is a wide, read-only JSON document */
@@ -93,7 +114,7 @@ const StatusPill = ({ s }: { s: string | null }) => (
   </Pill>
 );
 
-function Customer360() {
+function Customer360({ me }: { me: Me }) {
   const { customerId } = Route.useParams();
   const { data, isLoading, error } = useCrm<C360 | null>("crm_customer_360", {
     p_customer_id: customerId,
@@ -136,7 +157,13 @@ function Customer360() {
             <RiskPill risk={crm["risk"]} />
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          {me.role === "admin" && !id["anonymized_at"] && (
+            <Anonymize
+              customerId={id["customer_id"]}
+              name={id["full_name"] ?? id["email"] ?? "este cliente"}
+            />
+          )}
           {wa.length >= 10 && (
             <Button variant="outline" size="sm" asChild>
               <a
@@ -158,7 +185,14 @@ function Customer360() {
         </div>
       </div>
 
-      <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      {id["anonymized_at"] && (
+        <p className="mt-4 rounded-lg bg-muted px-4 py-3 text-sm text-muted-foreground">
+          Dados pessoais anonimizados em {dateTime(id["anonymized_at"])} (LGPD). Valores e histórico
+          de compras continuam nos relatórios.
+        </p>
+      )}
+
+      <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <Stat label="LTV bruto" value={money(fin["gross_ltv"])} />
         <Stat
           label="LTV líquido"
@@ -169,6 +203,11 @@ function Customer360() {
           label="LTV de contribuição"
           value={money(fin["contribution_ltv"])}
           hint="− taxas, frete, comissões"
+        />
+        <Stat
+          label="Lucro do cliente"
+          value={fin["profit_ltv"] != null ? money(fin["profit_ltv"]) : "incompleto"}
+          hint={profitHint(fin)}
         />
         <Stat
           label="Pedidos pagos"
@@ -355,6 +394,7 @@ function Customer360() {
           </Section>
           <Section title="Experiência">
             <dl className="surface grid grid-cols-2 gap-3 p-4 text-sm">
+              <Field k="CX score" v={exp["cx_score"] != null ? `${exp["cx_score"]}/100` : null} />
               <Field
                 k="Prazo médio de entrega"
                 v={exp["avg_delivery_days"] != null ? `${exp["avg_delivery_days"]} dias` : null}
@@ -433,6 +473,81 @@ const QUALITY: Record<string, string> = {
   AT_RISK: "em risco",
   HIGH_VALUE_AT_RISK: "alto valor em risco",
 };
+
+function profitHint(fin: C360) {
+  if (fin["cogs_missing_sales"] > 0)
+    return `${fin["cogs_missing_sales"]} venda(s) sem custo cadastrado`;
+  if (fin["tax_rate_pct"] == null) return "defina a alíquota de impostos em Operação";
+  return `CMV ${money(fin["cogs"])} · impostos ${money(fin["taxes"])}`;
+}
+
+function Anonymize({ customerId, name }: { customerId: string; name: string }) {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const run = useMutation({
+    mutationFn: () =>
+      crmCall<{ events_redacted: number }>("crm_anonymize_customer", {
+        p_customer_id: customerId,
+        p_reason: reason,
+      }),
+    onSuccess: (r) => {
+      toast.success("Cliente anonimizado", {
+        description: `${r.events_redacted} evento(s) brutos tiveram os dados pessoais removidos.`,
+      });
+      setOpen(false);
+      void qc.invalidateQueries({ queryKey: ["crm"] });
+    },
+    onError: (e) => toast.error((e as Error).message),
+  });
+  return (
+    <>
+      <Button variant="ghost" size="sm" onClick={() => setOpen(true)}>
+        <ShieldOff className="size-4" /> Anonimizar (LGPD)
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Anonimizar {name}?</DialogTitle>
+            <DialogDescription>
+              Remove nome, e-mail, telefone, documento, endereço, links de pagamento e rastreio —
+              também dentro dos eventos brutos guardados. Valores e histórico de compras ficam (sem
+              identificar a pessoa). Não dá para desfazer; se a pessoa comprar de novo, vira um
+              cliente novo.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <div className="grid gap-1.5">
+              <Label>Motivo / protocolo da solicitação</Label>
+              <Input
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="Pedido do titular, e-mail de 05/10"
+              />
+            </div>
+            <div className="grid gap-1.5">
+              <Label>Digite ANONIMIZAR para confirmar</Label>
+              <Input value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={!reason.trim() || confirm !== "ANONIMIZAR" || run.isPending}
+              onClick={() => run.mutate()}
+            >
+              Anonimizar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
 
 function Field({ k, v }: { k: string; v: unknown }) {
   return (

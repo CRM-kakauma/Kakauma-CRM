@@ -85,6 +85,19 @@ function Dashboard() {
                 value={money(data.commerce["pending_release"])}
                 hint="comissão ainda não liberada"
               />
+              <Stat
+                label="Lucro do período"
+                value={
+                  data.commerce["profit"] != null ? money(data.commerce["profit"]) : "incompleto"
+                }
+                hint={
+                  Number(data.commerce["cogs_missing_sales"]) > 0
+                    ? `${count(data.commerce["cogs_missing_sales"])} venda(s) sem custo cadastrado`
+                    : data.commerce["taxes"] == null
+                      ? "defina a alíquota de impostos em Operação"
+                      : `CMV ${money(data.commerce["cogs"])} · impostos ${money(data.commerce["taxes"])}`
+                }
+              />
             </Grid>
           </Section>
 
@@ -162,6 +175,24 @@ function Dashboard() {
                 label="LTV de contribuição"
                 value={money(data.customer["avg_contribution_ltv"])}
                 hint="− taxas, frete e comissões"
+              />
+              <Stat
+                label="Lucro médio por cliente"
+                value={
+                  data.customer["avg_profit_ltv"] != null
+                    ? money(data.customer["avg_profit_ltv"])
+                    : "—"
+                }
+                hint={`${count(data.customer["profit_known_customers"])} com custo completo · − CMV e impostos`}
+              />
+              <Stat
+                label="CX score médio"
+                value={
+                  data.customer["avg_cx_score"] != null
+                    ? `${data.customer["avg_cx_score"]}/100`
+                    : "—"
+                }
+                hint="entrega, reembolsos e atritos"
               />
               <Stat label="Alto valor" value={count(data.customer["high_value_customers"])} />
               <Stat

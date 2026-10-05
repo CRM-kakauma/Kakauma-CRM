@@ -197,5 +197,8 @@ test("gateway: operator edits segments/automations but not settings or users", (
   assert.equal(authorizeRpc("crm_delete_segment", { p_key: "x" }, op).ok, true);
   assert.equal(authorizeRpc("crm_update_setting", { p_key: "x" }, op).ok, false);
   assert.equal(authorizeRpc("crm_set_user_access", {}, op).ok, false);
+  assert.equal(authorizeRpc("crm_anonymize_customer", {}, op).ok, false);
+  assert.equal(authorizeRpc("crm_set_product_cost", {}, op).ok, false);
+  assert.equal(authorizeRpc("crm_ltv_curve", {}, op).ok, true);
   assert.equal(authorizeRpc("crm_list_audit", {}, op).ok, false);
 });

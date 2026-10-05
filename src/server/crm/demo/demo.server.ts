@@ -85,6 +85,11 @@ async function boot(): Promise<Rpc> {
     await core.ingestWebhook(rpc, "b4you", JSON.stringify(p));
   }
   await rpc("crm_import_marketing_spend", { p_rows: spend });
+  // Fictitious unit costs and tax rate so profit per customer shows up in the demo.
+  for (const product of ["prod_sleep", "prod_sleep_sub"]) {
+    await rpc("crm_set_product_cost", { p_product_id: product, p_unit_cost: 42, p_note: "demo" });
+  }
+  await rpc("crm_update_setting", { p_key: "tax_rate_pct", p_value: 6 });
   await runAutomations(rpc, { limit: 500 }); // no channel → DRY_RUN with rendered messages
   status = { state: "ready", webhooks: webhooks.length, ms: Date.now() - started };
   console.log(`[crm demo] ${webhooks.length} webhooks fictícios processados em ${status.ms} ms`);

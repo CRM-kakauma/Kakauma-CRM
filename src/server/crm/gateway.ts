@@ -23,6 +23,8 @@ export const RPC_PERMISSIONS: Record<string, { role: Role; actor?: true }> = {
   crm_rule_fields: { role: "viewer" },
   crm_trigger_facts: { role: "viewer" },
   crm_preview_rule: { role: "viewer" },
+  crm_ltv_curve: { role: "viewer" },
+  crm_list_product_costs: { role: "viewer" },
   // operator: day-to-day CRM work
   crm_upsert_segment: { role: "operator", actor: true },
   crm_delete_segment: { role: "operator", actor: true },
@@ -37,6 +39,8 @@ export const RPC_PERMISSIONS: Record<string, { role: Role; actor?: true }> = {
   crm_list_app_users: { role: "admin" },
   crm_set_user_access: { role: "admin", actor: true },
   crm_list_audit: { role: "admin" },
+  crm_set_product_cost: { role: "admin", actor: true },
+  crm_anonymize_customer: { role: "admin", actor: true },
 };
 
 const RANK: Record<Role, number> = { viewer: 1, operator: 2, admin: 3 };

@@ -188,6 +188,7 @@ function Operations({ me }: { me: Me }) {
         )}
       </Section>
 
+      <Costs isAdmin={isAdmin} />
       {isAdmin && <SpendImport rows={d["totals"]["marketing_spend_rows"]} onDone={refresh} />}
       <Settings isAdmin={isAdmin} />
     </>
@@ -269,6 +270,159 @@ function ImportLegacy({ onDone }: { onDone: () => void }) {
   );
 }
 
+interface CostRow {
+  product_id: string | null;
+  offer_id: string | null;
+  name: string | null;
+  product_name: string | null;
+  offer_quantity: number | null;
+  unit_cost: number | null;
+  paid_sales: number;
+}
+
+function Costs({ isAdmin }: { isAdmin: boolean }) {
+  const qc = useQueryClient();
+  const { data, isLoading, error } = useCrm<CostRow[]>("crm_list_product_costs");
+  const settings = useCrm<{ key: string; value: unknown }[]>("crm_list_settings");
+  const tax = settings.data?.find((s) => s.key === "tax_rate_pct")?.value as
+    number | null | undefined;
+  const done = (msg: string) => {
+    toast.success(msg, { description: "O lucro dos clientes foi recalculado." });
+    void qc.invalidateQueries({ queryKey: ["crm"] });
+  };
+  const setCost = useMutation({
+    mutationFn: (r: { product_id: string | null; offer_id: string | null; cost: string }) =>
+      crmCall<number>("crm_set_product_cost", {
+        p_product_id: r.offer_id ? null : r.product_id,
+        p_offer_id: r.offer_id,
+        p_unit_cost: r.cost.trim() === "" ? null : Number(r.cost.replace(",", ".")),
+      }),
+    onSuccess: () => done("Custo salvo"),
+    onError: (e) => toast.error((e as Error).message),
+  });
+  const setTax = useMutation({
+    mutationFn: (v: string) =>
+      crmCall("crm_update_setting", {
+        p_key: "tax_rate_pct",
+        p_value: v.trim() === "" ? null : Number(v.replace(",", ".")),
+      }),
+    onSuccess: () => done("Alíquota salva"),
+    onError: (e) => toast.error((e as Error).message),
+  });
+  const missing = (data ?? []).filter(
+    (r) => !r.offer_id && r.unit_cost === null && r.paid_sales > 0,
+  );
+
+  return (
+    <Section
+      title="Custos e impostos"
+      description="Custo do produto (CMV) por venda paga e alíquota sobre a receita líquida. Sem esses dados o lucro por cliente fica 'incompleto' — nada é estimado."
+    >
+      <div className="surface mb-3 grid gap-3 p-4 sm:grid-cols-[1fr_auto] sm:items-center">
+        <div>
+          <p className="text-sm font-medium">Impostos sobre a receita líquida</p>
+          <p className="text-[11px] text-muted-foreground">
+            {tax === null || tax === undefined ? "Ainda não definido." : `Atual: ${tax}%`} Ex.:
+            Simples Nacional na sua faixa.
+          </p>
+        </div>
+        <CostInput
+          key={String(tax)}
+          initial={tax ?? null}
+          suffix="%"
+          disabled={!isAdmin}
+          onSave={(v) => setTax.mutate(v)}
+        />
+      </div>
+      <ApiErrorBox error={error} />
+      {isLoading ? (
+        <Loading rows={3} />
+      ) : !data?.length ? (
+        <Empty>Nenhum produto recebido ainda.</Empty>
+      ) : (
+        <>
+          {missing.length > 0 && (
+            <p className="mb-2 text-xs text-warning">
+              {missing.length} produto(s) vendido(s) sem custo: o lucro desses clientes fica
+              incompleto.
+            </p>
+          )}
+          <div className="surface divide-y divide-border">
+            {data.map((r) => (
+              <div
+                key={`${r.product_id}:${r.offer_id}`}
+                className={`grid gap-2 p-3 sm:grid-cols-[1fr_auto] sm:items-center ${r.offer_id ? "pl-8" : ""}`}
+              >
+                <div>
+                  <p className="text-sm font-medium">
+                    {r.offer_id ? `Oferta: ${r.name ?? r.offer_id}` : (r.name ?? r.product_id)}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {r.offer_id
+                      ? `opcional: substitui o custo do produto${r.offer_quantity ? ` × ${r.offer_quantity} un.` : ""}`
+                      : "custo por unidade"}{" "}
+                    · {count(r.paid_sales)} venda(s) paga(s)
+                  </p>
+                </div>
+                <CostInput
+                  initial={r.unit_cost}
+                  prefix="R$"
+                  disabled={!isAdmin}
+                  onSave={(cost) =>
+                    setCost.mutate({ product_id: r.product_id, offer_id: r.offer_id, cost })
+                  }
+                />
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </Section>
+  );
+}
+
+function CostInput({
+  initial,
+  prefix,
+  suffix,
+  disabled,
+  onSave,
+}: {
+  initial: number | null;
+  prefix?: string;
+  suffix?: string;
+  disabled: boolean;
+  onSave: (v: string) => void;
+}) {
+  const start = initial === null ? "" : String(initial);
+  const [v, setV] = useState(start);
+  return (
+    <div className="flex items-center gap-2">
+      {prefix && <span className="text-xs text-muted-foreground">{prefix}</span>}
+      <Input
+        className="h-8 w-28"
+        inputMode="decimal"
+        value={v}
+        placeholder="—"
+        disabled={disabled}
+        onChange={(e) => setV(e.target.value)}
+      />
+      {suffix && <span className="text-xs text-muted-foreground">{suffix}</span>}
+      {!disabled && (
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-8"
+          disabled={v === start}
+          onClick={() => onSave(v)}
+        >
+          Salvar
+        </Button>
+      )}
+    </div>
+  );
+}
+
 function SpendImport({ rows, onDone }: { rows: number; onDone: () => void }) {
   const [csv, setCsv] = useState("");
   const [err, setErr] = useState<string | null>(null);
@@ -347,6 +501,8 @@ const SETTING_PT: Record<string, string> = {
   default_cycle_days: "Ciclo padrão de assinatura (dias)",
   value_tiers: "Faixas de valor (JSON)",
   quality_weights: "Pesos do score de qualidade (JSON)",
+  cx_weights: "Pesos do CX score (JSON)",
+  tax_rate_pct: "Impostos sobre a receita líquida (%)",
   report_timezone: "Fuso dos relatórios",
 };
 
@@ -381,16 +537,18 @@ function Settings({ isAdmin }: { isAdmin: boolean }) {
         <Loading rows={2} />
       ) : (
         <div className="surface divide-y divide-border">
-          {(data ?? []).map((s) => (
-            <SettingRow
-              key={s.key}
-              k={s.key}
-              value={s.value}
-              desc={s.description}
-              disabled={!isAdmin}
-              onSave={(value) => save.mutate({ key: s.key, value })}
-            />
-          ))}
+          {(data ?? [])
+            .filter((s) => s.key !== "tax_rate_pct") // edited in "Custos e impostos"
+            .map((s) => (
+              <SettingRow
+                key={s.key}
+                k={s.key}
+                value={s.value}
+                desc={s.description}
+                disabled={!isAdmin}
+                onSave={(value) => save.mutate({ key: s.key, value })}
+              />
+            ))}
         </div>
       )}
     </Section>
@@ -412,7 +570,7 @@ function SettingRow({
 }) {
   const initial = JSON.stringify(value);
   const [v, setV] = useState(initial);
-  const big = typeof value === "object";
+  const big = value !== null && typeof value === "object";
   return (
     <div className="grid gap-2 p-3 sm:grid-cols-[1fr_2fr_auto] sm:items-center">
       <div>

@@ -1,5 +1,15 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import {
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { PageHeader } from "@/components/page-header";
 import { usePeriod } from "@/components/period-context";
 import { FilterSelect } from "@/components/crm/filter-select";
@@ -55,6 +65,7 @@ function Insights() {
           <TabsTrigger value="campaigns">Campanhas</TabsTrigger>
           <TabsTrigger value="cohorts">Cohorts</TabsTrigger>
           <TabsTrigger value="retention">Retenção</TabsTrigger>
+          <TabsTrigger value="ltv">Curva de LTV</TabsTrigger>
           <TabsTrigger value="refunds">Reembolsos</TabsTrigger>
         </TabsList>
         <TabsContent value="funnel" className="mt-6">
@@ -68,6 +79,9 @@ function Insights() {
         </TabsContent>
         <TabsContent value="retention" className="mt-6">
           <Retention range={range} />
+        </TabsContent>
+        <TabsContent value="ltv" className="mt-6">
+          <LtvCurve range={range} />
         </TabsContent>
         <TabsContent value="refunds" className="mt-6">
           <Refunds range={range} />
@@ -326,6 +340,8 @@ function Cohorts({ range }: { range: Range }) {
 
 // ------------------------------------------------------------------ retention: sequential single-hue heatmap
 
+const CYCLES = Array.from({ length: 12 }, (_, i) => `c${i + 1}`);
+
 function Retention({ range }: { range: Range }) {
   const [dim, setDim] = useState("first_subscription_month");
   const { data, isLoading, error } = useCrm<Row[]>("crm_retention", { ...range, p_dimension: dim });
@@ -395,9 +411,9 @@ function Retention({ range }: { range: Range }) {
               <tr className="text-left text-xs text-muted-foreground">
                 <th className="px-2 py-2 font-medium">{DIM_LABEL[dim]}</th>
                 <th className="px-2 py-2 text-right font-medium">Assinaturas</th>
-                {["C1", "C2", "C3", "C4", "C5"].map((c) => (
+                {CYCLES.map((c) => (
                   <th key={c} className="px-2 py-2 text-center font-medium">
-                    {c}
+                    {c.toUpperCase()}
                   </th>
                 ))}
                 <th className="px-2 py-2 text-center font-medium">C1→C2</th>
@@ -409,7 +425,7 @@ function Retention({ range }: { range: Range }) {
                 <tr key={r["cohort"]} className="border-t border-border">
                   <td className="px-2 py-2 font-medium">{r["cohort"]}</td>
                   <td className="px-2 py-2 text-right num">{count(r["subscriptions"])}</td>
-                  {["c1", "c2", "c3", "c4", "c5"].map((c) => (
+                  {CYCLES.map((c) => (
                     <Cell key={c} v={r["cycles"]?.[c]} render={cell} />
                   ))}
                   <Cell
@@ -448,6 +464,173 @@ function Cell({
   render: (r: number | null, e: number) => React.ReactNode;
 }) {
   return <>{render(v?.rate ?? null, v?.eligible ?? 0)}</>;
+}
+
+// ------------------------------------------------------------------ LTV curve: one line per cohort (fixed hue order)
+
+const SERIES = [
+  "var(--chart-1)",
+  "var(--chart-2)",
+  "var(--chart-3)",
+  "var(--chart-4)",
+  "var(--chart-5)",
+];
+
+function LtvCurve({ range }: { range: Range }) {
+  const [dim, setDim] = useState("all");
+  const { data, isLoading, error } = useCrm<Row[]>("crm_ltv_curve", {
+    ...range,
+    p_dimension: dim,
+    p_months: 12,
+  });
+  // Lines only for the largest cohorts (fixed order); the table below lists every cohort.
+  const shown = (data ?? []).slice(0, SERIES.length);
+  // Months nobody has reached yet are left off the axis.
+  const lastMonth = Math.max(
+    0,
+    ...shown.flatMap((c) =>
+      (c["points"] ?? []).filter((p: Row) => p["eligible"] > 0).map((p: Row) => p["month"]),
+    ),
+  );
+  const chart = Array.from({ length: lastMonth + 1 }, (_, m) => {
+    const point: Row = { month: `M${m}` };
+    shown.forEach((c, i) => {
+      const p = c["points"]?.[m];
+      point[`s${i}`] = p && p["eligible"] > 0 ? Number(p["avg_net_ltv"]) : null; // index keys: cohort names may contain dots
+    });
+    return point;
+  });
+  return (
+    <>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <p className="max-w-2xl text-sm text-muted-foreground">
+          Receita líquida acumulada por cliente, mês a mês desde a 1ª compra (M0 = mês da compra).
+          Cada mês só conta clientes que já viveram esse mês — nada é projetado.
+        </p>
+        <FilterSelect
+          value={dim}
+          onChange={setDim}
+          all=""
+          hideAll
+          options={[
+            { value: "all", label: "Todos os clientes" },
+            ...dims([
+              "first_purchase_month",
+              "source",
+              "campaign",
+              "creative",
+              "funnel",
+              "product",
+              "offer",
+              "affiliate",
+              "state",
+              "payment_method",
+            ]),
+          ]}
+        />
+      </div>
+      <ApiErrorBox error={error} />
+      {isLoading ? (
+        <Loading />
+      ) : !data?.length ? (
+        <Empty>Nenhum cliente com 1ª compra no período.</Empty>
+      ) : (
+        <>
+          <div className="surface h-[340px] p-4">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chart} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+                <CartesianGrid stroke="var(--color-border)" vertical={false} />
+                <XAxis
+                  dataKey="month"
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
+                />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  width={80}
+                  tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
+                  tickFormatter={(v: number) => money(v)}
+                />
+                <Tooltip
+                  contentStyle={{
+                    borderRadius: 12,
+                    border: "1px solid var(--color-border)",
+                    boxShadow: "var(--shadow-float)",
+                    fontSize: 12,
+                  }}
+                  formatter={(v: number, name: string) => [money(v), name]}
+                />
+                {shown.length > 1 && <Legend wrapperStyle={{ fontSize: 12 }} />}
+                {shown.map((c, i) => (
+                  <Line
+                    key={c["cohort"]}
+                    type="linear"
+                    dataKey={`s${i}`}
+                    name={c["cohort"]}
+                    stroke={SERIES[i]}
+                    strokeWidth={2}
+                    dot={{ r: 4, strokeWidth: 2, stroke: "var(--card)" }}
+                    activeDot={{ r: 5 }}
+                    connectNulls={false}
+                  />
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+          {data.length > shown.length && (
+            <p className="mt-2 text-xs text-muted-foreground">
+              Gráfico mostra os {shown.length} grupos com mais clientes; a tabela tem todos.
+            </p>
+          )}
+          <div className="surface mt-4 overflow-x-auto p-2">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs text-muted-foreground">
+                  <th className="px-2 py-2 font-medium">
+                    {dim === "all" ? "Grupo" : DIM_LABEL[dim]}
+                  </th>
+                  <th className="px-2 py-2 text-right font-medium">Clientes</th>
+                  {[0, 1, 2, 3, 6, 9, 12].map((m) => (
+                    <th key={m} className="px-2 py-2 text-right font-medium">
+                      M{m}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {data.map((r) => (
+                  <tr key={r["cohort"]} className="border-t border-border">
+                    <td className="px-2 py-2 font-medium">{r["cohort"]}</td>
+                    <td className="px-2 py-2 text-right num">{count(r["customers"])}</td>
+                    {[0, 1, 2, 3, 6, 9, 12].map((m) => {
+                      const p = r["points"]?.[m];
+                      return (
+                        <td
+                          key={m}
+                          className="px-2 py-2 text-right num"
+                          title={
+                            p ? `${p["eligible"]} cliente(s) com idade para este mês` : undefined
+                          }
+                        >
+                          {p && p["eligible"] > 0 ? (
+                            money(p["avg_net_ltv"])
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+    </>
+  );
 }
 
 // ------------------------------------------------------------------ refunds

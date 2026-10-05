@@ -247,6 +247,7 @@ export const HELP: HelpArticle[] = [
         blocks: [
           "O **Cliente 360** junta identidade, aquisição (origem, campanha, criativo, afiliado), pedidos, assinaturas e cobranças, entregas, finanças, experiência, segmentos, fluxos, mensagens e a linha do tempo de fatos.",
           "Um mesmo cliente é reconhecido pelo id da B4you, e-mail, WhatsApp ou documento — compras com dados diferentes se juntam no mesmo cadastro.",
+          "Em **Clientes**, alterne entre **Lista** e **Kanban**. No Kanban, escolha as colunas (etapa do ciclo de vida, risco, tipo ou faixa de valor) e a ordem (maior LTV ou compra mais recente). As colunas são calculadas pelos eventos — o cliente muda de coluna sozinho quando compra, paga, atrasa ou cancela — por isso os cartões não são arrastados. “Ver todos” abre a lista já filtrada.",
         ],
       },
       {
@@ -373,6 +374,7 @@ export const HELP: HelpArticle[] = [
       {
         blocks: [
           "O **período** (canto superior) vale para tudo que é fluxo de dinheiro e aquisição. Números de “agora” (assinantes ativos, LTV médio) não dependem do período.",
+          "**Ao longo do tempo** mostra receita, pedidos e novos clientes, assinaturas (novas, renovações, canceladas) e reembolsos por dia, semana ou mês. O botão **Tabela** mostra os números exatos de cada ponto. O último ponto pode estar incompleto se o período ainda não terminou.",
           {
             list: [
               "**Funil**: de checkout a compra, por etapa.",

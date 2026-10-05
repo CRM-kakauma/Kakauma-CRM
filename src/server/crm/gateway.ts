@@ -34,6 +34,8 @@ export const RPC_PERMISSIONS: Record<string, { role: Role; actor?: true }> = {
   crm_simulate_flow: { role: "viewer" },
   crm_message_customer: { role: "viewer" },
   crm_list_messages: { role: "viewer" },
+  crm_customer_board: { role: "viewer" },
+  crm_timeseries: { role: "viewer" },
   // operator: day-to-day CRM work
   crm_upsert_segment: { role: "operator", actor: true },
   crm_delete_segment: { role: "operator", actor: true },

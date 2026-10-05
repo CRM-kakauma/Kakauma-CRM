@@ -120,6 +120,13 @@
       "when": 1790793984207,
       "tag": "0016_crm_flows_messages",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1790794044207,
+      "tag": "0017_crm_board_timeseries",
+      "breakpoints": true
     }
   ]
 }

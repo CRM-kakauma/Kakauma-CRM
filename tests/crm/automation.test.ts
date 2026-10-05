@@ -47,6 +47,7 @@ describe(
   () => {
     before(async () => {
       await resetCrm(sql!);
+      await sql!`delete from crm.automations where key like 'teste_%'`; // only the starter automations
       await sql!`update crm.automations set active = true`;
       await sql!`delete from crm.segments where not is_system`;
       await sql!`update crm.settings set value = '3' where key = 'max_actions_per_customer_per_day'`;

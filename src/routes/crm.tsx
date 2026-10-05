@@ -3,6 +3,7 @@ import { ArrowRight } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { usePeriod } from "@/components/period-context";
 import { ApiErrorBox, Loading, RequireAuth, Section, Stat } from "@/components/crm/ui";
+import { TrendCharts } from "@/components/crm/trend-charts";
 import { count, money, pct } from "@/lib/crm-format";
 import { useCrm } from "@/lib/crm-api";
 
@@ -39,6 +40,8 @@ function Dashboard() {
         <Loading rows={5} />
       ) : (
         <>
+          <TrendCharts from={from} to={to} />
+
           <Section title="Aquisição" action={<More to="/insights" label="Campanhas e cohorts" />}>
             <Grid>
               <Stat

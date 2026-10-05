@@ -27,6 +27,9 @@ describe("CRM management", { skip: !sql && "CRM_TEST_DATABASE_URL not set" }, ()
     await sql!`update crm.automations set active = false`;
   });
   after(async () => {
+    // test automations must not leak into other test files
+    await sql!`delete from crm.automation_runs where automation_id in (select automation_id from crm.automations where key like 'teste_%')`;
+    await sql!`delete from crm.automations where key like 'teste_%'`;
     await sql`update crm.automations set active = true`;
     await sql?.end();
   });

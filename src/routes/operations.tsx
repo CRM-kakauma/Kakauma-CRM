@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ChannelsSection } from "@/components/crm/channels";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -189,6 +190,7 @@ function Operations({ me }: { me: Me }) {
         )}
       </Section>
 
+      <ChannelsSection isAdmin={isAdmin} />
       <Costs isAdmin={isAdmin} />
       {isAdmin && <SpendImport rows={d["totals"]["marketing_spend_rows"]} onDone={refresh} />}
       <Settings isAdmin={isAdmin} />

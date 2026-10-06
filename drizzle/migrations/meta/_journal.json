@@ -127,6 +127,13 @@
       "when": 1790794044207,
       "tag": "0017_crm_board_timeseries",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1790794104207,
+      "tag": "0018_crm_pushfy",
+      "breakpoints": true
     }
   ]
 }

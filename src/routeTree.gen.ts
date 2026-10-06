@@ -34,6 +34,7 @@ import { Route as HelpIndexRouteImport } from './routes/help.index'
 import { Route as HelpSlugRouteImport } from './routes/help.$slug'
 import { Route as MessagesIndexRouteImport } from './routes/messages.index'
 import { Route as MessagesKeyRouteImport } from './routes/messages.$key'
+import { Route as ApiCrmChannelsRouteImport } from './routes/api/crm/channels'
 import { Route as ApiCrmRpcRouteImport } from './routes/api/crm/rpc'
 import { Route as ApiCronCrmProcessRouteImport } from './routes/api/cron/crm-process'
 import { Route as ApiPublicEventsRouteImport } from './routes/api/public/events'
@@ -44,6 +45,7 @@ import { Route as ApiCrmAuthLoginRouteImport } from './routes/api/crm/auth/login
 import { Route as ApiCrmAuthLogoutRouteImport } from './routes/api/crm/auth/logout'
 import { Route as ApiCrmAuthMeRouteImport } from './routes/api/crm/auth/me'
 import { Route as ApiCrmAuthSetPasswordRouteImport } from './routes/api/crm/auth/set-password'
+import { Route as ApiCrmMessagesTestRouteImport } from './routes/api/crm/messages/test'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -170,6 +172,11 @@ const MessagesKeyRoute = MessagesKeyRouteImport.update({
   path: '/messages/$key',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCrmChannelsRoute = ApiCrmChannelsRouteImport.update({
+  id: '/api/crm/channels',
+  path: '/api/crm/channels',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiCrmRpcRoute = ApiCrmRpcRouteImport.update({
   id: '/api/crm/rpc',
   path: '/api/crm/rpc',
@@ -220,6 +227,11 @@ const ApiCrmAuthSetPasswordRoute = ApiCrmAuthSetPasswordRouteImport.update({
   path: '/api/crm/auth/set-password',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCrmMessagesTestRoute = ApiCrmMessagesTestRouteImport.update({
+  id: '/api/crm/messages/test',
+  path: '/api/crm/messages/test',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -247,6 +259,7 @@ export interface FileRoutesByFullPath {
   '/flows/': typeof FlowsIndexRoute
   '/help/': typeof HelpIndexRoute
   '/messages/': typeof MessagesIndexRoute
+  '/api/crm/channels': typeof ApiCrmChannelsRoute
   '/api/crm/rpc': typeof ApiCrmRpcRoute
   '/api/cron/crm-process': typeof ApiCronCrmProcessRoute
   '/api/public/events': typeof ApiPublicEventsRoute
@@ -257,6 +270,7 @@ export interface FileRoutesByFullPath {
   '/api/crm/auth/logout': typeof ApiCrmAuthLogoutRoute
   '/api/crm/auth/me': typeof ApiCrmAuthMeRoute
   '/api/crm/auth/set-password': typeof ApiCrmAuthSetPasswordRoute
+  '/api/crm/messages/test': typeof ApiCrmMessagesTestRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -284,6 +298,7 @@ export interface FileRoutesByTo {
   '/flows': typeof FlowsIndexRoute
   '/help': typeof HelpIndexRoute
   '/messages': typeof MessagesIndexRoute
+  '/api/crm/channels': typeof ApiCrmChannelsRoute
   '/api/crm/rpc': typeof ApiCrmRpcRoute
   '/api/cron/crm-process': typeof ApiCronCrmProcessRoute
   '/api/public/events': typeof ApiPublicEventsRoute
@@ -294,6 +309,7 @@ export interface FileRoutesByTo {
   '/api/crm/auth/logout': typeof ApiCrmAuthLogoutRoute
   '/api/crm/auth/me': typeof ApiCrmAuthMeRoute
   '/api/crm/auth/set-password': typeof ApiCrmAuthSetPasswordRoute
+  '/api/crm/messages/test': typeof ApiCrmMessagesTestRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -322,6 +338,7 @@ export interface FileRoutesById {
   '/flows/': typeof FlowsIndexRoute
   '/help/': typeof HelpIndexRoute
   '/messages/': typeof MessagesIndexRoute
+  '/api/crm/channels': typeof ApiCrmChannelsRoute
   '/api/crm/rpc': typeof ApiCrmRpcRoute
   '/api/cron/crm-process': typeof ApiCronCrmProcessRoute
   '/api/public/events': typeof ApiPublicEventsRoute
@@ -332,6 +349,7 @@ export interface FileRoutesById {
   '/api/crm/auth/logout': typeof ApiCrmAuthLogoutRoute
   '/api/crm/auth/me': typeof ApiCrmAuthMeRoute
   '/api/crm/auth/set-password': typeof ApiCrmAuthSetPasswordRoute
+  '/api/crm/messages/test': typeof ApiCrmMessagesTestRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -361,6 +379,7 @@ export interface FileRouteTypes {
     | '/flows/'
     | '/help/'
     | '/messages/'
+    | '/api/crm/channels'
     | '/api/crm/rpc'
     | '/api/cron/crm-process'
     | '/api/public/events'
@@ -371,6 +390,7 @@ export interface FileRouteTypes {
     | '/api/crm/auth/logout'
     | '/api/crm/auth/me'
     | '/api/crm/auth/set-password'
+    | '/api/crm/messages/test'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -398,6 +418,7 @@ export interface FileRouteTypes {
     | '/flows'
     | '/help'
     | '/messages'
+    | '/api/crm/channels'
     | '/api/crm/rpc'
     | '/api/cron/crm-process'
     | '/api/public/events'
@@ -408,6 +429,7 @@ export interface FileRouteTypes {
     | '/api/crm/auth/logout'
     | '/api/crm/auth/me'
     | '/api/crm/auth/set-password'
+    | '/api/crm/messages/test'
   id:
     | '__root__'
     | '/'
@@ -435,6 +457,7 @@ export interface FileRouteTypes {
     | '/flows/'
     | '/help/'
     | '/messages/'
+    | '/api/crm/channels'
     | '/api/crm/rpc'
     | '/api/cron/crm-process'
     | '/api/public/events'
@@ -445,6 +468,7 @@ export interface FileRouteTypes {
     | '/api/crm/auth/logout'
     | '/api/crm/auth/me'
     | '/api/crm/auth/set-password'
+    | '/api/crm/messages/test'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -473,6 +497,7 @@ export interface RootRouteChildren {
   FlowsIndexRoute: typeof FlowsIndexRoute
   HelpIndexRoute: typeof HelpIndexRoute
   MessagesIndexRoute: typeof MessagesIndexRoute
+  ApiCrmChannelsRoute: typeof ApiCrmChannelsRoute
   ApiCrmRpcRoute: typeof ApiCrmRpcRoute
   ApiCronCrmProcessRoute: typeof ApiCronCrmProcessRoute
   ApiPublicEventsRoute: typeof ApiPublicEventsRoute
@@ -483,6 +508,7 @@ export interface RootRouteChildren {
   ApiCrmAuthLogoutRoute: typeof ApiCrmAuthLogoutRoute
   ApiCrmAuthMeRoute: typeof ApiCrmAuthMeRoute
   ApiCrmAuthSetPasswordRoute: typeof ApiCrmAuthSetPasswordRoute
+  ApiCrmMessagesTestRoute: typeof ApiCrmMessagesTestRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -662,6 +688,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MessagesKeyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/crm/channels': {
+      id: '/api/crm/channels'
+      path: '/api/crm/channels'
+      fullPath: '/api/crm/channels'
+      preLoaderRoute: typeof ApiCrmChannelsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/crm/rpc': {
       id: '/api/crm/rpc'
       path: '/api/crm/rpc'
@@ -732,6 +765,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCrmAuthSetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/crm/messages/test': {
+      id: '/api/crm/messages/test'
+      path: '/api/crm/messages/test'
+      fullPath: '/api/crm/messages/test'
+      preLoaderRoute: typeof ApiCrmMessagesTestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -761,6 +801,7 @@ const rootRouteChildren: RootRouteChildren = {
   FlowsIndexRoute: FlowsIndexRoute,
   HelpIndexRoute: HelpIndexRoute,
   MessagesIndexRoute: MessagesIndexRoute,
+  ApiCrmChannelsRoute: ApiCrmChannelsRoute,
   ApiCrmRpcRoute: ApiCrmRpcRoute,
   ApiCronCrmProcessRoute: ApiCronCrmProcessRoute,
   ApiPublicEventsRoute: ApiPublicEventsRoute,
@@ -771,6 +812,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCrmAuthLogoutRoute: ApiCrmAuthLogoutRoute,
   ApiCrmAuthMeRoute: ApiCrmAuthMeRoute,
   ApiCrmAuthSetPasswordRoute: ApiCrmAuthSetPasswordRoute,
+  ApiCrmMessagesTestRoute: ApiCrmMessagesTestRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

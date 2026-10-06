@@ -230,7 +230,7 @@ export const HELP: HelpArticle[] = [
       {
         heading: "Envio de verdade",
         blocks: [
-          "Hoje nenhum provedor está conectado, então os envios aparecem como **Simulação** (com o conteúdo final) no fluxo e no Cliente 360. Ao conectar um provedor, o CRM envia cada mensagem para ele, assinada, e registra Enviada/Falhou com novas tentativas automáticas.",
+          "**SMS e RCS de texto** saem pela Pushfy quando ela está conectada e o envio real está ligado (veja em Operação → Canais de envio). Antes disso, e para WhatsApp, RCS com cartão e e-mail, os envios aparecem como **Simulação** (com o conteúdo final) no fluxo e no Cliente 360. Em cada SMS ou RCS salvo há **Enviar teste de verdade**, para conferir no seu celular. Falhas temporárias são tentadas de novo automaticamente; número inválido ou mensagem recusada não",
         ],
       },
     ],

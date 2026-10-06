@@ -112,7 +112,11 @@ export async function setPasswordWithToken(
   password: string,
 ): Promise<
   | { ok: true; session: Session }
-  | { ok: false; error: "invalid_link" | "weak_password" | "no_access"; message?: string | undefined }
+  | {
+      ok: false;
+      error: "invalid_link" | "weak_password" | "no_access";
+      message?: string | undefined;
+    }
 > {
   const { url, anonKey } = crmConfig();
   const res = await fetch(`${url}/auth/v1/user`, {

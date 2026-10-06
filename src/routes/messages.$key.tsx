@@ -6,6 +6,7 @@ import { Archive, ArrowLeft, CircleAlert, CircleCheck } from "lucide-react";
 import { ApiErrorBox, Empty, Loading, RequireAuth } from "@/components/crm/ui";
 import { ChannelEditor, PreviewAs, VariableBar } from "@/components/crm/message-editor";
 import { Simulator } from "@/components/crm/simulators";
+import { TestSend } from "@/components/crm/channels";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -292,6 +293,18 @@ function Editor({ me, initial, isNew }: { me: Me; initial: Draft; isNew: boolean
             </p>
           )}
           <Simulator channel={d.channel} content={d.content} vars={vars.v} />
+          {!isNew && canEdit && (d.channel === "sms" || d.channel === "rcs") && (
+            <TestSend
+              templateKey={d.key}
+              disabledReason={
+                dirty
+                  ? "Salve as alterações antes de testar (o teste usa a versão salva)."
+                  : d.channel === "rcs" && (d.content as { kind?: string }).kind !== "text"
+                    ? "Por enquanto só RCS de texto é enviado (cartão/carrossel aguardam a documentação da Pushfy)."
+                    : undefined
+              }
+            />
+          )}
         </div>
       </div>
     </>

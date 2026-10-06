@@ -99,6 +99,21 @@ vencendo, cliente sumido), avança os fluxos (esperas) e entrega mensagens.
     `https://<seu-projeto>.vercel.app/api/cron/crm-process`, com o cabeçalho
     `Authorization: Bearer <CRON_SECRET>`.
 
+## 6. SMS e RCS pela Pushfy
+
+1. No portal da Pushfy: **API & Integrações → API & Tokens → + Novo token** (nome `Kakauma CRM`). Use um
+   token adicional — o token principal não pode ser bloqueado se vazar.
+2. Na Vercel, adicione `PUSHFY_API_TOKEN` (o token novo) e, se quiser, `PUSHFY_SMS_FROM` (nome do remetente).
+   **Ainda não** coloque `PUSHFY_LIVE`. Redeploy.
+3. No CRM: **Operação → Canais de envio** mostra "conectado · envio real desligado" e o saldo. Em
+   **Mensagens**, abra um SMS salvo → **Enviar teste de verdade** para o seu celular.
+4. Funcionou? Adicione `PUSHFY_LIVE` = `true` e faça Redeploy. A partir daí os fluxos **publicados** enviam
+   SMS e RCS de texto de verdade.
+
+Descadastros: quem responde PARAR/SAIR é bloqueado pela própria Pushfy e o worker traz essa lista para o CRM
+(botão "Sincronizar descadastros" em Operação traz tudo de uma vez). RCS com cartão/carrossel e WhatsApp
+continuam em simulação até a documentação desses formatos.
+
 ## Conferência rápida
 
 | O quê | Como |

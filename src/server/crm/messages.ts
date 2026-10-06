@@ -1,15 +1,18 @@
 import type { Rpc } from "./pipeline.ts";
 import { renderMessage, type Channel, type Content } from "../../lib/crm-messages.ts";
 import { renderTemplate } from "../../lib/crm-template.ts";
+import { pushfyOptouts, pushfySend, toPushfyNumber, type PushfyConfig } from "./pushfy.ts";
 
 /**
  * Flow worker: advances due flow enrollments, then delivers queued messages.
  *
  * The SQL side already skipped what must not go out (opt-out, no contact,
  * daily cap, outside the send window). Here each message is rendered with the
- * same code the editor's simulator uses. Without a channel webhook it is stored
- * as DRY_RUN (the rendered content is visible in the CRM); with
- * CRM_AUTOMATION_WEBHOOK_URL it is POSTed there, signed with HMAC-SHA256.
+ * same code the editor's simulator uses, then:
+ *   - SMS and RCS (text) go through Pushfy when PUSHFY_API_TOKEN is set and
+ *     PUSHFY_LIVE=true (with the token but not live: DRY_RUN, nothing is sent);
+ *   - other channels go to CRM_AUTOMATION_WEBHOOK_URL (HMAC-signed) when set;
+ *   - otherwise DRY_RUN: the rendered content is stored and visible in the CRM.
  */
 
 interface ClaimedMessage {
@@ -25,6 +28,7 @@ interface ClaimedMessage {
 
 export interface MessageOptions {
   limit?: number;
+  pushfy?: (PushfyConfig & { live: boolean }) | undefined;
   webhookUrl?: string | undefined;
   webhookSecret?: string | undefined;
   fetchImpl?: typeof fetch;
@@ -57,7 +61,12 @@ export async function runMessages(rpc: Rpc, opts: MessageOptions = {}) {
         : m.channel === "email"
           ? ((m.customer["email"] as string | null) ?? null)
           : ((m.customer["phone"] as string | null) ?? null);
-    const complete = async (status: string, result: unknown, err: string | null = null) => {
+    const complete = async (
+      status: string,
+      result: unknown,
+      err: string | null = null,
+      retry = true,
+    ) => {
       const r = await rpc("crm_complete_message", {
         p_message_id: m.message_id,
         p_status: status,
@@ -65,6 +74,7 @@ export async function runMessages(rpc: Rpc, opts: MessageOptions = {}) {
         p_rendered: rendered,
         p_result: result ?? null,
         p_error: err,
+        p_retry: retry,
       });
       out.push({
         message_id: m.message_id,
@@ -73,6 +83,33 @@ export async function runMessages(rpc: Rpc, opts: MessageOptions = {}) {
         ...(err ? { error: err } : {}),
       });
     };
+
+    if (opts.pushfy && (m.channel === "sms" || m.channel === "rcs")) {
+      if (!opts.pushfy.live) {
+        await complete("DRY_RUN", { reason: "pushfy_not_live" });
+        continue;
+      }
+      const to = toPushfyNumber(recipient);
+      if (!to) {
+        await complete("SKIPPED", null, "invalid_phone");
+        continue;
+      }
+      const r = rendered as { kind?: string; text?: string | null };
+      if (m.channel === "rcs" && r.kind !== "text") {
+        // card / carousel: Pushfy's rich-content format is not documented yet
+        await complete("SKIPPED", null, "rcs_rich_not_supported");
+        continue;
+      }
+      const sent = await pushfySend(opts.pushfy, m.channel, {
+        to,
+        text: r.text ?? "",
+        extId: m.message_id,
+      });
+      const result = { provider: "pushfy", to, http_status: sent.httpStatus, response: sent.body };
+      if (sent.ok) await complete("SENT", result);
+      else await complete("FAILED", result, sent.error ?? "falha no envio", !sent.permanent);
+      continue;
+    }
 
     if (!opts.webhookUrl) {
       await complete("DRY_RUN", { reason: "no_channel_configured" });
@@ -108,4 +145,13 @@ export async function runFlows(rpc: Rpc, opts: MessageOptions = {}): Promise<Flo
   if (tick.error) throw new Error(tick.error.message);
   const messages = await runMessages(rpc, opts);
   return { advanced: Number(tick.data ?? 0), messages };
+}
+
+/** Brings Pushfy's opt-out list (PARAR, SAIR…) into crm.channel_optouts. Without `date`, everything. */
+export async function syncPushfyOptouts(rpc: Rpc, cfg: PushfyConfig, date?: string) {
+  const rows = await pushfyOptouts(cfg, date);
+  if (!rows.length) return { received: 0, customers: 0, added: 0 };
+  const { data, error } = await rpc("crm_import_optouts", { p_rows: rows, p_source: "pushfy" });
+  if (error) throw new Error(error.message);
+  return data as { received: number; customers: number; added: number };
 }

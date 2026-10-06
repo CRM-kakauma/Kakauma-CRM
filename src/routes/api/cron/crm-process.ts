@@ -33,16 +33,32 @@ async function run(request: Request) {
     limit?: number;
     backfill?: boolean;
   };
-  const { backfillFromLegacy, processPending, refreshCustomers, runAutomations, runFlows } =
-    await import("@/server/crm/pipeline.server");
+  const {
+    backfillFromLegacy,
+    processPending,
+    refreshCustomers,
+    runAutomations,
+    runFlows,
+    syncPushfyOptouts,
+  } = await import("@/server/crm/pipeline.server");
   const backfilled = body.backfill ? await backfillFromLegacy() : 0;
   const summary = await processPending({
     limit: Math.min(Math.max(body.limit ?? 200, 1), 1000),
   });
   const refreshed = await refreshCustomers();
   const automations = await runAutomations();
+  // opt-outs first, so nobody who answered PARAR gets the next marketing message
+  const optouts = await syncPushfyOptouts().catch((e: Error) => ({ error: e.message }));
   const flows = await runFlows();
-  return Response.json({ ok: true, backfilled, ...summary, refreshed, automations, flows });
+  return Response.json({
+    ok: true,
+    backfilled,
+    ...summary,
+    refreshed,
+    automations,
+    optouts,
+    flows,
+  });
 }
 
 export const Route = createFileRoute("/api/cron/crm-process")({

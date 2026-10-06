@@ -14,7 +14,7 @@ export const Route = createFileRoute("/login")({
 
 const ERRORS: Record<string, string> = {
   invalid_credentials: "E-mail ou senha incorretos.",
-  no_access: "Este usuário não tem acesso ao CRM. Rode npm run crm:create-admin para liberar.",
+  no_access: "Este usuário ainda não tem acesso ao CRM. Peça ao administrador para liberar.",
   invalid_request: "Preencha e-mail e senha.",
 };
 

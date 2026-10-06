@@ -102,6 +102,46 @@ export async function login(
   };
 }
 
+/**
+ * Invite / password-recovery link from a Supabase Auth e-mail: the link carries
+ * a short-lived access token. Sets the new password with it, then logs in.
+ */
+export async function setPasswordWithToken(
+  request: Request,
+  accessToken: string,
+  password: string,
+): Promise<
+  | { ok: true; session: Session }
+  | { ok: false; error: "invalid_link" | "weak_password" | "no_access"; message?: string | undefined }
+> {
+  const { url, anonKey } = crmConfig();
+  const res = await fetch(`${url}/auth/v1/user`, {
+    method: "PUT",
+    headers: {
+      ...keyHeaders(anonKey),
+      authorization: `Bearer ${accessToken}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ password }),
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as {
+      msg?: string;
+      message?: string;
+      error_code?: string;
+    };
+    const message = body.msg ?? body.message;
+    if (res.status === 401 || res.status === 403)
+      return { ok: false, error: "invalid_link", message };
+    return { ok: false, error: "weak_password", message };
+  }
+  const user = (await res.json()) as { email?: string };
+  if (!user.email) return { ok: false, error: "invalid_link" };
+  const r = await login(request, user.email, password);
+  if (!r.ok) return { ok: false, error: r.error === "no_access" ? "no_access" : "invalid_link" };
+  return r;
+}
+
 /** Current session from cookies, refreshing an expired access token transparently. */
 /**
  * Local development runs without login unless CRM_REQUIRE_LOGIN=true.

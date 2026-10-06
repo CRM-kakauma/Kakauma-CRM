@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AutomationsRouteImport } from './routes/automations'
 import { Route as CrmRouteImport } from './routes/crm'
+import { Route as DefinirSenhaRouteImport } from './routes/definir-senha'
 import { Route as EventsRouteImport } from './routes/events'
 import { Route as FunnelsRouteImport } from './routes/funnels'
 import { Route as InsightsRouteImport } from './routes/insights'
@@ -42,6 +43,7 @@ import { Route as ApiCrmAdminUsersRouteImport } from './routes/api/crm/admin/use
 import { Route as ApiCrmAuthLoginRouteImport } from './routes/api/crm/auth/login'
 import { Route as ApiCrmAuthLogoutRouteImport } from './routes/api/crm/auth/logout'
 import { Route as ApiCrmAuthMeRouteImport } from './routes/api/crm/auth/me'
+import { Route as ApiCrmAuthSetPasswordRouteImport } from './routes/api/crm/auth/set-password'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -61,6 +63,11 @@ const AutomationsRoute = AutomationsRouteImport.update({
 const CrmRoute = CrmRouteImport.update({
   id: '/crm',
   path: '/crm',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DefinirSenhaRoute = DefinirSenhaRouteImport.update({
+  id: '/definir-senha',
+  path: '/definir-senha',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EventsRoute = EventsRouteImport.update({
@@ -208,12 +215,18 @@ const ApiCrmAuthMeRoute = ApiCrmAuthMeRouteImport.update({
   path: '/api/crm/auth/me',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCrmAuthSetPasswordRoute = ApiCrmAuthSetPasswordRouteImport.update({
+  id: '/api/crm/auth/set-password',
+  path: '/api/crm/auth/set-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/automations': typeof AutomationsRoute
   '/crm': typeof CrmRoute
+  '/definir-senha': typeof DefinirSenhaRoute
   '/events': typeof EventsRoute
   '/funnels': typeof FunnelsRoute
   '/insights': typeof InsightsRoute
@@ -243,12 +256,14 @@ export interface FileRoutesByFullPath {
   '/api/crm/auth/login': typeof ApiCrmAuthLoginRoute
   '/api/crm/auth/logout': typeof ApiCrmAuthLogoutRoute
   '/api/crm/auth/me': typeof ApiCrmAuthMeRoute
+  '/api/crm/auth/set-password': typeof ApiCrmAuthSetPasswordRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/automations': typeof AutomationsRoute
   '/crm': typeof CrmRoute
+  '/definir-senha': typeof DefinirSenhaRoute
   '/events': typeof EventsRoute
   '/funnels': typeof FunnelsRoute
   '/insights': typeof InsightsRoute
@@ -278,6 +293,7 @@ export interface FileRoutesByTo {
   '/api/crm/auth/login': typeof ApiCrmAuthLoginRoute
   '/api/crm/auth/logout': typeof ApiCrmAuthLogoutRoute
   '/api/crm/auth/me': typeof ApiCrmAuthMeRoute
+  '/api/crm/auth/set-password': typeof ApiCrmAuthSetPasswordRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -285,6 +301,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/automations': typeof AutomationsRoute
   '/crm': typeof CrmRoute
+  '/definir-senha': typeof DefinirSenhaRoute
   '/events': typeof EventsRoute
   '/funnels': typeof FunnelsRoute
   '/insights': typeof InsightsRoute
@@ -314,6 +331,7 @@ export interface FileRoutesById {
   '/api/crm/auth/login': typeof ApiCrmAuthLoginRoute
   '/api/crm/auth/logout': typeof ApiCrmAuthLogoutRoute
   '/api/crm/auth/me': typeof ApiCrmAuthMeRoute
+  '/api/crm/auth/set-password': typeof ApiCrmAuthSetPasswordRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -322,6 +340,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/automations'
     | '/crm'
+    | '/definir-senha'
     | '/events'
     | '/funnels'
     | '/insights'
@@ -351,12 +370,14 @@ export interface FileRouteTypes {
     | '/api/crm/auth/login'
     | '/api/crm/auth/logout'
     | '/api/crm/auth/me'
+    | '/api/crm/auth/set-password'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/admin'
     | '/automations'
     | '/crm'
+    | '/definir-senha'
     | '/events'
     | '/funnels'
     | '/insights'
@@ -386,12 +407,14 @@ export interface FileRouteTypes {
     | '/api/crm/auth/login'
     | '/api/crm/auth/logout'
     | '/api/crm/auth/me'
+    | '/api/crm/auth/set-password'
   id:
     | '__root__'
     | '/'
     | '/admin'
     | '/automations'
     | '/crm'
+    | '/definir-senha'
     | '/events'
     | '/funnels'
     | '/insights'
@@ -421,6 +444,7 @@ export interface FileRouteTypes {
     | '/api/crm/auth/login'
     | '/api/crm/auth/logout'
     | '/api/crm/auth/me'
+    | '/api/crm/auth/set-password'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -428,6 +452,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   AutomationsRoute: typeof AutomationsRoute
   CrmRoute: typeof CrmRoute
+  DefinirSenhaRoute: typeof DefinirSenhaRoute
   EventsRoute: typeof EventsRoute
   FunnelsRoute: typeof FunnelsRoute
   InsightsRoute: typeof InsightsRoute
@@ -457,6 +482,7 @@ export interface RootRouteChildren {
   ApiCrmAuthLoginRoute: typeof ApiCrmAuthLoginRoute
   ApiCrmAuthLogoutRoute: typeof ApiCrmAuthLogoutRoute
   ApiCrmAuthMeRoute: typeof ApiCrmAuthMeRoute
+  ApiCrmAuthSetPasswordRoute: typeof ApiCrmAuthSetPasswordRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -487,6 +513,13 @@ declare module '@tanstack/react-router' {
       path: '/crm'
       fullPath: '/crm'
       preLoaderRoute: typeof CrmRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/definir-senha': {
+      id: '/definir-senha'
+      path: '/definir-senha'
+      fullPath: '/definir-senha'
+      preLoaderRoute: typeof DefinirSenhaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/events': {
@@ -692,6 +725,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCrmAuthMeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/crm/auth/set-password': {
+      id: '/api/crm/auth/set-password'
+      path: '/api/crm/auth/set-password'
+      fullPath: '/api/crm/auth/set-password'
+      preLoaderRoute: typeof ApiCrmAuthSetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -700,6 +740,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRoute,
   AutomationsRoute: AutomationsRoute,
   CrmRoute: CrmRoute,
+  DefinirSenhaRoute: DefinirSenhaRoute,
   EventsRoute: EventsRoute,
   FunnelsRoute: FunnelsRoute,
   InsightsRoute: InsightsRoute,
@@ -729,6 +770,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCrmAuthLoginRoute: ApiCrmAuthLoginRoute,
   ApiCrmAuthLogoutRoute: ApiCrmAuthLogoutRoute,
   ApiCrmAuthMeRoute: ApiCrmAuthMeRoute,
+  ApiCrmAuthSetPasswordRoute: ApiCrmAuthSetPasswordRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

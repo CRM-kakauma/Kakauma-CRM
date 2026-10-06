@@ -53,6 +53,20 @@ Opcional, só se quiser as telas do analytics antigo também na Vercel: `VITE_SU
 7. **Região** (recomendado): *Settings → Functions → Function Region* = **São Paulo (gru1)**, a mesma
    região do Supabase — cada tela faz várias consultas ao banco e a distância soma.
 
+## 2b. Ligar os e-mails de convite do Supabase ao CRM
+
+Para convidar pessoas pelo Supabase (*Authentication → Users → Add user → Send invitation*) ou mandar
+"troca de senha", o link do e-mail precisa abrir o CRM:
+
+1. Supabase → **Authentication → URL Configuration**.
+2. **Site URL**: `https://<seu-projeto>.vercel.app` (troque o `http://localhost:3000` que vem por padrão).
+3. **Redirect URLs** → *Add URL*: `https://<seu-projeto>.vercel.app/**`.
+
+Quem recebe o convite abre o link, cai na página **Definir senha** do CRM, cria a senha e entra. Se ainda não
+tiver acesso liberado, a página avisa; o administrador libera em **Administração** (ou com
+`select public.crm_grant_access(id, email, 'admin') from auth.users where lower(email) = lower('…');` no
+SQL Editor) e a pessoa entra pela tela de login.
+
 ## 3. Apontar a B4you para o CRM
 
 Na B4you, cadastre o webhook (todos os eventos) com esta URL:

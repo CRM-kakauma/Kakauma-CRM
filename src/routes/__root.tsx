@@ -128,6 +128,17 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  // Supabase invite / recovery e-mails land on the Site URL with the token in
+  // the hash; send them to the page that sets the password (before any login redirect).
+  useEffect(() => {
+    const h = window.location.hash;
+    if (
+      window.location.pathname !== "/definir-senha" &&
+      /(^#|&)(access_token|error_description)=/.test(h)
+    ) {
+      window.location.replace(`/definir-senha${h}`);
+    }
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

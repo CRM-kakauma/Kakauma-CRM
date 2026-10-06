@@ -188,7 +188,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (st) => st.location.pathname });
   const showPeriod = !NO_PERIOD.some((p) => pathname.startsWith(p));
 
-  if (pathname === "/login") {
+  if (pathname === "/login" || pathname === "/definir-senha") {
     return <div className="min-h-screen bg-background">{children}</div>;
   }
 

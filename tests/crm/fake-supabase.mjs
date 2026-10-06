@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // TEST TOOL ONLY — a tiny stand-in for the Supabase HTTP API so the real app
 // can be exercised end-to-end against a local Postgres:
-//   POST /auth/v1/token?grant_type=password|refresh_token, GET /auth/v1/user, POST /auth/v1/logout
+//   POST /auth/v1/token?grant_type=password|refresh_token, GET|PUT /auth/v1/user, POST /auth/v1/logout
+//   GET  /__invite_token             → token like the one in an invite e-mail link (tests only)
 //   POST /rest/v1/rpc/<fn>          → select * from public.<fn>(named args) (service key only)
 //   GET  /rest/v1/events            → legacy analytics events from FAKE_LEGACY_FILE (for the import)
 //
@@ -27,6 +28,7 @@ const sql = postgres(DATABASE_URL, { max: 5, onnotice: () => {} });
 const tokens = new Map(); // access token → user
 const refresh = new Map();
 const user = { id: FAKE_USER_ID, email: FAKE_EMAIL, aud: "authenticated", role: "authenticated" };
+let password = FAKE_PASSWORD; // changes with PUT /auth/v1/user (invite / recovery)
 const legacy = FAKE_LEGACY_FILE ? JSON.parse(readFileSync(FAKE_LEGACY_FILE, "utf8")) : [];
 
 const send = (res, status, body) => {
@@ -55,7 +57,7 @@ createServer(async (req, res) => {
       if (apikey !== FAKE_ANON_KEY) return send(res, 401, { message: "bad apikey" });
       const body = await readBody(req);
       if (url.searchParams.get("grant_type") === "password") {
-        if (body.email?.toLowerCase() !== FAKE_EMAIL || body.password !== FAKE_PASSWORD) {
+        if (body.email?.toLowerCase() !== FAKE_EMAIL || body.password !== password) {
           return send(res, 400, {
             error: "invalid_grant",
             error_description: "Invalid login credentials",
@@ -75,8 +77,17 @@ createServer(async (req, res) => {
     if (url.pathname === "/auth/v1/user") {
       const t = (req.headers["authorization"] ?? "").replace(/^Bearer /, "");
       const u = tokens.get(t);
-      return u ? send(res, 200, u) : send(res, 401, { message: "invalid JWT" });
+      if (!u) return send(res, 401, { message: "invalid JWT" });
+      if (req.method === "PUT") {
+        const body = await readBody(req);
+        if (typeof body.password === "string" && body.password.length < 6)
+          return send(res, 422, { msg: "Password should be at least 6 characters." });
+        if (typeof body.password === "string") password = body.password;
+      }
+      return send(res, 200, u);
     }
+    // test helper: the access token an invite / recovery e-mail link would carry
+    if (url.pathname === "/__invite_token") return send(res, 200, { access_token: issue().access_token });
     if (url.pathname === "/auth/v1/logout") {
       tokens.delete((req.headers["authorization"] ?? "").replace(/^Bearer /, ""));
       return send(res, 204);

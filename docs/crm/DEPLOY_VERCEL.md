@@ -130,3 +130,7 @@ continuam em simulação até a documentação desses formatos.
 - **Login não entra**: o usuário precisa existir no Supabase do CRM e ter acesso (`npm run crm:create-admin`).
 - **Tabelas não existem**: rode `npm run crm:migrate` com o `CRM_DATABASE_URL` do projeto certo.
 - **Mudou variável e nada mudou**: variáveis só valem depois de um novo deploy.
+- **Deploy com "Error" em 1–2 segundos** (sem log de build): no plano **Hobby** com repositório privado, a
+  Vercel só publica commits cujo **autor** é o dono da conta (o e-mail ligado ao GitHub da Vercel). Commits
+  com outro autor são bloqueados antes do build. Saídas: commits com o autor da conta, um *Deploy Hook*
+  (Settings → Git → Deploy Hooks) ou o plano Pro.

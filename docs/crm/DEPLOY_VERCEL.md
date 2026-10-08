@@ -134,3 +134,6 @@ continuam em simulação até a documentação desses formatos.
   Vercel só publica commits cujo **autor** é o dono da conta (o e-mail ligado ao GitHub da Vercel). Commits
   com outro autor são bloqueados antes do build. Saídas: commits com o autor da conta, um *Deploy Hook*
   (Settings → Git → Deploy Hooks) ou o plano Pro.
+- **Site dá "404 NOT_FOUND" da Vercel**: a produção ainda está no deploy antigo do `main`. Trocar o
+  *Branch Tracking* não republica sozinho: depois de trocar, é preciso um novo commit no branch, ou abrir o
+  deploy mais recente do branch → ⋯ → **Promote to Production**.

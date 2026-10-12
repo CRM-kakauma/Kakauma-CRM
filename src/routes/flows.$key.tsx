@@ -862,7 +862,7 @@ export const SKIP_REASON: Record<string, string> = {
   no_contact_for_rcs: "sem telefone",
   template_missing: "mensagem não existe mais",
   invalid_phone: "telefone inválido",
-  rcs_rich_not_supported: "RCS com cartão ainda não é enviado",
+  rcs_rich_not_supported: "RCS com cartão sem SMS alternativo",
 };
 
 function SentMessages({ flowKey }: { flowKey: string }) {

@@ -151,7 +151,7 @@ export const HELP: HelpArticle[] = [
               "Funciona com o fluxo **salvo**, mesmo sem publicar ou pausado. Clientes reais não são afetados.",
               "**Pular as esperas** (recomendado) roda o fluxo inteiro na hora; em “Aguardar evento” segue o caminho de quando o evento não acontece.",
               "A regra “Quem pode entrar”, o horário de envio e o limite diário não valem no teste. O descadastro (opt-out) vale.",
-              "**SMS e RCS de texto** saem de verdade pela Pushfy, mesmo antes de ligar o envio real. WhatsApp e e-mail ficam em simulação até o canal ser conectado.",
+              "**SMS e RCS** saem de verdade pela Pushfy, mesmo antes de ligar o envio real (RCS com cartão ou carrossel vai como o SMS alternativo da mensagem). WhatsApp e e-mail ficam em simulação até o canal ser conectado.",
               "O resultado aparece na aba **Testes**: cada contato e o que aconteceu com cada mensagem. Testes não entram nos números do fluxo.",
             ],
           },
@@ -246,7 +246,7 @@ export const HELP: HelpArticle[] = [
       {
         heading: "Envio de verdade",
         blocks: [
-          "**SMS e RCS de texto** saem pela Pushfy quando ela está conectada e o envio real está ligado (veja em Operação → Canais de envio). Antes disso, e para WhatsApp, RCS com cartão e e-mail, os envios aparecem como **Simulação** (com o conteúdo final) no fluxo e no Cliente 360. Em cada SMS ou RCS salvo há **Enviar teste de verdade**, para conferir no seu celular. Falhas temporárias são tentadas de novo automaticamente; número inválido ou mensagem recusada não são repetidos.",
+          "**SMS e RCS** saem pela Pushfy quando ela está conectada e o envio real está ligado (veja em Operação → Canais de envio); RCS com cartão ou carrossel vai como o SMS alternativo até a Pushfy documentar o formato rico. Antes disso, e para WhatsApp e e-mail, os envios aparecem como **Simulação** (com o conteúdo final) no fluxo e no Cliente 360. Em cada SMS ou RCS salvo há **Enviar teste de verdade**, para conferir no seu celular. Falhas temporárias são tentadas de novo automaticamente; número inválido ou mensagem recusada não são repetidos.",
         ],
       },
     ],

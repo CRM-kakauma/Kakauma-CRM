@@ -352,8 +352,9 @@ export function TestLaunchDialog({
 
           <ul className="space-y-1 rounded-lg bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
             <li>
-              <strong className="text-foreground">SMS e RCS de texto</strong> saem de verdade pela
-              Pushfy (mesmo antes de ligar o envio real).
+              <strong className="text-foreground">SMS e RCS</strong> saem de verdade pela Pushfy
+              (mesmo antes de ligar o envio real). RCS com cartão ou carrossel vai como o SMS
+              alternativo da mensagem.
             </li>
             <li>
               <strong className="text-foreground">WhatsApp e e-mail</strong> ficam em simulação até

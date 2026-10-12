@@ -299,9 +299,7 @@ function Editor({ me, initial, isNew }: { me: Me; initial: Draft; isNew: boolean
               disabledReason={
                 dirty
                   ? "Salve as alterações antes de testar (o teste usa a versão salva)."
-                  : d.channel === "rcs" && (d.content as { kind?: string }).kind !== "text"
-                    ? "Por enquanto só RCS de texto é enviado (cartão/carrossel aguardam a documentação da Pushfy)."
-                    : undefined
+                  : undefined
               }
             />
           )}

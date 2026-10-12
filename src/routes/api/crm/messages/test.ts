@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 /**
  * Test send of one SMS / RCS template to a given number through Pushfy
- * (operator or admin). Works with PUSHFY_API_TOKEN even before PUSHFY_LIVE,
+ * (operator or admin). Works with PUSHFY_API_TOKEN even before PUSHFY_LIVE (an RCS card goes as its SMS alternative),
  * so the channel can be checked without messaging customers. Audited.
  * Body: { template_key, to, customer_id? } — customer_id fills the variables.
  */
@@ -72,22 +72,14 @@ export const Route = createFileRoute("/api/crm/messages/test")({
           const rendered = renderMessage(tpl.channel, tpl.content as never, vars) as {
             kind?: string;
             text?: string;
+            fallback_sms?: string;
           };
-          if (tpl.channel === "rcs" && rendered.kind !== "text") {
-            return json(
-              {
-                error: "unsupported",
-                message:
-                  "RCS com cartão/carrossel ainda não é enviado: falta a documentação desse formato na Pushfy. RCS de texto já funciona.",
-              },
-              400,
-              session.setCookies,
-            );
-          }
+          // card / carousel: Pushfy's rich format is not documented yet → its SMS alternative
+          const asSms = tpl.channel === "rcs" && rendered.kind !== "text";
           const { randomUUID } = await import("node:crypto");
-          const sent = await pushfySend(cfg, tpl.channel, {
+          const sent = await pushfySend(cfg, asSms ? "sms" : tpl.channel, {
             to,
-            text: rendered.text ?? "",
+            text: (asSms ? rendered.fallback_sms : rendered.text) ?? "",
             extId: `teste-${randomUUID()}`,
           });
           await crmRpc("crm_log_test_message", {
@@ -100,7 +92,7 @@ export const Route = createFileRoute("/api/crm/messages/test")({
           });
           return json(
             sent.ok
-              ? { ok: true, to, response: sent.body }
+              ? { ok: true, to, response: sent.body, ...(asSms ? { sent_as: "sms_fallback" } : {}) }
               : { ok: false, error: "send_failed", message: sent.error, response: sent.body },
             sent.ok ? 200 : 502,
             session.setCookies,

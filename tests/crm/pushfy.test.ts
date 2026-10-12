@@ -221,22 +221,27 @@ describe("Sending through Pushfy", { skip: !sql && "CRM_TEST_DATABASE_URL not se
     assert.deepEqual([m[0]!["status"], m[0]!["reason"]], ["DRY_RUN", "pushfy_not_live"]);
   });
 
-  test("live: SMS goes to Pushfy with the rendered text; rich RCS waits", async () => {
+  test("live: SMS goes to Pushfy with the rendered text; a rich RCS goes as its SMS alternative", async () => {
     const f = fakeFetch();
     await buy("P1", "(11) 97777-0001", "SP1");
     await runFlows(rpc, { pushfy: { ...cfg(f.impl), live: true } });
-    assert.equal(f.calls.length, 1);
+    assert.equal(f.calls.length, 2);
+    assert.deepEqual(
+      [f.calls[1]!.url, f.calls[1]!.body.messages[0].text],
+      ["https://portal.pushfy.com/webapi", "Oi"],
+    );
     assert.equal(f.calls[0]!.body.messages[0].destinations[0].to, "5511977770001");
     assert.equal(f.calls[0]!.body.messages[0].text, "Kakauma: oi Cliente");
     const rows =
-      await sql!`select m.channel, m.status, m.skip_reason, m.result->>'provider' as provider, m.result->'response' as response
+      await sql!`select m.channel, m.status, m.skip_reason, m.result->>'provider' as provider, m.result->'response' as response,
+                            m.result->>'sent_as' as sent_as
                             from crm.messages m join crm.customers c using (customer_id)
                             where c.external_customer_id = 'cus_P1' order by m.channel desc`;
     assert.deepEqual(
-      rows.map((r) => [r["channel"], r["status"], r["skip_reason"] ?? r["provider"]]),
+      rows.map((r) => [r["channel"], r["status"], r["skip_reason"] ?? r["provider"], r["sent_as"]]),
       [
-        ["sms", "SENT", "pushfy"],
-        ["rcs", "SKIPPED", "rcs_rich_not_supported"],
+        ["sms", "SENT", "pushfy", null],
+        ["rcs", "SENT", "pushfy", "sms_fallback"],
       ],
     );
     assert.deepEqual(rows[0]!["response"], { accepted: 1, queued: 1 });

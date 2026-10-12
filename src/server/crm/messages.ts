@@ -9,7 +9,7 @@ import { pushfyOptouts, pushfySend, toPushfyNumber, type PushfyConfig } from "./
  * The SQL side already skipped what must not go out (opt-out, no contact,
  * daily cap, outside the send window). Here each message is rendered with the
  * same code the editor's simulator uses, then:
- *   - SMS and RCS (text) go through Pushfy when PUSHFY_API_TOKEN is set and
+ *   - SMS and RCS go through Pushfy (an RCS card/carousel goes as its SMS alternative) when PUSHFY_API_TOKEN is set and
  *     PUSHFY_LIVE=true (with the token but not live: DRY_RUN, nothing is sent —
  *     except test launches, which go out so the channel can be checked);
  *   - other channels go to CRM_AUTOMATION_WEBHOOK_URL (HMAC-signed) when set;
@@ -98,18 +98,26 @@ export async function runMessages(rpc: Rpc, opts: MessageOptions = {}) {
         await complete("SKIPPED", null, "invalid_phone");
         continue;
       }
-      const r = rendered as { kind?: string; text?: string | null };
-      if (m.channel === "rcs" && r.kind !== "text") {
-        // card / carousel: Pushfy's rich-content format is not documented yet
+      const r = rendered as { kind?: string; text?: string | null; fallback_sms?: string | null };
+      // card / carousel: Pushfy's rich-content format is not documented yet, so the
+      // template's own SMS alternative goes instead (what a phone without RCS would get)
+      const asSms = m.channel === "rcs" && r.kind !== "text";
+      if (asSms && !r.fallback_sms?.trim()) {
         await complete("SKIPPED", null, "rcs_rich_not_supported");
         continue;
       }
-      const sent = await pushfySend(opts.pushfy, m.channel, {
+      const sent = await pushfySend(opts.pushfy, asSms ? "sms" : m.channel, {
         to,
-        text: r.text ?? "",
+        text: (asSms ? r.fallback_sms : r.text) ?? "",
         extId: m.message_id,
       });
-      const result = { provider: "pushfy", to, http_status: sent.httpStatus, response: sent.body };
+      const result = {
+        provider: "pushfy",
+        to,
+        ...(asSms ? { sent_as: "sms_fallback" } : {}),
+        http_status: sent.httpStatus,
+        response: sent.body,
+      };
       if (sent.ok) await complete("SENT", result);
       else await complete("FAILED", result, sent.error ?? "falha no envio", !sent.permanent);
       continue;

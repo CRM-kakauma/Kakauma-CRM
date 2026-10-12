@@ -111,8 +111,8 @@ vencendo, cliente sumido), avança os fluxos (esperas) e entrega mensagens.
    SMS e RCS de texto de verdade.
 
 Descadastros: quem responde PARAR/SAIR é bloqueado pela própria Pushfy e o worker traz essa lista para o CRM
-(botão "Sincronizar descadastros" em Operação traz tudo de uma vez). RCS com cartão/carrossel e WhatsApp
-continuam em simulação até a documentação desses formatos.
+(botão "Sincronizar descadastros" em Operação traz tudo de uma vez). RCS com cartão/carrossel vai como o
+SMS alternativo da mensagem e WhatsApp continua em simulação, até a documentação desses formatos.
 
 ## 7. Atualizações do banco
 

@@ -141,6 +141,13 @@
       "when": 1791818715583,
       "tag": "0019_crm_test_launch",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1791829272543,
+      "tag": "0020_crm_email_html",
+      "breakpoints": true
     }
   ]
 }

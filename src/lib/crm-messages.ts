@@ -22,8 +22,14 @@ export interface EmailContent {
   from_name?: string;
   accent?: string;
   footer?: string;
+  /** "blocks" (default): built in the editor. "html": the person's own HTML in `html`. */
+  format?: "blocks" | "html";
+  html?: string;
   blocks: EmailBlock[];
 }
+
+/** Limits of a custom HTML e-mail (Gmail clips messages above ~102 KB). */
+export const EMAIL_HTML_MAX = 100_000;
 export interface SmsContent {
   text: string;
 }
@@ -170,7 +176,69 @@ const safeUrl = (u: string | undefined) => {
 
 const hex = (c: string | undefined) => (c && /^#[0-9a-f]{6}$/i.test(c) ? c : "#075DA8");
 
-export function renderEmailHtml(c: EmailContent, vars: Record<string, unknown>) {
+/**
+ * Custom HTML: variables are HTML-escaped where they land; scripts, inline
+ * handlers and javascript: links are removed (e-mail clients drop them anyway,
+ * and the CRM preview runs in a sandbox).
+ */
+export function sanitizeEmailHtml(html: string) {
+  return html
+    .replace(/<script\b[\s\S]*?<\/script\s*>/gi, "")
+    .replace(/<script\b[^>]*>/gi, "")
+    .replace(/\son[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+    .replace(/(href|src)\s*=\s*(["']?)\s*javascript:[^"'\s>]*\2/gi, '$1="#"');
+}
+
+function renderCustomHtml(c: EmailContent, vars: Record<string, unknown>, preheader = true) {
+  const filled = (c.html ?? "").replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_, key: string) =>
+    esc(renderTemplate(`{{${key}}}`, vars)),
+  );
+  let html = sanitizeEmailHtml(filled);
+  if (!/<html[\s>]/i.test(html)) {
+    html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(renderTemplate(c.subject, vars))}</title></head><body style="margin:0;padding:0">${html}</body></html>`;
+  }
+  if (preheader && c.preheader) {
+    const pre = `<div style="display:none;max-height:0;overflow:hidden;opacity:0">${esc(renderTemplate(c.preheader, vars))}</div>`;
+    html = /<body[^>]*>/i.test(html) ? html.replace(/<body[^>]*>/i, (m) => m + pre) : pre + html;
+  }
+  return html;
+}
+
+/** Plain-text version of an HTML e-mail (sent alongside it). */
+export function htmlToText(html: string) {
+  return html
+    .replace(/<(style|head|title)\b[\s\S]*?<\/\1\s*>/gi, "")
+    .replace(
+      /<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi,
+      (_, href: string, t: string) => {
+        const label = t.replace(/<[^>]+>/g, "").trim();
+        if (!/^https?:/i.test(href)) return label;
+        return label && label !== href ? `${label}: ${href}` : href;
+      },
+    )
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|h[1-6]|tr|li|table)>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/[ \t]+/g, " ")
+    .replace(/ *\n */g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+/** The block layout as editable HTML, keeping {{variables}} (to start a custom HTML from it). */
+export function blocksToHtml(c: EmailContent) {
+  const keep = new Proxy({} as Record<string, unknown>, { get: (_, k) => `{{${String(k)}}}` });
+  return renderEmailHtml({ ...c, format: "blocks", preheader: "" }, keep);
+}
+
+export function renderEmailHtml(c: EmailContent, vars: Record<string, unknown>): string {
+  if (c.format === "html") return renderCustomHtml(c, vars);
   const r = (t: string) => renderTemplate(t, vars);
   const accent = hex(c.accent);
   const rows = c.blocks
@@ -210,8 +278,9 @@ export function renderEmailHtml(c: EmailContent, vars: Record<string, unknown>) 
 }
 
 function emailText(c: EmailContent, vars: Record<string, unknown>) {
+  if (c.format === "html") return htmlToText(renderCustomHtml(c, vars, false));
   const r = (t: string) => renderTemplate(t, vars);
-  return c.blocks
+  return (c.blocks ?? [])
     .map((b) => {
       if (b.type === "heading" || b.type === "text") return r(b.text);
       if (b.type === "button") return `${r(b.text)}: ${safeUrl(r(b.url)) ?? ""}`;

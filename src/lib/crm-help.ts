@@ -235,6 +235,7 @@ export const HELP: HelpArticle[] = [
           {
             list: [
               "**E-mail**: assunto com até ~50 caracteres; use o pré-cabeçalho; um botão principal; rodapé dizendo quem envia e como sair da lista.",
+              "**E-mail em HTML próprio**: no editor, troque “Montar com blocos” por “HTML próprio” para colar o HTML de um editor de e-mail ou de uma agência, importar um arquivo .html ou gerar o HTML a partir dos blocos. As variáveis {{first_name}} funcionam; imagens precisam estar publicadas (https://); scripts, formulários e iframes não são aceitos; até 100 mil caracteres (o Gmail corta e-mails maiores). A versão em texto é gerada sozinha.",
               "**SMS**: comece com “Kakauma:”; evite acentos para caber em 1 parte; o medidor mostra partes e codificação.",
               "**WhatsApp**: categoria “Utilidade” para pagamento/entrega (mais barata), “Marketing” para ofertas; até 3 botões; *negrito* e _itálico_ funcionam.",
               "**RCS**: escolha texto, cartão ou carrossel; até 4 sugestões; sempre escreva o SMS alternativo.",

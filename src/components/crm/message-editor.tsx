@@ -2,7 +2,10 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   ArrowDown,
   ArrowUp,
+  Code,
+  FileUp,
   Heading,
+  LayoutList,
   Image as ImageIcon,
   Minus,
   MousePointerClick,
@@ -25,8 +28,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { SmsMeter } from "@/components/crm/simulators";
 import { useCrm } from "@/lib/crm-api";
 import {
+  EMAIL_HTML_MAX,
   SAMPLE_CUSTOMER,
   VARIABLES,
+  blocksToHtml,
   smsInfo,
   type Channel,
   type Content,
@@ -150,11 +155,13 @@ function TextArea({
   onChange,
   rows = 4,
   placeholder,
+  className,
 }: {
   value: string;
   onChange: (v: string) => void;
   rows?: number;
   placeholder?: string;
+  className?: string;
 }) {
   const onFocus = useTrack(onChange);
   return (
@@ -164,6 +171,8 @@ function TextArea({
       placeholder={placeholder}
       onFocus={onFocus}
       onChange={(e) => onChange(e.target.value)}
+      className={className}
+      spellCheck={className?.includes("font-mono") ? false : undefined}
     />
   );
 }
@@ -310,8 +319,41 @@ function EmailEditor({ c, set }: { c: EmailContent; set: (c: EmailContent) => vo
   const upd = (patch: Partial<EmailContent>) => set({ ...c, ...patch });
   const setBlock = (i: number, b: EmailBlock) =>
     upd({ blocks: c.blocks.map((x, j) => (j === i ? b : x)) });
+  const isHtml = c.format === "html";
   return (
     <div className="space-y-4">
+      <div className="inline-flex rounded-lg border border-border p-0.5" role="radiogroup">
+        {(
+          [
+            ["blocks", "Montar com blocos", LayoutList],
+            ["html", "HTML próprio", Code],
+          ] as const
+        ).map(([f, label, Icon]) => (
+          <button
+            key={f}
+            type="button"
+            role="radio"
+            aria-checked={(c.format ?? "blocks") === f}
+            onClick={() =>
+              upd(
+                f === "html"
+                  ? // first switch: start from the current blocks so nothing is lost
+                    { format: "html", html: c.html?.trim() ? c.html : blocksToHtml(c) }
+                  : { format: "blocks" },
+              )
+            }
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm",
+              (c.format ?? "blocks") === f
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <Icon className="size-4" /> {label}
+          </button>
+        ))}
+      </div>
+
       <div className="grid gap-4 sm:grid-cols-2">
         <Field
           label="Assunto"
@@ -330,119 +372,197 @@ function EmailEditor({ c, set }: { c: EmailContent; set: (c: EmailContent) => vo
         <Field label="Nome do remetente">
           <TextIn value={c.from_name ?? ""} onChange={(v) => upd({ from_name: v })} />
         </Field>
-        <Field label="Cor de destaque" hint="Botões e faixa do topo.">
-          <div className="flex items-center gap-2">
-            <input
-              type="color"
-              value={c.accent ?? "#075DA8"}
-              onChange={(e) => upd({ accent: e.target.value })}
-              className="h-9 w-12 cursor-pointer rounded border border-input"
-              aria-label="Cor de destaque"
-            />
-            <span className="font-mono text-xs text-muted-foreground">{c.accent ?? "#075DA8"}</span>
-          </div>
-        </Field>
+        {!isHtml && (
+          <Field label="Cor de destaque" hint="Botões e faixa do topo.">
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                value={c.accent ?? "#075DA8"}
+                onChange={(e) => upd({ accent: e.target.value })}
+                className="h-9 w-12 cursor-pointer rounded border border-input"
+                aria-label="Cor de destaque"
+              />
+              <span className="font-mono text-xs text-muted-foreground">
+                {c.accent ?? "#075DA8"}
+              </span>
+            </div>
+          </Field>
+        )}
       </div>
 
-      <div className="space-y-2">
-        <Label>Conteúdo</Label>
-        {c.blocks.map((b, i) => (
-          <div key={i} className="rounded-lg border border-border p-3">
-            <div className="mb-2 flex items-center justify-between">
-              <span className="text-xs font-medium text-muted-foreground">
-                {BLOCKS.find((x) => x.type === b.type)?.label}
-              </span>
-              <Move
-                i={i}
-                n={c.blocks.length}
-                onMove={(to) => upd({ blocks: move(c.blocks, i, to) })}
-                onDelete={() => upd({ blocks: c.blocks.filter((_, j) => j !== i) })}
-              />
+      {isHtml ? (
+        <HtmlField c={c} upd={upd} />
+      ) : (
+        <>
+          <div className="space-y-2">
+            <Label>Conteúdo</Label>
+            {c.blocks.map((b, i) => (
+              <div key={i} className="rounded-lg border border-border p-3">
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="text-xs font-medium text-muted-foreground">
+                    {BLOCKS.find((x) => x.type === b.type)?.label}
+                  </span>
+                  <Move
+                    i={i}
+                    n={c.blocks.length}
+                    onMove={(to) => upd({ blocks: move(c.blocks, i, to) })}
+                    onDelete={() => upd({ blocks: c.blocks.filter((_, j) => j !== i) })}
+                  />
+                </div>
+                {(b.type === "heading" || b.type === "button") && (
+                  <TextIn
+                    value={b.text}
+                    onChange={(v) => setBlock(i, { ...b, text: v })}
+                    placeholder="Texto"
+                  />
+                )}
+                {b.type === "text" && (
+                  <TextArea
+                    value={b.text}
+                    onChange={(v) => setBlock(i, { ...b, text: v })}
+                    rows={4}
+                  />
+                )}
+                {b.type === "button" && (
+                  <div className="mt-2">
+                    <TextIn
+                      value={b.url}
+                      onChange={(v) => setBlock(i, { ...b, url: v })}
+                      placeholder="https://"
+                    />
+                  </div>
+                )}
+                {b.type === "image" && (
+                  <div className="grid gap-2">
+                    <TextIn
+                      value={b.url}
+                      onChange={(v) => setBlock(i, { ...b, url: v })}
+                      placeholder="Link da imagem (https://…)"
+                    />
+                    <TextIn
+                      value={b.alt ?? ""}
+                      onChange={(v) => setBlock(i, { ...b, alt: v })}
+                      placeholder="Descrição (para quem não vê a imagem)"
+                    />
+                    <TextIn
+                      value={b.link ?? ""}
+                      onChange={(v) => setBlock(i, { ...b, link: v })}
+                      placeholder="Ao clicar, abrir (opcional)"
+                    />
+                  </div>
+                )}
+                {(b.type === "heading" || b.type === "text" || b.type === "button") && (
+                  <div className="mt-2 w-40">
+                    <Pick
+                      value={b.align ?? "left"}
+                      onChange={(v) => setBlock(i, { ...b, align: v })}
+                      options={[
+                        ["left", "Alinhar à esquerda"],
+                        ["center", "Centralizar"],
+                      ]}
+                    />
+                  </div>
+                )}
+                {b.type === "spacer" && (
+                  <Pick
+                    value={String(b.size ?? 24) as "12" | "24" | "48"}
+                    onChange={(v) => setBlock(i, { ...b, size: Number(v) })}
+                    options={[
+                      ["12", "Pequeno"],
+                      ["24", "Médio"],
+                      ["48", "Grande"],
+                    ]}
+                  />
+                )}
+              </div>
+            ))}
+            <div className="flex flex-wrap gap-1.5">
+              {BLOCKS.map((k) => (
+                <Button
+                  key={k.type}
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => upd({ blocks: [...c.blocks, k.make()] })}
+                >
+                  <k.icon className="size-3.5" /> {k.label}
+                </Button>
+              ))}
             </div>
-            {(b.type === "heading" || b.type === "button") && (
-              <TextIn
-                value={b.text}
-                onChange={(v) => setBlock(i, { ...b, text: v })}
-                placeholder="Texto"
-              />
-            )}
-            {b.type === "text" && (
-              <TextArea value={b.text} onChange={(v) => setBlock(i, { ...b, text: v })} rows={4} />
-            )}
-            {b.type === "button" && (
-              <div className="mt-2">
-                <TextIn
-                  value={b.url}
-                  onChange={(v) => setBlock(i, { ...b, url: v })}
-                  placeholder="https://"
-                />
-              </div>
-            )}
-            {b.type === "image" && (
-              <div className="grid gap-2">
-                <TextIn
-                  value={b.url}
-                  onChange={(v) => setBlock(i, { ...b, url: v })}
-                  placeholder="Link da imagem (https://…)"
-                />
-                <TextIn
-                  value={b.alt ?? ""}
-                  onChange={(v) => setBlock(i, { ...b, alt: v })}
-                  placeholder="Descrição (para quem não vê a imagem)"
-                />
-                <TextIn
-                  value={b.link ?? ""}
-                  onChange={(v) => setBlock(i, { ...b, link: v })}
-                  placeholder="Ao clicar, abrir (opcional)"
-                />
-              </div>
-            )}
-            {(b.type === "heading" || b.type === "text" || b.type === "button") && (
-              <div className="mt-2 w-40">
-                <Pick
-                  value={b.align ?? "left"}
-                  onChange={(v) => setBlock(i, { ...b, align: v })}
-                  options={[
-                    ["left", "Alinhar à esquerda"],
-                    ["center", "Centralizar"],
-                  ]}
-                />
-              </div>
-            )}
-            {b.type === "spacer" && (
-              <Pick
-                value={String(b.size ?? 24) as "12" | "24" | "48"}
-                onChange={(v) => setBlock(i, { ...b, size: Number(v) })}
-                options={[
-                  ["12", "Pequeno"],
-                  ["24", "Médio"],
-                  ["48", "Grande"],
-                ]}
-              />
-            )}
           </div>
-        ))}
-        <div className="flex flex-wrap gap-1.5">
-          {BLOCKS.map((k) => (
-            <Button
-              key={k.type}
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={() => upd({ blocks: [...c.blocks, k.make()] })}
-            >
-              <k.icon className="size-3.5" /> {k.label}
-            </Button>
-          ))}
-        </div>
-      </div>
-      <Field
-        label="Rodapé"
-        hint="Identifique a empresa e diga por que a pessoa recebe. Em marketing, informe como deixar de receber."
-      >
-        <TextIn value={c.footer ?? ""} onChange={(v) => upd({ footer: v })} />
-      </Field>
+          <Field
+            label="Rodapé"
+            hint="Identifique a empresa e diga por que a pessoa recebe. Em marketing, informe como deixar de receber."
+          >
+            <TextIn value={c.footer ?? ""} onChange={(v) => upd({ footer: v })} />
+          </Field>
+        </>
+      )}
     </div>
+  );
+}
+
+function HtmlField({ c, upd }: { c: EmailContent; upd: (p: Partial<EmailContent>) => void }) {
+  const file = useRef<HTMLInputElement>(null);
+  const html = c.html ?? "";
+  const [err, setErr] = useState<string | null>(null);
+  return (
+    <Field
+      label="HTML do e-mail"
+      count={[html.length, EMAIL_HTML_MAX]}
+      hint={
+        <>
+          Cole o HTML pronto (de um editor de e-mail, agência ou arquivo .html) ou edite aqui. As
+          variáveis como <code className="font-mono">{"{{first_name}}"}</code> funcionam e o
+          simulador ao lado mostra o resultado. Imagens precisam estar publicadas na internet
+          (https://). Scripts e formulários não são permitidos. Em e-mails de marketing, inclua um
+          link para deixar de receber.
+        </>
+      }
+    >
+      <div className="flex flex-wrap gap-1.5">
+        <Button type="button" size="sm" variant="outline" onClick={() => file.current?.click()}>
+          <FileUp className="size-3.5" /> Importar arquivo .html
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          onClick={() =>
+            (!html.trim() ||
+              window.confirm("Substituir o HTML atual pelo layout montado com os blocos?")) &&
+            upd({ html: blocksToHtml(c) })
+          }
+        >
+          <LayoutList className="size-3.5" /> Gerar a partir dos blocos
+        </Button>
+        <input
+          ref={file}
+          type="file"
+          accept=".html,.htm,text/html"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            e.target.value = "";
+            if (!f) return;
+            if (f.size > EMAIL_HTML_MAX * 2) {
+              setErr("Arquivo grande demais para um e-mail (máximo ~100 KB).");
+              return;
+            }
+            setErr(null);
+            void f.text().then((t) => upd({ html: t }));
+          }}
+        />
+      </div>
+      {err && <p className="text-xs text-danger">{err}</p>}
+      <TextArea
+        value={html}
+        onChange={(v) => upd({ html: v })}
+        rows={18}
+        placeholder="<html>…</html>"
+        className="font-mono text-xs leading-relaxed"
+      />
+    </Field>
   );
 }
 

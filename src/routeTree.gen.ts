@@ -45,6 +45,7 @@ import { Route as ApiCrmAuthLoginRouteImport } from './routes/api/crm/auth/login
 import { Route as ApiCrmAuthLogoutRouteImport } from './routes/api/crm/auth/logout'
 import { Route as ApiCrmAuthMeRouteImport } from './routes/api/crm/auth/me'
 import { Route as ApiCrmAuthSetPasswordRouteImport } from './routes/api/crm/auth/set-password'
+import { Route as ApiCrmFlowsTestLaunchRouteImport } from './routes/api/crm/flows/test-launch'
 import { Route as ApiCrmMessagesTestRouteImport } from './routes/api/crm/messages/test'
 
 const IndexRoute = IndexRouteImport.update({
@@ -227,6 +228,11 @@ const ApiCrmAuthSetPasswordRoute = ApiCrmAuthSetPasswordRouteImport.update({
   path: '/api/crm/auth/set-password',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCrmFlowsTestLaunchRoute = ApiCrmFlowsTestLaunchRouteImport.update({
+  id: '/api/crm/flows/test-launch',
+  path: '/api/crm/flows/test-launch',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiCrmMessagesTestRoute = ApiCrmMessagesTestRouteImport.update({
   id: '/api/crm/messages/test',
   path: '/api/crm/messages/test',
@@ -270,6 +276,7 @@ export interface FileRoutesByFullPath {
   '/api/crm/auth/logout': typeof ApiCrmAuthLogoutRoute
   '/api/crm/auth/me': typeof ApiCrmAuthMeRoute
   '/api/crm/auth/set-password': typeof ApiCrmAuthSetPasswordRoute
+  '/api/crm/flows/test-launch': typeof ApiCrmFlowsTestLaunchRoute
   '/api/crm/messages/test': typeof ApiCrmMessagesTestRoute
 }
 export interface FileRoutesByTo {
@@ -309,6 +316,7 @@ export interface FileRoutesByTo {
   '/api/crm/auth/logout': typeof ApiCrmAuthLogoutRoute
   '/api/crm/auth/me': typeof ApiCrmAuthMeRoute
   '/api/crm/auth/set-password': typeof ApiCrmAuthSetPasswordRoute
+  '/api/crm/flows/test-launch': typeof ApiCrmFlowsTestLaunchRoute
   '/api/crm/messages/test': typeof ApiCrmMessagesTestRoute
 }
 export interface FileRoutesById {
@@ -349,6 +357,7 @@ export interface FileRoutesById {
   '/api/crm/auth/logout': typeof ApiCrmAuthLogoutRoute
   '/api/crm/auth/me': typeof ApiCrmAuthMeRoute
   '/api/crm/auth/set-password': typeof ApiCrmAuthSetPasswordRoute
+  '/api/crm/flows/test-launch': typeof ApiCrmFlowsTestLaunchRoute
   '/api/crm/messages/test': typeof ApiCrmMessagesTestRoute
 }
 export interface FileRouteTypes {
@@ -390,6 +399,7 @@ export interface FileRouteTypes {
     | '/api/crm/auth/logout'
     | '/api/crm/auth/me'
     | '/api/crm/auth/set-password'
+    | '/api/crm/flows/test-launch'
     | '/api/crm/messages/test'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -429,6 +439,7 @@ export interface FileRouteTypes {
     | '/api/crm/auth/logout'
     | '/api/crm/auth/me'
     | '/api/crm/auth/set-password'
+    | '/api/crm/flows/test-launch'
     | '/api/crm/messages/test'
   id:
     | '__root__'
@@ -468,6 +479,7 @@ export interface FileRouteTypes {
     | '/api/crm/auth/logout'
     | '/api/crm/auth/me'
     | '/api/crm/auth/set-password'
+    | '/api/crm/flows/test-launch'
     | '/api/crm/messages/test'
   fileRoutesById: FileRoutesById
 }
@@ -508,6 +520,7 @@ export interface RootRouteChildren {
   ApiCrmAuthLogoutRoute: typeof ApiCrmAuthLogoutRoute
   ApiCrmAuthMeRoute: typeof ApiCrmAuthMeRoute
   ApiCrmAuthSetPasswordRoute: typeof ApiCrmAuthSetPasswordRoute
+  ApiCrmFlowsTestLaunchRoute: typeof ApiCrmFlowsTestLaunchRoute
   ApiCrmMessagesTestRoute: typeof ApiCrmMessagesTestRoute
 }
 
@@ -765,6 +778,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCrmAuthSetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/crm/flows/test-launch': {
+      id: '/api/crm/flows/test-launch'
+      path: '/api/crm/flows/test-launch'
+      fullPath: '/api/crm/flows/test-launch'
+      preLoaderRoute: typeof ApiCrmFlowsTestLaunchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/crm/messages/test': {
       id: '/api/crm/messages/test'
       path: '/api/crm/messages/test'
@@ -812,6 +832,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCrmAuthLogoutRoute: ApiCrmAuthLogoutRoute,
   ApiCrmAuthMeRoute: ApiCrmAuthMeRoute,
   ApiCrmAuthSetPasswordRoute: ApiCrmAuthSetPasswordRoute,
+  ApiCrmFlowsTestLaunchRoute: ApiCrmFlowsTestLaunchRoute,
   ApiCrmMessagesTestRoute: ApiCrmMessagesTestRoute,
 }
 export const routeTree = rootRouteImport

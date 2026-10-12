@@ -10,7 +10,8 @@ import { pushfyOptouts, pushfySend, toPushfyNumber, type PushfyConfig } from "./
  * daily cap, outside the send window). Here each message is rendered with the
  * same code the editor's simulator uses, then:
  *   - SMS and RCS (text) go through Pushfy when PUSHFY_API_TOKEN is set and
- *     PUSHFY_LIVE=true (with the token but not live: DRY_RUN, nothing is sent);
+ *     PUSHFY_LIVE=true (with the token but not live: DRY_RUN, nothing is sent —
+ *     except test launches, which go out so the channel can be checked);
  *   - other channels go to CRM_AUTOMATION_WEBHOOK_URL (HMAC-signed) when set;
  *   - otherwise DRY_RUN: the rendered content is stored and visible in the CRM.
  */
@@ -24,6 +25,8 @@ interface ClaimedMessage {
   team_text: string | null;
   customer: Record<string, unknown>;
   flow_key: string | null;
+  /** fired by "Disparar teste" for contacts chosen by hand */
+  is_test?: boolean;
 }
 
 export interface MessageOptions {
@@ -85,7 +88,8 @@ export async function runMessages(rpc: Rpc, opts: MessageOptions = {}) {
     };
 
     if (opts.pushfy && (m.channel === "sms" || m.channel === "rcs")) {
-      if (!opts.pushfy.live) {
+      // a test goes out for real even before the channel is set live: that is its purpose
+      if (!opts.pushfy.live && !m.is_test) {
         await complete("DRY_RUN", { reason: "pushfy_not_live" });
         continue;
       }

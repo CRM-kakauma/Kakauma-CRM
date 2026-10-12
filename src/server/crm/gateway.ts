@@ -15,6 +15,7 @@ export const RPC_PERMISSIONS: Record<string, { role: Role; actor?: true }> = {
   crm_customer_360: { role: "viewer" },
   crm_search_customers: { role: "viewer" },
   crm_list_segments: { role: "viewer" },
+  crm_segment_contacts: { role: "viewer" },
   crm_list_automations: { role: "viewer" },
   crm_list_automation_runs: { role: "viewer" },
   crm_recovery_queue: { role: "viewer" },
@@ -39,6 +40,8 @@ export const RPC_PERMISSIONS: Record<string, { role: Role; actor?: true }> = {
   // operator: day-to-day CRM work
   crm_upsert_segment: { role: "operator", actor: true },
   crm_delete_segment: { role: "operator", actor: true },
+  crm_add_test_contact: { role: "operator", actor: true },
+  crm_remove_segment_contact: { role: "operator", actor: true },
   crm_set_automation_active: { role: "operator", actor: true },
   crm_upsert_automation: { role: "operator", actor: true },
   crm_upsert_template: { role: "operator", actor: true },

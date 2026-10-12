@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { Plus, Users } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { ApiErrorBox, Loading, Pill, RequireAuth } from "@/components/crm/ui";
 import { count } from "@/lib/crm-format";
@@ -18,6 +18,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RuleBuilder, type Rule } from "@/components/crm/rule-builder";
+import { ManualSegmentDialog } from "@/components/crm/test-launch";
 import { crmCall, useCrm, type Me } from "@/lib/crm-api";
 
 export const Route = createFileRoute("/segments")({
@@ -34,9 +35,12 @@ interface Segment {
   is_system: boolean;
   definition: unknown;
   members: number;
+  /** "manual": a list kept by people (e.g. Teste), not a rule */
+  kind?: string;
 }
 
 const CATEGORY: Record<string, string> = {
+  test: "Teste",
   customer: "Cliente",
   revenue: "Valor",
   subscription: "Assinatura",
@@ -49,6 +53,7 @@ const CATEGORY: Record<string, string> = {
 function Segments({ me }: { me: Me }) {
   const { data, isLoading, error } = useCrm<Segment[]>("crm_list_segments");
   const [editing, setEditing] = useState<Segment | "new" | null>(null);
+  const [listing, setListing] = useState<Segment | null>(null);
   const groups = Object.entries(
     (data ?? []).reduce<Record<string, Segment[]>>((acc, s) => {
       (acc[s.category ?? "custom"] ??= []).push(s);
@@ -61,7 +66,7 @@ function Segments({ me }: { me: Me }) {
       <PageHeader
         title="Segmentos"
         help="segmentos"
-        description="Grupos dinâmicos: a participação é recalculada a cada evento e periodicamente."
+        description="Grupos dinâmicos: a participação é recalculada a cada evento e periodicamente. “Teste” é uma lista manual para testar fluxos."
       >
         {me.role !== "viewer" && (
           <Button onClick={() => setEditing("new")}>
@@ -94,10 +99,17 @@ function Segments({ me }: { me: Me }) {
                         </p>
                         <p className="text-[11px] text-muted-foreground">clientes</p>
                       </Link>
-                      {!s.is_system && me.role !== "viewer" && (
-                        <Button size="sm" variant="ghost" onClick={() => setEditing(s)}>
-                          Editar
+                      {s.kind === "manual" ? (
+                        <Button size="sm" variant="outline" onClick={() => setListing(s)}>
+                          <Users className="size-4" /> Contatos
                         </Button>
+                      ) : (
+                        !s.is_system &&
+                        me.role !== "viewer" && (
+                          <Button size="sm" variant="ghost" onClick={() => setEditing(s)}>
+                            Editar
+                          </Button>
+                        )
                       )}
                     </div>
                   </div>
@@ -106,6 +118,13 @@ function Segments({ me }: { me: Me }) {
             </section>
           ))}
         </div>
+      )}
+      {listing && (
+        <ManualSegmentDialog
+          segment={listing}
+          canEdit={me.role !== "viewer"}
+          onClose={() => setListing(null)}
+        />
       )}
       {editing && (
         <SegmentDialog

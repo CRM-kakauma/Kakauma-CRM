@@ -13,12 +13,14 @@ import {
   Play,
   Rocket,
   Save,
+  Send,
   X,
 } from "lucide-react";
 import { ApiErrorBox, Empty, Loading, Pill, RequireAuth } from "@/components/crm/ui";
 import { FlowCanvas, NODE_ICON, type NodeStats } from "@/components/crm/flow-canvas";
 import { FlowPanel, type FlowSettings, type TemplateLite } from "@/components/crm/flow-panel";
 import { Simulator } from "@/components/crm/simulators";
+import { TestLaunchDialog, TestRuns } from "@/components/crm/test-launch";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -137,6 +139,8 @@ function Builder({ me, initial, isNew }: { me: Me; initial: FlowDoc; isNew: bool
   const [errors, setErrors] = useState<string[] | null>(null);
   const [sim, setSim] = useState<Obj | null>(null);
   const [simOpen, setSimOpen] = useState(false);
+  const [testOpen, setTestOpen] = useState(false);
+  const [tab, setTab] = useState("builder");
   const dirty = JSON.stringify([settings, graph]) !== savedSnapshot;
 
   const { data: templates = [] } = useCrm<TemplateLite[]>("crm_list_templates", {});
@@ -144,7 +148,7 @@ function Builder({ me, initial, isNew }: { me: Me; initial: FlowDoc; isNew: bool
   const stats = useCrm<Obj>(
     "crm_flow_stats",
     { p_key: initial.key },
-    { enabled: !isNew && initial.version > 0, refetchInterval: 15_000 },
+    { enabled: !isNew, refetchInterval: 15_000 },
   );
 
   useEffect(() => {
@@ -276,6 +280,11 @@ function Builder({ me, initial, isNew }: { me: Me; initial: FlowDoc; isNew: bool
           <Button variant="outline" onClick={() => setSimOpen((o) => !o)}>
             <FlaskConical className="size-4" /> Simular
           </Button>
+          {canEdit && !isNew && (
+            <Button variant="outline" onClick={() => setTestOpen(true)}>
+              <Send className="size-4" /> Disparar teste
+            </Button>
+          )}
           {canEdit && (
             <>
               <Button
@@ -350,7 +359,25 @@ function Builder({ me, initial, isNew }: { me: Me; initial: FlowDoc; isNew: bool
         </p>
       )}
 
-      <Tabs defaultValue="builder">
+      {testOpen && (
+        <TestLaunchDialog
+          flowKey={initial.key}
+          blockedReason={
+            dirty
+              ? "Salve o rascunho antes de testar: o teste usa o fluxo salvo."
+              : !ready
+                ? "Corrija os pontos indicados no fluxo antes de testar."
+                : undefined
+          }
+          onClose={() => setTestOpen(false)}
+          onLaunched={() => {
+            setTestOpen(false);
+            setTab("tests");
+          }}
+        />
+      )}
+
+      <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
           <TabsTrigger value="builder">Construtor</TabsTrigger>
           {!isNew && initial.version > 0 && (
@@ -359,6 +386,7 @@ function Builder({ me, initial, isNew }: { me: Me; initial: FlowDoc; isNew: bool
           {!isNew && initial.version > 0 && (
             <TabsTrigger value="messages">Mensagens enviadas</TabsTrigger>
           )}
+          {!isNew && <TabsTrigger value="tests">Testes</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="builder" className="mt-4">
@@ -453,6 +481,9 @@ function Builder({ me, initial, isNew }: { me: Me; initial: FlowDoc; isNew: bool
         </TabsContent>
         <TabsContent value="messages" className="mt-4">
           <SentMessages flowKey={initial.key} />
+        </TabsContent>
+        <TabsContent value="tests" className="mt-4">
+          <TestRuns tests={stats.data?.tests} skipReason={SKIP_REASON} />
         </TabsContent>
       </Tabs>
     </>
@@ -746,6 +777,7 @@ const EXIT_REASON: Record<string, string> = {
   entry_rule_not_met: "não atendia à regra de entrada",
   exit_step: "etapa “Sair”",
   flow_archived: "fluxo arquivado",
+  test_relaunched: "substituído por um novo teste",
 };
 
 function People({ s }: { s: Obj | undefined }) {

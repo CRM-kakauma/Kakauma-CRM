@@ -143,6 +143,21 @@ export const HELP: HelpArticle[] = [
         ],
       },
       {
+        heading: "Disparar teste",
+        blocks: [
+          "Para ver as mensagens chegando de verdade antes de ligar um fluxo, use **Disparar teste** no topo do fluxo. Ele coloca na hora os contatos do segmento **Teste** (Segmentos → Teste → Contatos) no fluxo, como se o gatilho tivesse acontecido.",
+          {
+            list: [
+              "Funciona com o fluxo **salvo**, mesmo sem publicar ou pausado. Clientes reais não são afetados.",
+              "**Pular as esperas** (recomendado) roda o fluxo inteiro na hora; em “Aguardar evento” segue o caminho de quando o evento não acontece.",
+              "A regra “Quem pode entrar”, o horário de envio e o limite diário não valem no teste. O descadastro (opt-out) vale.",
+              "**SMS e RCS de texto** saem de verdade pela Pushfy, mesmo antes de ligar o envio real. WhatsApp e e-mail ficam em simulação até o canal ser conectado.",
+              "O resultado aparece na aba **Testes**: cada contato e o que aconteceu com cada mensagem. Testes não entram nos números do fluxo.",
+            ],
+          },
+        ],
+      },
+      {
         heading: "Fluxos × automações simples",
         blocks: [
           "**Automações simples** (menu “Automações simples”) mandam **uma** mensagem quando um fato acontece. **Fluxos** fazem jornadas com várias etapas, esperas, condições, testes e meta. Para coisas novas, prefira fluxos.",
@@ -289,6 +304,13 @@ export const HELP: HelpArticle[] = [
       {
         blocks: [
           { tip: "As mesmas regras são usadas em “Quem pode entrar” e “Condição” dos fluxos." },
+        ],
+      },
+      {
+        heading: "Segmento Teste (lista manual)",
+        blocks: [
+          "O segmento **Teste** não tem regra: é uma lista mantida à mão, nunca recalculada. Em **Contatos**, adicione nome, e-mail e celular com DDD de quem vai receber os testes. Quem já é cliente (mesmo e-mail ou celular) entra sem ser alterado; os demais viram contatos de teste.",
+          "Use essa lista com **Disparar teste** nos fluxos para conferir se SMS, RCS, WhatsApp e e-mail chegam como esperado.",
         ],
       },
     ],

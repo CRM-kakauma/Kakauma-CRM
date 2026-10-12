@@ -114,6 +114,19 @@ Descadastros: quem responde PARAR/SAIR é bloqueado pela própria Pushfy e o wor
 (botão "Sincronizar descadastros" em Operação traz tudo de uma vez). RCS com cartão/carrossel e WhatsApp
 continuam em simulação até a documentação desses formatos.
 
+## 7. Atualizações do banco
+
+Cada versão nova do CRM pode trazer uma migração (`drizzle/migrations/00NN_*.sql`). Sem acesso direto
+ao Postgres pela Vercel, quem cuida do Supabase roda a migração no **SQL Editor** (uma vez) antes ou logo
+depois do deploy. Para conferir o que já foi aplicado:
+
+```sql
+select name from public.crm_schema_migrations order by name;
+```
+
+A **0019** cria o segmento **Teste** (lista manual) e o **Disparar teste** dos fluxos. Sem ela, essas telas
+mostram erro de função inexistente; o resto do CRM continua funcionando.
+
 ## Conferência rápida
 
 | O quê | Como |

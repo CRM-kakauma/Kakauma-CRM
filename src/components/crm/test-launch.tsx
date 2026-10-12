@@ -357,8 +357,9 @@ export function TestLaunchDialog({
               vai como o primeiro cartão.
             </li>
             <li>
-              <strong className="text-foreground">WhatsApp e e-mail</strong> ficam em simulação até
-              o canal ser conectado: dá para ver o texto final na aba Testes.
+              <strong className="text-foreground">E-mail</strong> sai pelo Resend quando ele está
+              configurado. <strong className="text-foreground">WhatsApp</strong> fica em simulação
+              até o canal ser conectado: dá para ver o texto final na aba Testes.
             </li>
             <li>
               Horário de envio e limite diário não valem no teste; descadastro (opt-out) vale.

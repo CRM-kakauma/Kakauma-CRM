@@ -8,6 +8,7 @@ import {
   toPushfyNumber,
   type PushfyConfig,
 } from "./pushfy.ts";
+import { isEmail, resendSend, type ResendConfig } from "./resend.ts";
 
 /**
  * Flow worker: advances due flow enrollments, then delivers queued messages.
@@ -19,6 +20,8 @@ import {
  *     a carousel as its first card when PUSHFY_API_TOKEN is set and
  *     PUSHFY_LIVE=true (with the token but not live: DRY_RUN, nothing is sent —
  *     except test launches, which go out so the channel can be checked);
+ *   - e-mail goes through Resend when RESEND_API_KEY + EMAIL_FROM are set and EMAIL_LIVE=true
+ *     (test launches go out even before that);
  *   - other channels go to CRM_AUTOMATION_WEBHOOK_URL (HMAC-signed) when set;
  *   - otherwise DRY_RUN: the rendered content is stored and visible in the CRM.
  */
@@ -39,6 +42,7 @@ interface ClaimedMessage {
 export interface MessageOptions {
   limit?: number;
   pushfy?: (PushfyConfig & { live: boolean }) | undefined;
+  resend?: (ResendConfig & { live: boolean }) | undefined;
   webhookUrl?: string | undefined;
   webhookSecret?: string | undefined;
   fetchImpl?: typeof fetch;
@@ -120,6 +124,36 @@ export async function runMessages(rpc: Rpc, opts: MessageOptions = {}) {
         endpoint: plan.kind,
         to,
         ...(plan.sentAs ? { sent_as: plan.sentAs } : {}),
+        http_status: sent.httpStatus,
+        response: sent.body,
+      };
+      if (sent.ok) await complete("SENT", result);
+      else await complete("FAILED", result, sent.error ?? "falha no envio", !sent.permanent);
+      continue;
+    }
+
+    if (opts.resend && m.channel === "email") {
+      // same rule as Pushfy: real e-mails only when live, except test launches
+      if (!opts.resend.live && !m.is_test) {
+        await complete("DRY_RUN", { reason: "email_not_live" });
+        continue;
+      }
+      if (!isEmail(recipient)) {
+        await complete("SKIPPED", null, "invalid_email");
+        continue;
+      }
+      const e = rendered as { subject?: string; html?: string; text?: string; from_name?: string };
+      const sent = await resendSend(opts.resend, {
+        to: recipient!,
+        subject: e.subject ?? "",
+        html: e.html ?? "",
+        text: e.text ?? "",
+        fromName: e.from_name,
+        idempotencyKey: m.message_id,
+      });
+      const result = {
+        provider: "resend",
+        to: recipient,
         http_status: sent.httpStatus,
         response: sent.body,
       };

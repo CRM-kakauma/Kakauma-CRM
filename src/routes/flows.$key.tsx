@@ -864,6 +864,7 @@ export const SKIP_REASON: Record<string, string> = {
   invalid_phone: "telefone inválido",
   rcs_rich_not_supported: "RCS com cartão sem conteúdo",
   empty_message: "mensagem vazia",
+  invalid_email: "e-mail inválido",
 };
 
 function SentMessages({ flowKey }: { flowKey: string }) {

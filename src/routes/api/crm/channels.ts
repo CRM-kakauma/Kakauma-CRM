@@ -10,7 +10,7 @@ export const Route = createFileRoute("/api/crm/channels")({
       GET: async ({ request }) => {
         const { getSession, json } = await import("@/server/crm/auth.server");
         const { env } = await import("@/server/crm/supabase.server");
-        const { pushfyConfig } = await import("@/server/crm/pipeline.server");
+        const { pushfyConfig, resendConfig } = await import("@/server/crm/pipeline.server");
         const { pushfyBalance } = await import("@/server/crm/pushfy");
         const session = await getSession(request);
         if (!session) return json({ error: "unauthenticated" }, 401);
@@ -39,6 +39,12 @@ export const Route = createFileRoute("/api/crm/channels")({
                   balance_error: balanceError,
                 }
               : { configured: false },
+            email: (() => {
+              const r = resendConfig();
+              return r
+                ? { configured: true, provider: "resend", live: r.live, from: r.from }
+                : { configured: false };
+            })(),
             webhook: { configured: !!env("CRM_AUTOMATION_WEBHOOK_URL") },
           },
           200,

@@ -120,6 +120,17 @@ Pushfy a URL `https://kakauma-crm.vercel.app/api/webhooks/pushfy?token=VALOR`. A
 mostra se o token está certo. Com ela, o CRM mostra "entregue", "clicou", "não entregue" etc. em cada mensagem,
 e respostas SAIR/PARAR viram descadastro na hora. Precisa da migração 0021.
 
+## 6b. E-mail pelo Resend
+
+1. Crie a conta em <https://resend.com> → **Domains → Add domain** → `kakauma.com.br` e cadastre no DNS os
+   registros que ele mostrar (SPF/DKIM). Espere ficar **Verified**.
+2. **API Keys → Create** (permissão *Sending access*).
+3. Na Vercel (Production): `RESEND_API_KEY` = a chave, `EMAIL_FROM` = `contato@kakauma.com.br` (ou outro endereço
+   do domínio verificado), opcional `EMAIL_REPLY_TO`. Redeploy.
+4. Em Mensagens → um e-mail → **Enviar teste de verdade** para o seu endereço (o assunto vai com `[TESTE]`), ou
+   **Disparar teste** num fluxo. Funcionou? `EMAIL_LIVE` = `true` e Redeploy: os fluxos publicados passam a
+   mandar e-mails de verdade.
+
 ## 7. Atualizações do banco
 
 Cada versão nova do CRM pode trazer uma migração (`drizzle/migrations/00NN_*.sql`). Sem acesso direto

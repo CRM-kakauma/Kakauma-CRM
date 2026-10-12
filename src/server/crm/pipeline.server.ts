@@ -27,10 +27,22 @@ export function pushfyConfig() {
     live: env("PUSHFY_LIVE") === "true",
   };
 }
+export function resendConfig() {
+  const apiKey = env("RESEND_API_KEY");
+  const from = env("EMAIL_FROM");
+  if (!apiKey || !from) return undefined;
+  return {
+    apiKey,
+    from,
+    replyTo: env("EMAIL_REPLY_TO"),
+    live: env("EMAIL_LIVE") === "true",
+  };
+}
 export const runFlows = (limit = 100) =>
   runFlowsCore(rpc, {
     limit,
     pushfy: pushfyConfig(),
+    resend: resendConfig(),
     webhookUrl: env("CRM_AUTOMATION_WEBHOOK_URL"),
     webhookSecret: env("CRM_AUTOMATION_WEBHOOK_SECRET"),
   });

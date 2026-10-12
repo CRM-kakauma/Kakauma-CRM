@@ -17,6 +17,7 @@ interface Channels {
     balance?: unknown;
     balance_error?: string | null;
   };
+  email?: { configured: boolean; provider?: string; live?: boolean; from?: string };
   webhook: { configured: boolean };
 }
 
@@ -159,8 +160,8 @@ export function ChannelsSection({ isAdmin }: { isAdmin: boolean }) {
           <Row
             name="RCS · Pushfy"
             ok={!!p?.configured && !!p.live}
-            status={p?.configured ? "só RCS de texto" : "não conectado"}
-            detail="Cartão e carrossel ficam em espera até recebermos a documentação desse formato da Pushfy."
+            status={pushStatus}
+            detail="Texto pelo RCS Basic; cartão com imagem e um botão de link pelo RCS Single; carrossel vai como o primeiro cartão."
           />
           <Row
             name="WhatsApp"
@@ -169,10 +170,20 @@ export function ChannelsSection({ isAdmin }: { isAdmin: boolean }) {
             detail="Aguardando a documentação de WhatsApp da Pushfy."
           />
           <Row
-            name="E-mail"
-            ok={data?.webhook.configured ?? false}
-            status={data?.webhook.configured ? "webhook de saída" : "simulação"}
-            detail="Sem provedor de e-mail conectado."
+            name="E-mail · Resend"
+            ok={!!data?.email?.configured && !!data.email.live}
+            status={
+              !data?.email?.configured
+                ? "não conectado"
+                : data.email.live
+                  ? "envio real"
+                  : "só testes"
+            }
+            detail={
+              !data?.email?.configured
+                ? "Coloque RESEND_API_KEY e EMAIL_FROM (endereço do domínio verificado no Resend) na Vercel. Depois de testar, ligue o envio real com EMAIL_LIVE=true."
+                : `Remetente: ${data.email.from}. ${data.email.live ? "Fluxos publicados enviam e-mails de verdade." : "Testes (Enviar teste e Disparar teste) já saem; para os fluxos, EMAIL_LIVE=true."}`
+            }
           />
           {p?.configured && (
             <div>
@@ -194,11 +205,14 @@ export function ChannelsSection({ isAdmin }: { isAdmin: boolean }) {
 export function TestSend({
   templateKey,
   disabledReason,
+  channel = "sms",
 }: {
   templateKey: string;
   disabledReason?: string | undefined;
+  channel?: "sms" | "rcs" | "email";
 }) {
   const { data } = useChannels();
+  const isEmail = channel === "email";
   const [to, setTo] = useState("");
   const send = useMutation({
     mutationFn: () =>
@@ -208,31 +222,40 @@ export function TestSend({
         body: JSON.stringify({ template_key: templateKey, to }),
       }),
     onSuccess: (r) =>
-      toast.success("Enviado pela Pushfy", { description: `Para ${r.to}. Confira no celular.` }),
+      toast.success(isEmail ? "Enviado pelo Resend" : "Enviado pela Pushfy", {
+        description: isEmail
+          ? `Para ${r.to}. Confira a caixa de entrada (e o spam).`
+          : `Para ${r.to}. Confira no celular.`,
+      }),
     onError: (e) => toast.error("Não enviou", { description: (e as Error).message }),
   });
-  if (!data?.pushfy.configured) return null;
+  if (isEmail ? !data?.email?.configured : !data?.pushfy.configured) return null;
   return (
     <div className="surface space-y-2 p-3">
       <p className="flex items-center gap-1.5 text-sm font-medium">
         <Send className="size-4 text-primary" /> Enviar teste de verdade
       </p>
       <p className="text-[11px] text-muted-foreground">
-        Manda esta mensagem salva, com os dados de exemplo, para um celular — pela Pushfy (gasta
-        saldo). Fica registrado na auditoria.
+        {isEmail
+          ? "Manda este e-mail salvo, com os dados de exemplo, para um endereço — pelo Resend (o assunto vai com [TESTE]). Fica registrado na auditoria."
+          : "Manda esta mensagem salva, com os dados de exemplo, para um celular — pela Pushfy (gasta saldo). Fica registrado na auditoria."}
       </p>
       <div className="flex gap-2">
         <Input
           value={to}
           onChange={(e) => setTo(e.target.value)}
-          placeholder="(11) 99999-9999"
-          inputMode="tel"
+          placeholder={isEmail ? "voce@exemplo.com" : "(11) 99999-9999"}
+          inputMode={isEmail ? "email" : "tel"}
           className="h-8"
         />
         <Button
           size="sm"
           className="h-8"
-          disabled={!!disabledReason || to.replace(/\D/g, "").length < 10 || send.isPending}
+          disabled={
+            !!disabledReason ||
+            (isEmail ? !/^\S+@\S+\.\S+$/.test(to) : to.replace(/\D/g, "").length < 10) ||
+            send.isPending
+          }
           onClick={() => send.mutate()}
         >
           {send.isPending ? "Enviando…" : "Enviar"}

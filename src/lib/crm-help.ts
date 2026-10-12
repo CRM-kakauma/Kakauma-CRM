@@ -151,7 +151,7 @@ export const HELP: HelpArticle[] = [
               "Funciona com o fluxo **salvo**, mesmo sem publicar ou pausado. Clientes reais não são afetados.",
               "**Pular as esperas** (recomendado) roda o fluxo inteiro na hora; em “Aguardar evento” segue o caminho de quando o evento não acontece.",
               "A regra “Quem pode entrar”, o horário de envio e o limite diário não valem no teste. O descadastro (opt-out) vale.",
-              "**SMS e RCS** saem de verdade pela Pushfy, mesmo antes de ligar o envio real (RCS em cartão vai com imagem e um botão de link; carrossel vai como o primeiro cartão). WhatsApp e e-mail ficam em simulação até o canal ser conectado.",
+              "**SMS e RCS** saem de verdade pela Pushfy, mesmo antes de ligar o envio real (RCS em cartão vai com imagem e um botão de link; carrossel vai como o primeiro cartão). E-mail sai pelo Resend quando ele está configurado. WhatsApp fica em simulação até o canal ser conectado.",
               "O resultado aparece na aba **Testes**: cada contato e o que aconteceu com cada mensagem. Testes não entram nos números do fluxo.",
             ],
           },
@@ -246,7 +246,7 @@ export const HELP: HelpArticle[] = [
       {
         heading: "Envio de verdade",
         blocks: [
-          "**SMS e RCS** saem pela Pushfy quando ela está conectada e o envio real está ligado (veja em Operação → Canais de envio); RCS em cartão vai com imagem e o primeiro botão de link (sem botão de link, vai só o texto); carrossel vai como o primeiro cartão. Com o webhook da Pushfy cadastrado, o CRM mostra se cada mensagem foi entregue ou clicada. Antes disso, e para WhatsApp e e-mail, os envios aparecem como **Simulação** (com o conteúdo final) no fluxo e no Cliente 360. Em cada SMS ou RCS salvo há **Enviar teste de verdade**, para conferir no seu celular. Falhas temporárias são tentadas de novo automaticamente; número inválido ou mensagem recusada não são repetidos.",
+          "**SMS e RCS** saem pela Pushfy quando ela está conectada e o envio real está ligado (veja em Operação → Canais de envio); RCS em cartão vai com imagem e o primeiro botão de link (sem botão de link, vai só o texto); carrossel vai como o primeiro cartão. Com o webhook da Pushfy cadastrado, o CRM mostra se cada mensagem foi entregue ou clicada. **E-mail** sai pelo Resend quando RESEND_API_KEY e EMAIL_FROM estão na Vercel e o envio real (EMAIL_LIVE) está ligado. Antes disso, e para WhatsApp, os envios aparecem como **Simulação** (com o conteúdo final) no fluxo e no Cliente 360. Em cada SMS, RCS ou e-mail salvo há **Enviar teste de verdade**, para conferir no seu celular. Falhas temporárias são tentadas de novo automaticamente; número inválido ou mensagem recusada não são repetidos.",
         ],
       },
     ],

@@ -293,9 +293,10 @@ function Editor({ me, initial, isNew }: { me: Me; initial: Draft; isNew: boolean
             </p>
           )}
           <Simulator channel={d.channel} content={d.content} vars={vars.v} />
-          {!isNew && canEdit && (d.channel === "sms" || d.channel === "rcs") && (
+          {!isNew && canEdit && d.channel !== "whatsapp" && (
             <TestSend
               templateKey={d.key}
+              channel={d.channel}
               disabledReason={
                 dirty
                   ? "Salve as alterações antes de testar (o teste usa a versão salva)."

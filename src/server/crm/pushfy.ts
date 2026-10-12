@@ -132,12 +132,14 @@ export async function pushfySend(
     const r = await call(c, "POST", PATH[kind], { messages: [message] });
     const b = (r.body ?? {}) as { accepted?: number };
     if (r.status >= 200 && r.status < 300) {
-      // SMS: { accepted }; RCS: one item per accepted message
+      // SMS: { accepted }; RCS: one item per accepted message. Anything else (an error
+      // message with 200, an empty body) is not taken as sent: the answer is kept to see why.
       const accepted = Array.isArray(r.body)
         ? r.body.length
         : typeof b.accepted === "number"
           ? b.accepted
-          : 1;
+          : 0;
+      const detail = typeof r.body === "string" ? r.body : JSON.stringify(r.body);
       return accepted > 0
         ? { ok: true, permanent: false, httpStatus: r.status, body: r.body }
         : {
@@ -145,7 +147,7 @@ export async function pushfySend(
             permanent: true,
             httpStatus: r.status,
             body: r.body,
-            error: "Pushfy não aceitou a mensagem",
+            error: `Pushfy não aceitou a mensagem: ${detail?.slice(0, 300) || "resposta vazia"}`,
           };
     }
     const permanent = r.status >= 400 && r.status < 500 && r.status !== 429;
@@ -197,5 +199,14 @@ export async function pushfyBalance(
   c: PushfyConfig,
 ): Promise<{ ok: boolean; status: number; body: unknown }> {
   const r = await call(c, "GET", "/balance");
+  return { ok: r.status === 200, status: r.status, body: r.body };
+}
+
+/** Current status of a message at Pushfy, by the ext_id sent with it (our message_id). */
+export async function pushfyStatus(
+  c: PushfyConfig,
+  extId: string,
+): Promise<{ ok: boolean; status: number; body: unknown }> {
+  const r = await call(c, "GET", `/getstatus?${new URLSearchParams({ ext_id: extId })}`);
   return { ok: r.status === 200, status: r.status, body: r.body };
 }

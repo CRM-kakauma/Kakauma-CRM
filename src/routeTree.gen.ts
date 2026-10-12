@@ -47,6 +47,7 @@ import { Route as ApiCrmAuthLogoutRouteImport } from './routes/api/crm/auth/logo
 import { Route as ApiCrmAuthMeRouteImport } from './routes/api/crm/auth/me'
 import { Route as ApiCrmAuthSetPasswordRouteImport } from './routes/api/crm/auth/set-password'
 import { Route as ApiCrmFlowsTestLaunchRouteImport } from './routes/api/crm/flows/test-launch'
+import { Route as ApiCrmMessagesProviderStatusRouteImport } from './routes/api/crm/messages/provider-status'
 import { Route as ApiCrmMessagesTestRouteImport } from './routes/api/crm/messages/test'
 
 const IndexRoute = IndexRouteImport.update({
@@ -239,6 +240,12 @@ const ApiCrmFlowsTestLaunchRoute = ApiCrmFlowsTestLaunchRouteImport.update({
   path: '/api/crm/flows/test-launch',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCrmMessagesProviderStatusRoute =
+  ApiCrmMessagesProviderStatusRouteImport.update({
+    id: '/api/crm/messages/provider-status',
+    path: '/api/crm/messages/provider-status',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiCrmMessagesTestRoute = ApiCrmMessagesTestRouteImport.update({
   id: '/api/crm/messages/test',
   path: '/api/crm/messages/test',
@@ -284,6 +291,7 @@ export interface FileRoutesByFullPath {
   '/api/crm/auth/me': typeof ApiCrmAuthMeRoute
   '/api/crm/auth/set-password': typeof ApiCrmAuthSetPasswordRoute
   '/api/crm/flows/test-launch': typeof ApiCrmFlowsTestLaunchRoute
+  '/api/crm/messages/provider-status': typeof ApiCrmMessagesProviderStatusRoute
   '/api/crm/messages/test': typeof ApiCrmMessagesTestRoute
 }
 export interface FileRoutesByTo {
@@ -325,6 +333,7 @@ export interface FileRoutesByTo {
   '/api/crm/auth/me': typeof ApiCrmAuthMeRoute
   '/api/crm/auth/set-password': typeof ApiCrmAuthSetPasswordRoute
   '/api/crm/flows/test-launch': typeof ApiCrmFlowsTestLaunchRoute
+  '/api/crm/messages/provider-status': typeof ApiCrmMessagesProviderStatusRoute
   '/api/crm/messages/test': typeof ApiCrmMessagesTestRoute
 }
 export interface FileRoutesById {
@@ -367,6 +376,7 @@ export interface FileRoutesById {
   '/api/crm/auth/me': typeof ApiCrmAuthMeRoute
   '/api/crm/auth/set-password': typeof ApiCrmAuthSetPasswordRoute
   '/api/crm/flows/test-launch': typeof ApiCrmFlowsTestLaunchRoute
+  '/api/crm/messages/provider-status': typeof ApiCrmMessagesProviderStatusRoute
   '/api/crm/messages/test': typeof ApiCrmMessagesTestRoute
 }
 export interface FileRouteTypes {
@@ -410,6 +420,7 @@ export interface FileRouteTypes {
     | '/api/crm/auth/me'
     | '/api/crm/auth/set-password'
     | '/api/crm/flows/test-launch'
+    | '/api/crm/messages/provider-status'
     | '/api/crm/messages/test'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -451,6 +462,7 @@ export interface FileRouteTypes {
     | '/api/crm/auth/me'
     | '/api/crm/auth/set-password'
     | '/api/crm/flows/test-launch'
+    | '/api/crm/messages/provider-status'
     | '/api/crm/messages/test'
   id:
     | '__root__'
@@ -492,6 +504,7 @@ export interface FileRouteTypes {
     | '/api/crm/auth/me'
     | '/api/crm/auth/set-password'
     | '/api/crm/flows/test-launch'
+    | '/api/crm/messages/provider-status'
     | '/api/crm/messages/test'
   fileRoutesById: FileRoutesById
 }
@@ -534,6 +547,7 @@ export interface RootRouteChildren {
   ApiCrmAuthMeRoute: typeof ApiCrmAuthMeRoute
   ApiCrmAuthSetPasswordRoute: typeof ApiCrmAuthSetPasswordRoute
   ApiCrmFlowsTestLaunchRoute: typeof ApiCrmFlowsTestLaunchRoute
+  ApiCrmMessagesProviderStatusRoute: typeof ApiCrmMessagesProviderStatusRoute
   ApiCrmMessagesTestRoute: typeof ApiCrmMessagesTestRoute
 }
 
@@ -805,6 +819,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCrmFlowsTestLaunchRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/crm/messages/provider-status': {
+      id: '/api/crm/messages/provider-status'
+      path: '/api/crm/messages/provider-status'
+      fullPath: '/api/crm/messages/provider-status'
+      preLoaderRoute: typeof ApiCrmMessagesProviderStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/crm/messages/test': {
       id: '/api/crm/messages/test'
       path: '/api/crm/messages/test'
@@ -854,6 +875,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCrmAuthMeRoute: ApiCrmAuthMeRoute,
   ApiCrmAuthSetPasswordRoute: ApiCrmAuthSetPasswordRoute,
   ApiCrmFlowsTestLaunchRoute: ApiCrmFlowsTestLaunchRoute,
+  ApiCrmMessagesProviderStatusRoute: ApiCrmMessagesProviderStatusRoute,
   ApiCrmMessagesTestRoute: ApiCrmMessagesTestRoute,
 }
 export const routeTree = rootRouteImport

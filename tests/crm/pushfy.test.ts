@@ -8,6 +8,7 @@ import {
   pushfyOptouts,
   pushfyPlan,
   pushfySend,
+  pushfyStatus,
   toPushfyNumber,
 } from "../../src/server/crm/pushfy.ts";
 import { b4 } from "./fixtures.ts";
@@ -122,6 +123,24 @@ describe("Pushfy adapter", () => {
       sentAs: "rcs_basic_no_button",
     });
     assert.deepEqual(pushfyPlan("sms", { text: "Oi" }), { kind: "sms", text: "Oi" });
+  });
+
+  test("a 200 without the documented answer is not taken as sent", async () => {
+    const r = await pushfySend(
+      cfg(
+        fakeFetch([{ status: 200, body: { status: "error", message: "remetente invalido" } }]).impl,
+      ),
+      "sms",
+      { to: "5511988887777", text: "x", extId: "z" },
+    );
+    assert.deepEqual([r.ok, r.permanent], [false, true]);
+    assert.match(r.error ?? "", /remetente invalido/);
+    const st = fakeFetch([{ status: 200, body: [{ ext_id: "z", status: "Delivered" }] }]);
+    const s = await pushfyStatus(cfg(st.impl), "z");
+    assert.deepEqual(
+      [s.ok, st.calls[0]!.url],
+      [true, "https://portal.pushfy.com/getstatus?ext_id=z"],
+    );
   });
 
   test("errors: 4xx are final, 5xx and 429 retry, accepted 0 is final", async () => {

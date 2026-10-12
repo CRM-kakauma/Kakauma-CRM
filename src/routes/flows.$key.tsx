@@ -483,7 +483,7 @@ function Builder({ me, initial, isNew }: { me: Me; initial: FlowDoc; isNew: bool
           <SentMessages flowKey={initial.key} />
         </TabsContent>
         <TabsContent value="tests" className="mt-4">
-          <TestRuns tests={stats.data?.tests} skipReason={SKIP_REASON} />
+          <TestRuns tests={stats.data?.tests} skipReason={SKIP_REASON} flowKey={initial.key} />
         </TabsContent>
       </Tabs>
     </>

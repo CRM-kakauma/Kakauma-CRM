@@ -401,10 +401,24 @@ const MSG: Record<string, { label: string; tone: Tone }> = {
 export function TestRuns({
   tests,
   skipReason,
+  flowKey,
 }: {
   tests: TestRun[] | undefined;
   skipReason: Record<string, string>;
+  flowKey: string;
 }) {
+  // message ids (to ask Pushfy about each one) come from the messages list of the flow
+  const list = useCrm<
+    { message_id: string; channel: string; recipient: string | null; at: string }[]
+  >("crm_list_messages", { p_flow_key: flowKey, p_limit: 500 });
+  const idOf = (m: { channel: string; recipient: string | null; at?: string | null }) =>
+    list.data?.find(
+      (x) =>
+        x.channel === m.channel &&
+        x.recipient === m.recipient &&
+        !!m.at &&
+        Date.parse(x.at) === Date.parse(m.at),
+    )?.message_id;
   if (!tests) return <Loading />;
   if (!tests.length)
     return <Empty>Nenhum teste ainda. Use “Disparar teste” para ver as mensagens chegando.</Empty>;
@@ -465,6 +479,9 @@ export function TestRuns({
                           <span className="text-danger">{m.error}</span>
                         )}
                         <ProviderStatus status={m.provider_status} sentAs={m.sent_as} />
+                        {m.status === "SENT" && (m.channel === "sms" || m.channel === "rcs") && (
+                          <CheckAtPushfy id={idOf(m)} />
+                        )}
                       </li>
                     ))}
                   </ul>
@@ -496,6 +513,7 @@ export interface TestRun {
     skip_reason: string | null;
     recipient: string | null;
     error: string | null;
+    at?: string | null;
     provider_status?: string | null;
     sent_as?: string | null;
   }[];
@@ -536,4 +554,51 @@ export function ProviderStatus({
       {sentAs && <span className="text-muted-foreground">{SENT_AS[sentAs] ?? sentAs}</span>}
     </>
   );
+}
+
+/** Asks Pushfy what happened to one message (GET /getstatus by our message id). */
+function CheckAtPushfy({ id }: { id: string | undefined }) {
+  const [res, setRes] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  if (!id) return null;
+  return (
+    <>
+      <button
+        type="button"
+        className="text-primary underline-offset-2 hover:underline disabled:opacity-50"
+        disabled={busy}
+        onClick={() => {
+          setBusy(true);
+          fetch(`/api/crm/messages/provider-status?id=${id}`, { credentials: "same-origin" })
+            .then((r) => r.json())
+            .then((b: { pushfy?: unknown; message?: string; error?: string }) =>
+              setRes(
+                b.pushfy !== undefined ? describePushfy(b.pushfy) : (b.message ?? b.error ?? "?"),
+              ),
+            )
+            .catch((e: Error) => setRes(e.message))
+            .finally(() => setBusy(false));
+        }}
+      >
+        {busy ? "consultando…" : "ver na Pushfy"}
+      </button>
+      {res && (
+        <span className="basis-full rounded bg-muted px-2 py-1 font-mono text-[11px] text-muted-foreground">
+          {res}
+        </span>
+      )}
+    </>
+  );
+}
+
+function describePushfy(body: unknown): string {
+  const first = Array.isArray(body) ? body[0] : body;
+  if (first && typeof first === "object") {
+    const o = first as Record<string, unknown>;
+    const st = o["status"] ?? o["Status"];
+    if (typeof st === "string")
+      return `${PROVIDER_STATUS[st]?.label ?? st} · ${JSON.stringify(first).slice(0, 300)}`;
+  }
+  if (Array.isArray(body) && body.length === 0) return "a Pushfy não encontrou esta mensagem";
+  return (typeof body === "string" ? body : JSON.stringify(body)).slice(0, 400);
 }

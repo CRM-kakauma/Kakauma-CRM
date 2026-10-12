@@ -4,7 +4,12 @@ import assert from "node:assert/strict";
 import postgres from "postgres";
 import { ingestWebhook, type Rpc } from "../../src/server/crm/pipeline.ts";
 import { runFlows, syncPushfyOptouts } from "../../src/server/crm/messages.ts";
-import { pushfyOptouts, pushfySend, toPushfyNumber } from "../../src/server/crm/pushfy.ts";
+import {
+  pushfyOptouts,
+  pushfyPlan,
+  pushfySend,
+  toPushfyNumber,
+} from "../../src/server/crm/pushfy.ts";
 import { b4 } from "./fixtures.ts";
 import { makeRpc, resetCrm, TEST_DB_URL } from "./db.ts";
 
@@ -58,10 +63,65 @@ describe("Pushfy adapter", () => {
         { destinations: [{ to: "5511988887777" }], text: "Oi", ext_id: "m-1", from: "Kakauma" },
       ],
     });
-    const rcs = fakeFetch();
-    await pushfySend(cfg(rcs.impl), "rcs", { to: "5511988887777", text: "Oi", extId: "m-2" });
-    assert.equal(rcs.calls[0]!.url, "https://portal.pushfy.com/rcs");
+    const rcs = fakeFetch([
+      { status: 200, body: [{ id: 1, phone: "5511988887777", ext_id: "m-2" }] },
+    ]);
+    const rr = await pushfySend(cfg(rcs.impl), "rcs_basic", {
+      to: "5511988887777",
+      text: "Oi",
+      extId: "m-2",
+    });
+    assert.equal(rr.ok, true, "RCS answers one item per accepted message");
+    assert.equal(rcs.calls[0]!.url, "https://portal.pushfy.com/apircsbasic");
     assert.equal(rcs.calls[0]!.body.messages[0].from, undefined, "sender name is an SMS field");
+    const none = await pushfySend(cfg(fakeFetch([{ status: 200, body: [] }]).impl), "rcs_single", {
+      to: "5511988887777",
+      text: "x https://a.com/b",
+      extId: "m-3",
+    });
+    assert.deepEqual([none.ok, none.permanent], [false, true], "empty list = nothing accepted");
+  });
+
+  test("RCS plan: text → Basic; card → Single in the flat format; carousel → first card", () => {
+    assert.deepEqual(pushfyPlan("rcs", { kind: "text", text: "Oi Ana" }), {
+      kind: "rcs_basic",
+      text: "Oi Ana",
+    });
+    const card = {
+      kind: "card",
+      cards: [
+        {
+          title: "Oferta exclusiva",
+          description: "Aproveite 20% off ate meia-noite. Veja https://outro.link/x",
+          media_url: "https://exemplo.com/banner.jpg",
+        },
+      ],
+      suggestions: [
+        { type: "reply", text: "Sim" },
+        { type: "url", text: "Aproveitar", url: "https://exemplo.com/promo" },
+      ],
+    };
+    assert.deepEqual(pushfyPlan("rcs", card), {
+      kind: "rcs_single",
+      // documented order: TITLE image BODY link BUTTON (a URL inside the body would break it)
+      text: "Oferta exclusiva https://exemplo.com/banner.jpg Aproveite 20% off ate meia-noite. Veja https://exemplo.com/promo Aproveitar",
+      sentAs: undefined,
+    });
+    const noImage = pushfyPlan("rcs", { ...card, cards: [{ title: "Oi", description: "Corpo" }] });
+    assert.equal(noImage.text, "Oi Corpo https://exemplo.com/promo Aproveitar");
+    const carousel = pushfyPlan("rcs", {
+      ...card,
+      kind: "carousel",
+      cards: [card.cards[0], { title: "Segundo" }],
+    });
+    assert.deepEqual([carousel.kind, carousel.sentAs], ["rcs_single", "rcs_single_first_card"]);
+    // no link button: the image would be read as the button link, so it goes as text
+    assert.deepEqual(pushfyPlan("rcs", { ...card, suggestions: [] }), {
+      kind: "rcs_basic",
+      text: "Oferta exclusiva\nAproveite 20% off ate meia-noite. Veja",
+      sentAs: "rcs_basic_no_button",
+    });
+    assert.deepEqual(pushfyPlan("sms", { text: "Oi" }), { kind: "sms", text: "Oi" });
   });
 
   test("errors: 4xx are final, 5xx and 429 retry, accepted 0 is final", async () => {
@@ -164,6 +224,7 @@ const lastMessage = async (id: string) =>
 describe("Sending through Pushfy", { skip: !sql && "CRM_TEST_DATABASE_URL not set" }, () => {
   before(async () => {
     await resetCrm(sql!);
+    await sql!`delete from crm.provider_events`;
     await sql!`delete from crm.flow_versions where flow_id in (select flow_id from crm.flows where key like 'teste_%')`;
     await sql!`delete from crm.flows where key like 'teste_%'`;
     await sql!`delete from crm.message_templates where key like 'teste_%'`;
@@ -221,14 +282,14 @@ describe("Sending through Pushfy", { skip: !sql && "CRM_TEST_DATABASE_URL not se
     assert.deepEqual([m[0]!["status"], m[0]!["reason"]], ["DRY_RUN", "pushfy_not_live"]);
   });
 
-  test("live: SMS goes to Pushfy with the rendered text; a rich RCS goes as its SMS alternative", async () => {
+  test("live: SMS goes to Pushfy with the rendered text; an RCS card without a link button goes as text", async () => {
     const f = fakeFetch();
     await buy("P1", "(11) 97777-0001", "SP1");
     await runFlows(rpc, { pushfy: { ...cfg(f.impl), live: true } });
     assert.equal(f.calls.length, 2);
     assert.deepEqual(
       [f.calls[1]!.url, f.calls[1]!.body.messages[0].text],
-      ["https://portal.pushfy.com/webapi", "Oi"],
+      ["https://portal.pushfy.com/apircsbasic", "Oi"],
     );
     assert.equal(f.calls[0]!.body.messages[0].destinations[0].to, "5511977770001");
     assert.equal(f.calls[0]!.body.messages[0].text, "Kakauma: oi Cliente");
@@ -241,7 +302,7 @@ describe("Sending through Pushfy", { skip: !sql && "CRM_TEST_DATABASE_URL not se
       rows.map((r) => [r["channel"], r["status"], r["skip_reason"] ?? r["provider"], r["sent_as"]]),
       [
         ["sms", "SENT", "pushfy", null],
-        ["rcs", "SENT", "pushfy", "sms_fallback"],
+        ["rcs", "SENT", "pushfy", "rcs_basic_no_button"],
       ],
     );
     assert.deepEqual(rows[0]!["response"], { accepted: 1, queued: 1 });
@@ -311,5 +372,62 @@ describe("Sending through Pushfy", { skip: !sql && "CRM_TEST_DATABASE_URL not se
       await sql!`select status, skip_reason from crm.messages m join crm.customers c using (customer_id)
                            where c.external_customer_id = 'cus_P5' and m.channel = 'sms' order by m.created_at desc limit 1`;
     assert.deepEqual([sms[0]!["status"], sms[0]!["skip_reason"]], ["SKIPPED", "opt_out"]);
+  });
+  test("webhooks: delivery status lands on the message; repeats are ignored; SAIR opts out", async () => {
+    const [m] =
+      await sql!`select m.message_id from crm.messages m join crm.customers c using (customer_id)
+                           where c.external_customer_id = 'cus_P1' and m.channel = 'sms' and m.status = 'SENT'`;
+    const id = m!["message_id"] as string;
+    const ev = (p: object) => call("crm_pushfy_event", { p_payload: p });
+    const dlr = {
+      id: 11,
+      phone: "5511977770001",
+      status: "Delivered",
+      ext_id: id,
+      date_dlr: "2026-10-12 10:00:12",
+      channel: "sms",
+    };
+    assert.equal((await ev(dlr)).message_matched, true);
+    assert.equal((await ev(dlr)).duplicate, true);
+    await ev({ ...dlr, status: "Clicked", date_dlr: "2026-10-12 10:05:00" });
+    await ev({ ...dlr, status: "Delivered", date_dlr: "2026-10-12 10:06:00" }); // late DLR does not hide the click
+    const [row] =
+      await sql!`select status, provider_status, delivered_at is not null as delivered, clicked_at is not null as clicked
+                             from crm.messages where message_id = ${id}`;
+    assert.deepEqual(
+      [row!["status"], row!["provider_status"], row!["delivered"], row!["clicked"]],
+      ["SENT", "Clicked", true, true],
+    );
+    const listed = await call<any[]>("crm_list_messages", { p_limit: 50 });
+    assert.equal(listed.find((x) => x.message_id === id)?.provider_status, "Clicked");
+
+    // a test send ("teste-…") or unknown id is kept but matches nothing
+    assert.equal(
+      (await ev({ id: 12, status: "Delivered", ext_id: "teste-abc" })).message_matched,
+      false,
+    );
+
+    const r = await ev({
+      id: 456,
+      phone: "5511977770001",
+      reply: " sair ",
+      message_id: 789,
+      received_at: "2026-10-12 10:05:33",
+    });
+    assert.equal(r.optout, 2);
+    const opt =
+      await sql!`select array_agg(channel order by channel) as ch from crm.channel_optouts o join crm.customers c using (customer_id)
+                           where c.external_customer_id = 'cus_P1'`;
+    assert.deepEqual(opt[0]!["ch"], ["rcs", "sms"]);
+    const other = await ev({
+      id: 457,
+      phone: "5511977770001",
+      reply: "Quero saber mais",
+      received_at: "2026-10-12 10:06:00",
+    });
+    assert.equal(other.optout, 0);
+    const raw =
+      await sql!`select count(*)::int as n from crm.provider_events where provider = 'pushfy'`;
+    assert.equal(raw[0]!["n"], 6); // the repeated DLR is not stored twice
   });
 });

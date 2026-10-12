@@ -151,7 +151,7 @@ export const HELP: HelpArticle[] = [
               "Funciona com o fluxo **salvo**, mesmo sem publicar ou pausado. Clientes reais não são afetados.",
               "**Pular as esperas** (recomendado) roda o fluxo inteiro na hora; em “Aguardar evento” segue o caminho de quando o evento não acontece.",
               "A regra “Quem pode entrar”, o horário de envio e o limite diário não valem no teste. O descadastro (opt-out) vale.",
-              "**SMS e RCS** saem de verdade pela Pushfy, mesmo antes de ligar o envio real (RCS com cartão ou carrossel vai como o SMS alternativo da mensagem). WhatsApp e e-mail ficam em simulação até o canal ser conectado.",
+              "**SMS e RCS** saem de verdade pela Pushfy, mesmo antes de ligar o envio real (RCS em cartão vai com imagem e um botão de link; carrossel vai como o primeiro cartão). WhatsApp e e-mail ficam em simulação até o canal ser conectado.",
               "O resultado aparece na aba **Testes**: cada contato e o que aconteceu com cada mensagem. Testes não entram nos números do fluxo.",
             ],
           },
@@ -238,7 +238,7 @@ export const HELP: HelpArticle[] = [
               "**E-mail em HTML próprio**: no editor, troque “Montar com blocos” por “HTML próprio” para colar o HTML de um editor de e-mail ou de uma agência, importar um arquivo .html ou gerar o HTML a partir dos blocos. As variáveis {{first_name}} funcionam; imagens precisam estar publicadas (https://); scripts, formulários e iframes não são aceitos; até 100 mil caracteres (o Gmail corta e-mails maiores). A versão em texto é gerada sozinha.",
               "**SMS**: comece com “Kakauma:”; evite acentos para caber em 1 parte; o medidor mostra partes e codificação.",
               "**WhatsApp**: categoria “Utilidade” para pagamento/entrega (mais barata), “Marketing” para ofertas; até 3 botões; *negrito* e _itálico_ funcionam.",
-              "**RCS**: escolha texto, cartão ou carrossel; até 4 sugestões; sempre escreva o SMS alternativo.",
+              "**RCS**: escolha texto, cartão ou carrossel; até 4 sugestões; sempre escreva o SMS alternativo. Na Pushfy o cartão leva um botão (o primeiro “Abrir link”).",
             ],
           },
         ],
@@ -246,7 +246,7 @@ export const HELP: HelpArticle[] = [
       {
         heading: "Envio de verdade",
         blocks: [
-          "**SMS e RCS** saem pela Pushfy quando ela está conectada e o envio real está ligado (veja em Operação → Canais de envio); RCS com cartão ou carrossel vai como o SMS alternativo até a Pushfy documentar o formato rico. Antes disso, e para WhatsApp e e-mail, os envios aparecem como **Simulação** (com o conteúdo final) no fluxo e no Cliente 360. Em cada SMS ou RCS salvo há **Enviar teste de verdade**, para conferir no seu celular. Falhas temporárias são tentadas de novo automaticamente; número inválido ou mensagem recusada não são repetidos.",
+          "**SMS e RCS** saem pela Pushfy quando ela está conectada e o envio real está ligado (veja em Operação → Canais de envio); RCS em cartão vai com imagem e o primeiro botão de link (sem botão de link, vai só o texto); carrossel vai como o primeiro cartão. Com o webhook da Pushfy cadastrado, o CRM mostra se cada mensagem foi entregue ou clicada. Antes disso, e para WhatsApp e e-mail, os envios aparecem como **Simulação** (com o conteúdo final) no fluxo e no Cliente 360. Em cada SMS ou RCS salvo há **Enviar teste de verdade**, para conferir no seu celular. Falhas temporárias são tentadas de novo automaticamente; número inválido ou mensagem recusada não são repetidos.",
         ],
       },
     ],

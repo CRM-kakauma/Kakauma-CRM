@@ -849,6 +849,13 @@ function RcsEditor({ c, set }: { c: RcsContent; set: (c: RcsContent) => void }) 
       )}
       <div className="space-y-2">
         <Label>Sugestões / botões ({sugg.length}/4)</Label>
+        {c.kind !== "text" && (
+          <p className="text-[11px] text-muted-foreground">
+            Pela Pushfy o cartão leva <strong>um</strong> botão: o primeiro do tipo “Abrir link”.
+            Sem botão de link o cartão vai só com o texto (sem a imagem). Carrossel vai como o
+            primeiro cartão.
+          </p>
+        )}
         {sugg.map((s, i) => (
           <div
             key={i}

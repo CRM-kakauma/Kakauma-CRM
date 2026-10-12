@@ -1,12 +1,16 @@
 /**
- * Pushfy (SMS / RCS) — only what the API reference documents
- * (https://portal.pushfy.com/docs/#/pt/api-reference):
+ * Pushfy (SMS / RCS) — only what the documentation describes
+ * (https://portal.pushfy.com/docs/#/pt/api-reference and #/pt/product-rcs):
  *
- *   POST /webapi       SMS   { messages: [{ destinations: [{ to }], from?, text, ext_id? }] } → { accepted, queued }
- *   POST /rcs          RCS   same envelope with `text` (rich cards: format not documented yet)
- *   GET  /optoutapi    opt-outs (date?, limit ≤ 1000, offset); 404 = empty list (plain text)
- *   GET  /balance      balances per channel
+ *   POST /webapi        SMS          { messages: [{ destinations: [{ to }], from?, text, ext_id? }] }
+ *   POST /apircsbasic   RCS Basic    same envelope, plain text
+ *   POST /apircs        RCS Single   same envelope; the card goes "flat" in text:
+ *                                    TITLE image-url BODY button-url BUTTON-TEXT (URLs are the separators)
+ *   GET  /optoutapi     opt-outs (date?, limit ≤ 1000, offset); 404 = empty list (plain text)
+ *   GET  /balance       balances per channel
  *
+ * Answers: SMS { accepted, queued }; RCS one item per accepted message [{ id, phone, date, ext_id }].
+ * Without the account's RCS API campaign the API answers rcs_campaign_not_found.
  * Auth: Authorization: Bearer <token>. Numbers in international format (5511999999999).
  */
 
@@ -56,24 +60,84 @@ async function call(c: PushfyConfig, method: "GET" | "POST", path: string, body?
   return { status: res.status, body: parsed };
 }
 
+export type PushfyKind = "sms" | "rcs_basic" | "rcs_single";
+const PATH: Record<PushfyKind, string> = {
+  sms: "/webapi",
+  rcs_basic: "/apircsbasic",
+  rcs_single: "/apircs",
+};
+
+/** What goes to Pushfy for a rendered message of a channel. */
+export interface PushfyPlan {
+  kind: PushfyKind;
+  text: string;
+  /** set when the message had to be adapted (shown in the CRM) */
+  sentAs?: "rcs_single_first_card" | "rcs_basic_no_button" | undefined;
+}
+
+const URL_RE = /https?:\/\/\S+/gi;
+/** Title / body must not contain URLs: in the flat format URLs are the separators. */
+const plain = (t: string | null | undefined) =>
+  (t ?? "")
+    .replace(URL_RE, "")
+    .replace(/[ \t]+/g, " ")
+    .trim();
+
+interface RenderedRcs {
+  kind?: string;
+  text?: string | null;
+  cards?: { title?: string; description?: string; media_url?: string | null }[];
+  suggestions?: { type?: string; text?: string; url?: string | null }[];
+}
+
+/**
+ * RCS text → Basic. Card → Single: "TITLE image BODY link BUTTON", the button being the first
+ * link suggestion (Single has one action). A carousel goes as its first card. Without a link
+ * button the image would be read as the button link, so the card goes as Basic text instead.
+ */
+export function pushfyPlan(channel: "sms" | "rcs", rendered: unknown): PushfyPlan {
+  const r = rendered as RenderedRcs & { text?: string | null };
+  if (channel === "sms") return { kind: "sms", text: r.text ?? "" };
+  if (r.kind === "text") return { kind: "rcs_basic", text: r.text ?? "" };
+  const card = r.cards?.[0] ?? {};
+  const title = plain(card.title);
+  const body = plain(card.description);
+  const cta = (r.suggestions ?? []).find((x) => x.type === "url" && x.url);
+  const sentAs = r.kind === "carousel" ? ("rcs_single_first_card" as const) : undefined;
+  if (!cta?.url) {
+    return {
+      kind: "rcs_basic",
+      text: [title, body].filter(Boolean).join("\n"),
+      sentAs: "rcs_basic_no_button",
+    };
+  }
+  const text = [title, card.media_url ?? "", body, cta.url, plain(cta.text) || "Abrir"]
+    .filter(Boolean)
+    .join(" ");
+  return { kind: "rcs_single", text, sentAs };
+}
+
 export async function pushfySend(
   c: PushfyConfig,
-  channel: "sms" | "rcs",
+  kind: PushfyKind,
   msg: { to: string; text: string; extId: string },
 ): Promise<PushfySendResult> {
   const message: Record<string, unknown> = {
     destinations: [{ to: msg.to }],
     text: msg.text,
-    ext_id: msg.extId, // idempotency / status lookup
+    ext_id: msg.extId, // idempotency / status lookup (DLR webhooks echo it)
   };
-  if (channel === "sms" && c.smsFrom) message["from"] = c.smsFrom;
+  if (kind === "sms" && c.smsFrom) message["from"] = c.smsFrom;
   try {
-    const r = await call(c, "POST", channel === "sms" ? "/webapi" : "/rcs", {
-      messages: [message],
-    });
+    const r = await call(c, "POST", PATH[kind], { messages: [message] });
     const b = (r.body ?? {}) as { accepted?: number };
     if (r.status >= 200 && r.status < 300) {
-      const accepted = typeof b.accepted === "number" ? b.accepted : 1;
+      // SMS: { accepted }; RCS: one item per accepted message
+      const accepted = Array.isArray(r.body)
+        ? r.body.length
+        : typeof b.accepted === "number"
+          ? b.accepted
+          : 1;
       return accepted > 0
         ? { ok: true, permanent: false, httpStatus: r.status, body: r.body }
         : {

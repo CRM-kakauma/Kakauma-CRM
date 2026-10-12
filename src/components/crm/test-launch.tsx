@@ -353,8 +353,8 @@ export function TestLaunchDialog({
           <ul className="space-y-1 rounded-lg bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
             <li>
               <strong className="text-foreground">SMS e RCS</strong> saem de verdade pela Pushfy
-              (mesmo antes de ligar o envio real). RCS com cartão ou carrossel vai como o SMS
-              alternativo da mensagem.
+              (mesmo antes de ligar o envio real). RCS em cartão vai com imagem e botão; carrossel
+              vai como o primeiro cartão.
             </li>
             <li>
               <strong className="text-foreground">WhatsApp e e-mail</strong> ficam em simulação até
@@ -464,6 +464,7 @@ export function TestRuns({
                         {m.error && !m.skip_reason && (
                           <span className="text-danger">{m.error}</span>
                         )}
+                        <ProviderStatus status={m.provider_status} sentAs={m.sent_as} />
                       </li>
                     ))}
                   </ul>
@@ -495,5 +496,44 @@ export interface TestRun {
     skip_reason: string | null;
     recipient: string | null;
     error: string | null;
+    provider_status?: string | null;
+    sent_as?: string | null;
   }[];
+}
+
+/** What the operator reported back (Pushfy webhooks). */
+export const PROVIDER_STATUS: Record<string, { label: string; tone: Tone }> = {
+  Sent: { label: "na operadora", tone: "muted" },
+  Delivered: { label: "entregue", tone: "success" },
+  Clicked: { label: "clicou", tone: "success" },
+  Undelivered: { label: "não entregue", tone: "danger" },
+  Rejected: { label: "recusada pela operadora", tone: "danger" },
+  Invalid: { label: "número inválido", tone: "danger" },
+  Blocked: { label: "bloqueada", tone: "danger" },
+  Expired: { label: "expirou", tone: "warning" },
+  "No credits": { label: "sem saldo na Pushfy", tone: "danger" },
+};
+export const SENT_AS: Record<string, string> = {
+  rcs_single_first_card: "carrossel enviado como 1º cartão",
+  rcs_basic_no_button: "cartão sem botão de link: foi como texto",
+  sms_fallback: "enviado como SMS alternativo",
+};
+
+export function ProviderStatus({
+  status,
+  sentAs,
+}: {
+  status?: string | null | undefined;
+  sentAs?: string | null | undefined;
+}) {
+  return (
+    <>
+      {status && (
+        <Pill tone={PROVIDER_STATUS[status]?.tone ?? "muted"} title="Retorno da operadora (Pushfy)">
+          {PROVIDER_STATUS[status]?.label ?? status}
+        </Pill>
+      )}
+      {sentAs && <span className="text-muted-foreground">{SENT_AS[sentAs] ?? sentAs}</span>}
+    </>
+  );
 }

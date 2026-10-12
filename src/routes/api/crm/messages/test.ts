@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 /**
  * Test send of one SMS / RCS template to a given number through Pushfy
- * (operator or admin). Works with PUSHFY_API_TOKEN even before PUSHFY_LIVE (an RCS card goes as its SMS alternative),
+ * (operator or admin). Works with PUSHFY_API_TOKEN even before PUSHFY_LIVE (RCS card with image via /apircs),
  * so the channel can be checked without messaging customers. Audited.
  * Body: { template_key, to, customer_id? } — customer_id fills the variables.
  */
@@ -13,7 +13,7 @@ export const Route = createFileRoute("/api/crm/messages/test")({
         const { getSession, json } = await import("@/server/crm/auth.server");
         const { crmRpc } = await import("@/server/crm/supabase.server");
         const { pushfyConfig } = await import("@/server/crm/pipeline.server");
-        const { pushfySend, toPushfyNumber } = await import("@/server/crm/pushfy");
+        const { pushfyPlan, pushfySend, toPushfyNumber } = await import("@/server/crm/pushfy");
         const { renderMessage, SAMPLE_CUSTOMER } = await import("@/lib/crm-messages");
         try {
           const session = await getSession(request);
@@ -69,17 +69,12 @@ export const Route = createFileRoute("/api/crm/messages/test")({
             const c = await crmRpc("crm_message_customer", { p_customer_id: body.customer_id });
             if (c.data) vars = c.data as Record<string, unknown>;
           }
-          const rendered = renderMessage(tpl.channel, tpl.content as never, vars) as {
-            kind?: string;
-            text?: string;
-            fallback_sms?: string;
-          };
-          // card / carousel: Pushfy's rich format is not documented yet → its SMS alternative
-          const asSms = tpl.channel === "rcs" && rendered.kind !== "text";
+          const rendered = renderMessage(tpl.channel, tpl.content as never, vars);
+          const plan = pushfyPlan(tpl.channel, rendered);
           const { randomUUID } = await import("node:crypto");
-          const sent = await pushfySend(cfg, asSms ? "sms" : tpl.channel, {
+          const sent = await pushfySend(cfg, plan.kind, {
             to,
-            text: (asSms ? rendered.fallback_sms : rendered.text) ?? "",
+            text: plan.text,
             extId: `teste-${randomUUID()}`,
           });
           await crmRpc("crm_log_test_message", {
@@ -92,7 +87,13 @@ export const Route = createFileRoute("/api/crm/messages/test")({
           });
           return json(
             sent.ok
-              ? { ok: true, to, response: sent.body, ...(asSms ? { sent_as: "sms_fallback" } : {}) }
+              ? {
+                  ok: true,
+                  to,
+                  response: sent.body,
+                  endpoint: plan.kind,
+                  ...(plan.sentAs ? { sent_as: plan.sentAs } : {}),
+                }
               : { ok: false, error: "send_failed", message: sent.error, response: sent.body },
             sent.ok ? 200 : 502,
             session.setCookies,

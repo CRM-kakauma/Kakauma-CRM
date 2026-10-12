@@ -39,6 +39,7 @@ import { Route as ApiCrmRpcRouteImport } from './routes/api/crm/rpc'
 import { Route as ApiCronCrmProcessRouteImport } from './routes/api/cron/crm-process'
 import { Route as ApiPublicEventsRouteImport } from './routes/api/public/events'
 import { Route as ApiWebhooksB4youRouteImport } from './routes/api/webhooks/b4you'
+import { Route as ApiWebhooksPushfyRouteImport } from './routes/api/webhooks/pushfy'
 import { Route as ApiCrmAdminImportLegacyRouteImport } from './routes/api/crm/admin/import-legacy'
 import { Route as ApiCrmAdminUsersRouteImport } from './routes/api/crm/admin/users'
 import { Route as ApiCrmAuthLoginRouteImport } from './routes/api/crm/auth/login'
@@ -198,6 +199,11 @@ const ApiWebhooksB4youRoute = ApiWebhooksB4youRouteImport.update({
   path: '/api/webhooks/b4you',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiWebhooksPushfyRoute = ApiWebhooksPushfyRouteImport.update({
+  id: '/api/webhooks/pushfy',
+  path: '/api/webhooks/pushfy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiCrmAdminImportLegacyRoute = ApiCrmAdminImportLegacyRouteImport.update({
   id: '/api/crm/admin/import-legacy',
   path: '/api/crm/admin/import-legacy',
@@ -270,6 +276,7 @@ export interface FileRoutesByFullPath {
   '/api/cron/crm-process': typeof ApiCronCrmProcessRoute
   '/api/public/events': typeof ApiPublicEventsRoute
   '/api/webhooks/b4you': typeof ApiWebhooksB4youRoute
+  '/api/webhooks/pushfy': typeof ApiWebhooksPushfyRoute
   '/api/crm/admin/import-legacy': typeof ApiCrmAdminImportLegacyRoute
   '/api/crm/admin/users': typeof ApiCrmAdminUsersRoute
   '/api/crm/auth/login': typeof ApiCrmAuthLoginRoute
@@ -310,6 +317,7 @@ export interface FileRoutesByTo {
   '/api/cron/crm-process': typeof ApiCronCrmProcessRoute
   '/api/public/events': typeof ApiPublicEventsRoute
   '/api/webhooks/b4you': typeof ApiWebhooksB4youRoute
+  '/api/webhooks/pushfy': typeof ApiWebhooksPushfyRoute
   '/api/crm/admin/import-legacy': typeof ApiCrmAdminImportLegacyRoute
   '/api/crm/admin/users': typeof ApiCrmAdminUsersRoute
   '/api/crm/auth/login': typeof ApiCrmAuthLoginRoute
@@ -351,6 +359,7 @@ export interface FileRoutesById {
   '/api/cron/crm-process': typeof ApiCronCrmProcessRoute
   '/api/public/events': typeof ApiPublicEventsRoute
   '/api/webhooks/b4you': typeof ApiWebhooksB4youRoute
+  '/api/webhooks/pushfy': typeof ApiWebhooksPushfyRoute
   '/api/crm/admin/import-legacy': typeof ApiCrmAdminImportLegacyRoute
   '/api/crm/admin/users': typeof ApiCrmAdminUsersRoute
   '/api/crm/auth/login': typeof ApiCrmAuthLoginRoute
@@ -393,6 +402,7 @@ export interface FileRouteTypes {
     | '/api/cron/crm-process'
     | '/api/public/events'
     | '/api/webhooks/b4you'
+    | '/api/webhooks/pushfy'
     | '/api/crm/admin/import-legacy'
     | '/api/crm/admin/users'
     | '/api/crm/auth/login'
@@ -433,6 +443,7 @@ export interface FileRouteTypes {
     | '/api/cron/crm-process'
     | '/api/public/events'
     | '/api/webhooks/b4you'
+    | '/api/webhooks/pushfy'
     | '/api/crm/admin/import-legacy'
     | '/api/crm/admin/users'
     | '/api/crm/auth/login'
@@ -473,6 +484,7 @@ export interface FileRouteTypes {
     | '/api/cron/crm-process'
     | '/api/public/events'
     | '/api/webhooks/b4you'
+    | '/api/webhooks/pushfy'
     | '/api/crm/admin/import-legacy'
     | '/api/crm/admin/users'
     | '/api/crm/auth/login'
@@ -514,6 +526,7 @@ export interface RootRouteChildren {
   ApiCronCrmProcessRoute: typeof ApiCronCrmProcessRoute
   ApiPublicEventsRoute: typeof ApiPublicEventsRoute
   ApiWebhooksB4youRoute: typeof ApiWebhooksB4youRoute
+  ApiWebhooksPushfyRoute: typeof ApiWebhooksPushfyRoute
   ApiCrmAdminImportLegacyRoute: typeof ApiCrmAdminImportLegacyRoute
   ApiCrmAdminUsersRoute: typeof ApiCrmAdminUsersRoute
   ApiCrmAuthLoginRoute: typeof ApiCrmAuthLoginRoute
@@ -736,6 +749,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiWebhooksB4youRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/webhooks/pushfy': {
+      id: '/api/webhooks/pushfy'
+      path: '/api/webhooks/pushfy'
+      fullPath: '/api/webhooks/pushfy'
+      preLoaderRoute: typeof ApiWebhooksPushfyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/crm/admin/import-legacy': {
       id: '/api/crm/admin/import-legacy'
       path: '/api/crm/admin/import-legacy'
@@ -826,6 +846,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCronCrmProcessRoute: ApiCronCrmProcessRoute,
   ApiPublicEventsRoute: ApiPublicEventsRoute,
   ApiWebhooksB4youRoute: ApiWebhooksB4youRoute,
+  ApiWebhooksPushfyRoute: ApiWebhooksPushfyRoute,
   ApiCrmAdminImportLegacyRoute: ApiCrmAdminImportLegacyRoute,
   ApiCrmAdminUsersRoute: ApiCrmAdminUsersRoute,
   ApiCrmAuthLoginRoute: ApiCrmAuthLoginRoute,

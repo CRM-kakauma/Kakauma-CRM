@@ -20,7 +20,7 @@ import { ApiErrorBox, Empty, Loading, Pill, RequireAuth } from "@/components/crm
 import { FlowCanvas, NODE_ICON, type NodeStats } from "@/components/crm/flow-canvas";
 import { FlowPanel, type FlowSettings, type TemplateLite } from "@/components/crm/flow-panel";
 import { Simulator } from "@/components/crm/simulators";
-import { TestLaunchDialog, TestRuns } from "@/components/crm/test-launch";
+import { ProviderStatus, TestLaunchDialog, TestRuns } from "@/components/crm/test-launch";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -862,7 +862,8 @@ export const SKIP_REASON: Record<string, string> = {
   no_contact_for_rcs: "sem telefone",
   template_missing: "mensagem não existe mais",
   invalid_phone: "telefone inválido",
-  rcs_rich_not_supported: "RCS com cartão sem SMS alternativo",
+  rcs_rich_not_supported: "RCS com cartão sem conteúdo",
+  empty_message: "mensagem vazia",
 };
 
 function SentMessages({ flowKey }: { flowKey: string }) {
@@ -912,6 +913,9 @@ function SentMessages({ flowKey }: { flowKey: string }) {
                     {SKIP_REASON[m.skip_reason] ?? m.skip_reason}
                   </span>
                 )}
+                <span className="ml-1.5 inline-flex flex-wrap items-center gap-1.5 text-xs">
+                  <ProviderStatus status={m.provider_status} sentAs={m.sent_as} />
+                </span>
               </TableCell>
               <TableCell className="max-w-md truncate text-xs text-muted-foreground">
                 {m.rendered?.subject ??

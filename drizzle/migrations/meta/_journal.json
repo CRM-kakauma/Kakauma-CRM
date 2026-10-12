@@ -148,6 +148,13 @@
       "when": 1791829272543,
       "tag": "0020_crm_email_html",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1791834515073,
+      "tag": "0021_crm_pushfy_webhooks",
+      "breakpoints": true
     }
   ]
 }

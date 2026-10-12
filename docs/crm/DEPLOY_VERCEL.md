@@ -111,8 +111,14 @@ vencendo, cliente sumido), avança os fluxos (esperas) e entrega mensagens.
    SMS e RCS de texto de verdade.
 
 Descadastros: quem responde PARAR/SAIR é bloqueado pela própria Pushfy e o worker traz essa lista para o CRM
-(botão "Sincronizar descadastros" em Operação traz tudo de uma vez). RCS com cartão/carrossel vai como o
-SMS alternativo da mensagem e WhatsApp continua em simulação, até a documentação desses formatos.
+(botão "Sincronizar descadastros" em Operação traz tudo de uma vez). RCS em cartão vai pelo RCS Single
+(`/apircs`, imagem + um botão de link), RCS de texto pelo Basic (`/apircsbasic`); carrossel vai como o primeiro
+cartão. WhatsApp continua em simulação até a documentação desse canal.
+
+Status de entrega e respostas: crie `PUSHFY_WEBHOOK_TOKEN` (senha aleatória) na Vercel e cadastre no painel da
+Pushfy a URL `https://kakauma-crm.vercel.app/api/webhooks/pushfy?token=VALOR`. Abrir essa URL no navegador
+mostra se o token está certo. Com ela, o CRM mostra "entregue", "clicou", "não entregue" etc. em cada mensagem,
+e respostas SAIR/PARAR viram descadastro na hora. Precisa da migração 0021.
 
 ## 7. Atualizações do banco
 

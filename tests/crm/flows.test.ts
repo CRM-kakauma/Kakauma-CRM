@@ -227,6 +227,42 @@ describe("CRM flows and messages", { skip: !sql && "CRM_TEST_DATABASE_URL not se
     assert.equal(m[0]!["n"], 2);
   });
 
+  test("abandoned checkout of one product only (e.g. the subscription)", async () => {
+    await call("crm_save_flow", {
+      p_key: "teste_abandono_assinatura",
+      p_name: "Abandono assinatura",
+      p_trigger_fact: "CHECKOUT_ABANDONED",
+      p_trigger_filter: { product_id: "prod_assinatura" },
+      p_graph: {
+        nodes: [
+          { id: "start", type: "trigger", config: {} },
+          { id: "sms", type: "send", config: { template_key: SMS } },
+        ],
+        edges: [{ source: "start", target: "sms", handle: "next" }],
+      },
+      p_goal_fact: "PURCHASE_PAID",
+    });
+    await call("crm_publish_flow", { p_key: "teste_abandono_assinatura" });
+    const abandon = (ext: string, product: string) =>
+      send(
+        b4("abandoned-cart", {
+          customer: person(ext),
+          updated_at: ago(0),
+          product: { id: product, name: product },
+          offer: { id: `off_${product}`, name: product },
+        }),
+      );
+    await abandon("AbSub", "prod_assinatura");
+    await abandon("AbOne", "prod_avulso");
+    const inFlow = await sql!`select c.external_customer_id as ext from crm.flow_enrollments e
+                               join crm.flows f using (flow_id) join crm.customers c using (customer_id)
+                              where f.key = 'teste_abandono_assinatura'`;
+    assert.deepEqual(
+      inFlow.map((r) => r["ext"]),
+      ["cus_AbSub"],
+    );
+  });
+
   test("wait for event: the event continues on its path, otherwise the timeout path", async () => {
     await call("crm_save_flow", {
       p_key: "teste_carrinho",

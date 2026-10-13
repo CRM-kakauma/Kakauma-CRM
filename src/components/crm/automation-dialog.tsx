@@ -106,6 +106,7 @@ export function TriggerFilter({
       ],
       "Método",
     );
+  if (fact === "CHECKOUT_ABANDONED") return <CheckoutFilter value={value} onChange={onChange} />;
   if (fact === "RISK_CHANGED") return pick("to", entries(RISK_LABEL), "Quando o risco passar a");
   if (fact === "LIFECYCLE_CHANGED")
     return pick("to", entries(LIFECYCLE_LABEL), "Quando a etapa passar a");
@@ -117,6 +118,68 @@ export function TriggerFilter({
     );
   }
   return null;
+}
+
+/**
+ * Abandoned checkout of one product or offer (e.g. only the subscription). The fact
+ * carries product_id / offer_id from the B4you event, so the flow matches on them.
+ */
+function CheckoutFilter({
+  value,
+  onChange,
+}: {
+  value: Record<string, unknown>;
+  onChange: (v: Record<string, unknown>) => void;
+}) {
+  const { data: items = [] } = useCrm<
+    {
+      product_id: string;
+      offer_id: string | null;
+      name: string | null;
+      product_name: string | null;
+    }[]
+  >("crm_list_product_costs");
+  const current =
+    typeof value["offer_id"] === "string"
+      ? `offer:${value["offer_id"]}`
+      : typeof value["product_id"] === "string"
+        ? `product:${value["product_id"]}`
+        : "any";
+  return (
+    <div className="grid gap-1.5">
+      <Label>Produto ou oferta abandonada</Label>
+      <Select
+        value={current}
+        onValueChange={(v) => {
+          if (v === "any") return onChange({});
+          const [kind, id] = [v.slice(0, v.indexOf(":")), v.slice(v.indexOf(":") + 1)];
+          onChange(kind === "offer" ? { offer_id: id } : { product_id: id });
+        }}
+      >
+        <SelectTrigger>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="any">qualquer produto</SelectItem>
+          {items.map((i) =>
+            i.offer_id ? (
+              <SelectItem key={`o${i.offer_id}`} value={`offer:${i.offer_id}`}>
+                ↳ oferta: {i.name ?? i.offer_id} ({i.product_name ?? i.product_id})
+              </SelectItem>
+            ) : (
+              <SelectItem key={`p${i.product_id}`} value={`product:${i.product_id}`}>
+                {i.name ?? i.product_id} (todas as ofertas)
+              </SelectItem>
+            ),
+          )}
+        </SelectContent>
+      </Select>
+      <p className="text-[11px] text-muted-foreground">
+        Para abandono só de assinatura, escolha o produto (ou a oferta) da assinatura. A lista vem
+        dos produtos que já apareceram nos webhooks da B4you.
+      </p>
+    </div>
+  );
 }
 
 export function AutomationDialog({

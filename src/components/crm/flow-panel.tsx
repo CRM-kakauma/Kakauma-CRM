@@ -111,7 +111,7 @@ export function FlowPanel({
   const set = (patch: Record<string, unknown>) => onConfig({ ...c, ...patch });
 
   return (
-    <aside className="surface flex max-h-[calc(100vh-200px)] flex-col overflow-hidden">
+    <aside className="surface flex max-h-[calc(100vh-6rem)] flex-col overflow-hidden">
       <div className="flex items-start justify-between gap-2 border-b border-border p-4">
         <div className="flex items-center gap-2.5">
           <span className={cn("flex size-8 items-center justify-center rounded-lg", meta.tone)}>
@@ -133,159 +133,165 @@ export function FlowPanel({
         </Button>
       </div>
 
-      <fieldset disabled={readOnly} className="min-w-0 flex-1 space-y-4 overflow-y-auto p-4">
-        <div className="rounded-lg bg-muted/60 p-3 text-xs leading-relaxed">
-          <p className="flex gap-1.5">
-            <Info className="mt-0.5 size-3.5 shrink-0 text-primary" />
-            <span>
-              {meta.what} <span className="text-muted-foreground">{meta.when}</span>
-            </span>
-          </p>
-        </div>
+      {/* the panel has a max height; this area scrolls (min-h-0 lets it shrink inside the column) */}
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        <fieldset disabled={readOnly} className="min-w-0 space-y-4 p-4">
+          <div className="rounded-lg bg-muted/60 p-3 text-xs leading-relaxed">
+            <p className="flex gap-1.5">
+              <Info className="mt-0.5 size-3.5 shrink-0 text-primary" />
+              <span>
+                {meta.what} <span className="text-muted-foreground">{meta.when}</span>
+              </span>
+            </p>
+          </div>
 
-        {node.type === "trigger" && (
-          <>
-            <Row title="Gatilho" hint="O fato que coloca o cliente neste fluxo.">
-              <FactSelect
-                value={settings.trigger_fact}
-                onChange={(v) => v && onSettings({ trigger_fact: v, trigger_filter: {} })}
+          {node.type === "trigger" && (
+            <>
+              <Row title="Gatilho" hint="O fato que coloca o cliente neste fluxo.">
+                <FactSelect
+                  value={settings.trigger_fact}
+                  onChange={(v) => v && onSettings({ trigger_fact: v, trigger_filter: {} })}
+                />
+              </Row>
+              <TriggerFilter
+                fact={settings.trigger_fact}
+                value={settings.trigger_filter}
+                onChange={(v) => onSettings({ trigger_filter: v })}
               />
-            </Row>
-            <TriggerFilter
-              fact={settings.trigger_fact}
-              value={settings.trigger_filter}
-              onChange={(v) => onSettings({ trigger_filter: v })}
-            />
+              <Row
+                title="Quem pode entrar"
+                hint="Conferido no estado do cliente quando ele entra. Vazio = todos."
+              >
+                <RuleBuilder
+                  value={settings.entry_rule}
+                  onChange={(r) => onSettings({ entry_rule: r })}
+                  emptyMeans="todo cliente que tiver o fato"
+                />
+              </Row>
+              <Row
+                title="Meta (conversão)"
+                hint="Quando o cliente fizer isto, sai do fluxo como “meta atingida” — mede a conversão e para os próximos envios."
+              >
+                <FactSelect
+                  value={settings.goal_fact}
+                  onChange={(v) => onSettings({ goal_fact: v })}
+                  none="Sem meta"
+                />
+              </Row>
+              <Row title="Pode entrar de novo?">
+                <Select
+                  value={settings.reentry}
+                  onValueChange={(v) => onSettings({ reentry: v as FlowSettings["reentry"] })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="after_exit">Sim, depois de terminar o anterior</SelectItem>
+                    <SelectItem value="once">Não, só uma vez na vida</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Row>
+              <Row
+                title="Ignorar fatos mais antigos que (horas)"
+                hint="Evita que importações de histórico disparem mensagens."
+              >
+                <Input
+                  type="number"
+                  min={1}
+                  value={settings.max_trigger_age_hours}
+                  onChange={(e) =>
+                    onSettings({ max_trigger_age_hours: Math.max(1, Number(e.target.value) || 1) })
+                  }
+                />
+              </Row>
+            </>
+          )}
+
+          {node.type === "send" && <SendConfig c={c} set={set} templates={templates} />}
+
+          {node.type === "wait" && (
+            <div className="grid grid-cols-2 gap-2">
+              <Row title="Quanto tempo">
+                <Input
+                  type="number"
+                  min={1}
+                  value={Number(c["amount"] ?? 1)}
+                  onChange={(e) => set({ amount: Math.max(1, Number(e.target.value) || 1) })}
+                />
+              </Row>
+              <Row title="Unidade">
+                <Select value={String(c["unit"] ?? "days")} onValueChange={(v) => set({ unit: v })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="minutes">minutos</SelectItem>
+                    <SelectItem value="hours">horas</SelectItem>
+                    <SelectItem value="days">dias</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Row>
+            </div>
+          )}
+
+          {node.type === "wait_event" && (
+            <>
+              <Row title="Esperar que o cliente…">
+                <FactSelect
+                  value={String(c["fact"] ?? "")}
+                  onChange={(v) => v && set({ fact: v })}
+                />
+              </Row>
+              <Row
+                title="Prazo (horas)"
+                hint={`${Math.round((Number(c["timeout_hours"] ?? 0) / 24) * 10) / 10} dia(s). Depois disso segue por “Não aconteceu”.`}
+              >
+                <Input
+                  type="number"
+                  min={1}
+                  max={2160}
+                  value={Number(c["timeout_hours"] ?? 48)}
+                  onChange={(e) =>
+                    set({ timeout_hours: Math.min(2160, Math.max(1, Number(e.target.value) || 1)) })
+                  }
+                />
+              </Row>
+            </>
+          )}
+
+          {node.type === "condition" && (
             <Row
-              title="Quem pode entrar"
-              hint="Conferido no estado do cliente quando ele entra. Vazio = todos."
+              title="Regra"
+              hint="Avaliada no momento em que o cliente chega aqui. Atende → “Sim”; não atende → “Não”."
             >
               <RuleBuilder
-                value={settings.entry_rule}
-                onChange={(r) => onSettings({ entry_rule: r })}
-                emptyMeans="todo cliente que tiver o fato"
+                key={node.id}
+                value={(c["rule"] as Rule) ?? {}}
+                onChange={(r) => set({ rule: r })}
+                emptyMeans="ninguém (defina a regra)"
               />
             </Row>
+          )}
+
+          {node.type === "split" && <SplitConfig c={c} set={set} />}
+
+          {node.type === "alert_team" && (
             <Row
-              title="Meta (conversão)"
-              hint="Quando o cliente fizer isto, sai do fluxo como “meta atingida” — mede a conversão e para os próximos envios."
+              title="Mensagem para a equipe"
+              hint={`Variáveis: ${VARIABLES.slice(0, 6)
+                .map((v) => `{{${v.key}}}`)
+                .join(" ")}`}
             >
-              <FactSelect
-                value={settings.goal_fact}
-                onChange={(v) => onSettings({ goal_fact: v })}
-                none="Sem meta"
+              <Textarea
+                rows={4}
+                value={String(c["message"] ?? "")}
+                onChange={(e) => set({ message: e.target.value })}
               />
             </Row>
-            <Row title="Pode entrar de novo?">
-              <Select
-                value={settings.reentry}
-                onValueChange={(v) => onSettings({ reentry: v as FlowSettings["reentry"] })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="after_exit">Sim, depois de terminar o anterior</SelectItem>
-                  <SelectItem value="once">Não, só uma vez na vida</SelectItem>
-                </SelectContent>
-              </Select>
-            </Row>
-            <Row
-              title="Ignorar fatos mais antigos que (horas)"
-              hint="Evita que importações de histórico disparem mensagens."
-            >
-              <Input
-                type="number"
-                min={1}
-                value={settings.max_trigger_age_hours}
-                onChange={(e) =>
-                  onSettings({ max_trigger_age_hours: Math.max(1, Number(e.target.value) || 1) })
-                }
-              />
-            </Row>
-          </>
-        )}
-
-        {node.type === "send" && <SendConfig c={c} set={set} templates={templates} />}
-
-        {node.type === "wait" && (
-          <div className="grid grid-cols-2 gap-2">
-            <Row title="Quanto tempo">
-              <Input
-                type="number"
-                min={1}
-                value={Number(c["amount"] ?? 1)}
-                onChange={(e) => set({ amount: Math.max(1, Number(e.target.value) || 1) })}
-              />
-            </Row>
-            <Row title="Unidade">
-              <Select value={String(c["unit"] ?? "days")} onValueChange={(v) => set({ unit: v })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="minutes">minutos</SelectItem>
-                  <SelectItem value="hours">horas</SelectItem>
-                  <SelectItem value="days">dias</SelectItem>
-                </SelectContent>
-              </Select>
-            </Row>
-          </div>
-        )}
-
-        {node.type === "wait_event" && (
-          <>
-            <Row title="Esperar que o cliente…">
-              <FactSelect value={String(c["fact"] ?? "")} onChange={(v) => v && set({ fact: v })} />
-            </Row>
-            <Row
-              title="Prazo (horas)"
-              hint={`${Math.round((Number(c["timeout_hours"] ?? 0) / 24) * 10) / 10} dia(s). Depois disso segue por “Não aconteceu”.`}
-            >
-              <Input
-                type="number"
-                min={1}
-                max={2160}
-                value={Number(c["timeout_hours"] ?? 48)}
-                onChange={(e) =>
-                  set({ timeout_hours: Math.min(2160, Math.max(1, Number(e.target.value) || 1)) })
-                }
-              />
-            </Row>
-          </>
-        )}
-
-        {node.type === "condition" && (
-          <Row
-            title="Regra"
-            hint="Avaliada no momento em que o cliente chega aqui. Atende → “Sim”; não atende → “Não”."
-          >
-            <RuleBuilder
-              key={node.id}
-              value={(c["rule"] as Rule) ?? {}}
-              onChange={(r) => set({ rule: r })}
-              emptyMeans="ninguém (defina a regra)"
-            />
-          </Row>
-        )}
-
-        {node.type === "split" && <SplitConfig c={c} set={set} />}
-
-        {node.type === "alert_team" && (
-          <Row
-            title="Mensagem para a equipe"
-            hint={`Variáveis: ${VARIABLES.slice(0, 6)
-              .map((v) => `{{${v.key}}}`)
-              .join(" ")}`}
-          >
-            <Textarea
-              rows={4}
-              value={String(c["message"] ?? "")}
-              onChange={(e) => set({ message: e.target.value })}
-            />
-          </Row>
-        )}
-      </fieldset>
+          )}
+        </fieldset>
+      </div>
 
       {node.type !== "trigger" && !readOnly && (
         <div className="border-t border-border p-3">

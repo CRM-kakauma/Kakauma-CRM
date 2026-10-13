@@ -444,7 +444,7 @@ function Builder({ me, initial, isNew }: { me: Me; initial: FlowDoc; isNew: bool
                 </div>
               )}
             </div>
-            <div className="xl:sticky xl:top-4 xl:self-start">
+            <div className="xl:sticky xl:top-20 xl:self-start">
               {simOpen ? (
                 <SimulationPanel
                   graph={graph}
@@ -636,7 +636,7 @@ function SimulationPanel({
           : `após ${waitText(m, "minutes")}`;
 
   return (
-    <aside className="surface flex max-h-[calc(100vh-200px)] flex-col overflow-hidden">
+    <aside className="surface flex max-h-[calc(100vh-6rem)] flex-col overflow-hidden">
       <div className="flex items-start justify-between border-b border-border p-4">
         <div>
           <p className="flex items-center gap-2 font-semibold">
@@ -656,7 +656,7 @@ function SimulationPanel({
           <X className="size-4" />
         </Button>
       </div>
-      <div className="flex-1 space-y-3 overflow-y-auto p-4">
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain p-4">
         {customer ? (
           <div className="flex items-center justify-between rounded-lg bg-muted/60 px-3 py-2 text-sm">
             <span className="font-medium">{customer.name}</span>

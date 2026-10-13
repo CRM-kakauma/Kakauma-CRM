@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import {
   Archive,
   ArrowLeft,
+  Copy,
   CircleAlert,
   CircleCheck,
   FlaskConical,
@@ -40,6 +41,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FACT_LABEL, crmCall, label, useCrm, type Me } from "@/lib/crm-api";
+import { duplicateFlow } from "@/lib/crm-flow-copy";
 import {
   EMPTY_GRAPH,
   NODE_META,
@@ -314,7 +316,7 @@ function Builder({ me, initial, isNew }: { me: Me; initial: FlowDoc; isNew: bool
               >
                 <Rocket className="size-4" /> {initial.version ? "Publicar alterações" : "Publicar"}
               </Button>
-              {!isNew && initial.version > 0 && (
+              {!isNew && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon" aria-label="Mais ações">
@@ -322,7 +324,30 @@ function Builder({ me, initial, isNew }: { me: Me; initial: FlowDoc; isNew: bool
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    {initial.status === "ACTIVE" ? (
+                    <DropdownMenuItem
+                      onSelect={() => {
+                        if (
+                          dirty &&
+                          !confirm(
+                            "Há alterações não salvas: a cópia leva o fluxo como está salvo. Continuar?",
+                          )
+                        )
+                          return;
+                        duplicateFlow(initial.key)
+                          .then((key) => {
+                            toast.success("Fluxo duplicado", {
+                              description:
+                                "A cópia é um rascunho: ajuste e publique quando quiser.",
+                            });
+                            void qc.invalidateQueries({ queryKey: ["crm"] });
+                            void navigate({ to: "/flows/$key", params: { key } });
+                          })
+                          .catch((e: Error) => toast.error(e.message));
+                      }}
+                    >
+                      <Copy className="size-4" /> Duplicar
+                    </DropdownMenuItem>
+                    {initial.version === 0 ? null : initial.status === "ACTIVE" ? (
                       <DropdownMenuItem onSelect={() => status.mutate("PAUSED")}>
                         <Pause className="size-4" /> Pausar (ninguém avança nem entra)
                       </DropdownMenuItem>

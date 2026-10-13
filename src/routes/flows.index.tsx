@@ -1,9 +1,13 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { Plus, Workflow } from "lucide-react";
+import { useState } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { Copy, Plus, Workflow } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { ApiErrorBox, Empty, Loading, Pill, RequireAuth } from "@/components/crm/ui";
 import { Button } from "@/components/ui/button";
 import { FACT_LABEL, label, useCrm, type Me } from "@/lib/crm-api";
+import { duplicateFlow } from "@/lib/crm-flow-copy";
 import { count, date, pct } from "@/lib/crm-format";
 
 export const Route = createFileRoute("/flows/")({
@@ -44,6 +48,22 @@ function Flows({ me }: { me: Me }) {
     {},
     { refetchInterval: 30_000 },
   );
+  const qc = useQueryClient();
+  const navigate = useNavigate();
+  const [copying, setCopying] = useState<string | null>(null);
+  const duplicate = (key: string) => {
+    setCopying(key);
+    duplicateFlow(key)
+      .then((k) => {
+        toast.success("Fluxo duplicado", {
+          description: "A cópia é um rascunho: ajuste e publique quando quiser.",
+        });
+        void qc.invalidateQueries({ queryKey: ["crm"] });
+        void navigate({ to: "/flows/$key", params: { key: k } });
+      })
+      .catch((e: Error) => toast.error(e.message))
+      .finally(() => setCopying(null));
+  };
   return (
     <>
       <PageHeader
@@ -105,12 +125,30 @@ function Flows({ me }: { me: Me }) {
                   />
                   <Mini label="mensagens (30d)" v={count(f.messages_30d)} />
                 </div>
-                <p className="mt-2 text-[11px] text-muted-foreground">
-                  {f.version
-                    ? `versão ${f.version} publicada ${date(f.published_at)}`
-                    : "nunca publicado"}{" "}
-                  · editado {date(f.updated_at)}
-                </p>
+                <div className="mt-2 flex items-center justify-between gap-2">
+                  <p className="text-[11px] text-muted-foreground">
+                    {f.version
+                      ? `versão ${f.version} publicada ${date(f.published_at)}`
+                      : "nunca publicado"}{" "}
+                    · editado {date(f.updated_at)}
+                  </p>
+                  {me.role !== "viewer" && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 shrink-0 text-xs"
+                      disabled={copying !== null}
+                      onClick={(e) => {
+                        // the card is a link: duplicate without opening the flow
+                        e.preventDefault();
+                        e.stopPropagation();
+                        duplicate(f.key);
+                      }}
+                    >
+                      <Copy className="size-3.5" /> {copying === f.key ? "Duplicando…" : "Duplicar"}
+                    </Button>
+                  )}
+                </div>
               </Link>
             );
           })}

@@ -155,6 +155,13 @@
       "when": 1791834515073,
       "tag": "0021_crm_pushfy_webhooks",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1791915288147,
+      "tag": "0022_crm_role_x1",
+      "breakpoints": true
     }
   ]
 }

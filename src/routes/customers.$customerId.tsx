@@ -36,6 +36,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  canOperate,
   FACT_LABEL,
   RUN_STATUS_LABEL,
   SKIP_LABEL,
@@ -461,7 +462,7 @@ function Customer360({ me }: { me: Me }) {
             <Optouts
               customerId={id["customer_id"]}
               optouts={crm["optouts"] ?? []}
-              canEdit={me.role !== "viewer"}
+              canEdit={canOperate(me)}
             />
             {!(crm["messages"] ?? []).length ? (
               <Empty>Nenhuma mensagem de fluxo.</Empty>

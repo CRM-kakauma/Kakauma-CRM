@@ -1,5 +1,5 @@
 import { useEffect, type ReactNode } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { AlertCircle, CheckCircle2, CircleDashed, ShieldAlert } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -11,6 +11,7 @@ import {
   useMe,
   type CrmApiError,
   type Me,
+  x1Allowed,
 } from "@/lib/crm-api";
 
 // ------------------------------------------------------------------ layout pieces
@@ -170,10 +171,14 @@ export function Empty({ children }: { children: ReactNode }) {
 export function RequireAuth({ children }: { children: (me: Me) => ReactNode }) {
   const { data: me, isLoading, error } = useMe();
   const navigate = useNavigate();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  // X1 (attendance) only opens Clientes and Recuperação; the server refuses the rest anyway
+  const blocked = me?.role === "x1" && !x1Allowed(pathname);
   useEffect(() => {
     if (!isLoading && me === null) void navigate({ to: "/login" });
-  }, [isLoading, me, navigate]);
+    else if (blocked) void navigate({ to: "/customers", replace: true });
+  }, [isLoading, me, blocked, navigate]);
   if (error) return <ApiErrorBox error={error} />;
-  if (isLoading || !me) return <Loading rows={4} />;
+  if (isLoading || !me || blocked) return <Loading rows={4} />;
   return <>{children(me)}</>;
 }

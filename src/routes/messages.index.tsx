@@ -6,7 +6,7 @@ import { ApiErrorBox, Empty, Loading, Pill, RequireAuth } from "@/components/crm
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useCrm, type Me } from "@/lib/crm-api";
+import { canOperate, useCrm, type Me } from "@/lib/crm-api";
 import {
   CHANNEL_LABEL,
   summary,
@@ -55,7 +55,7 @@ function Messages({ me }: { me: Me }) {
   const { data, isLoading, error } = useCrm<TemplateRow[]>("crm_list_templates", {
     p_channel: tab === "all" ? null : tab,
   });
-  const canEdit = me.role !== "viewer";
+  const canEdit = canOperate(me);
   const rows = (data ?? []).filter(
     (t) =>
       !q || `${t.name} ${t.key} ${t.description ?? ""}`.toLowerCase().includes(q.toLowerCase()),

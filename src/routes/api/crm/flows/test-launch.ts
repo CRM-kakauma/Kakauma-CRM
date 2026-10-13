@@ -10,13 +10,13 @@ export const Route = createFileRoute("/api/crm/flows/test-launch")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const { getSession, json } = await import("@/server/crm/auth.server");
+        const { atLeast, getSession, json } = await import("@/server/crm/auth.server");
         const { crmRpc } = await import("@/server/crm/supabase.server");
         const { runFlows } = await import("@/server/crm/pipeline.server");
         try {
           const session = await getSession(request);
           if (!session) return json({ error: "unauthenticated" }, 401);
-          if (session.role === "viewer")
+          if (!atLeast(session.role, "operator"))
             return json({ error: "forbidden" }, 403, session.setCookies);
           const body = (await request.json().catch(() => ({}))) as {
             key?: unknown;

@@ -23,7 +23,7 @@ import {
   Workflow,
   Wrench,
 } from "lucide-react";
-import { useMe } from "@/lib/crm-api";
+import { useMe, x1Allowed } from "@/lib/crm-api";
 import { LEGACY_ENABLED } from "@/lib/legacy";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -105,9 +105,11 @@ function NavList({ onNavigate }: { onNavigate?: (() => void) | undefined }) {
   return (
     <nav className="flex flex-1 flex-col gap-1 overflow-y-auto">
       <p className="label-eyebrow px-3 pb-1">CRM</p>
-      {NAV_CRM.map((n) => item(n.to, n.label, n.icon))}
+      {NAV_CRM.filter((n) => me?.role !== "x1" || x1Allowed(n.to)).map((n) =>
+        item(n.to, n.label, n.icon),
+      )}
       {me?.role === "admin" && item("/admin", "Administração", ShieldCheck)}
-      {LEGACY_ENABLED && (
+      {LEGACY_ENABLED && me?.role !== "x1" && (
         <>
           <p className="label-eyebrow mt-4 px-3 pb-1">Analytics (legado)</p>
           {NAV.map((n) => item(n.to, n.label, n.icon))}
@@ -116,9 +118,9 @@ function NavList({ onNavigate }: { onNavigate?: (() => void) | undefined }) {
         </>
       )}
       <div className="my-3 h-px bg-border" />
-      {NAV_FOOTER.filter((n) => LEGACY_ENABLED || n.to !== "/settings").map((n) =>
-        item(n.to, n.label, n.icon),
-      )}
+      {NAV_FOOTER.filter(
+        (n) => (LEGACY_ENABLED || n.to !== "/settings") && (me?.role !== "x1" || x1Allowed(n.to)),
+      ).map((n) => item(n.to, n.label, n.icon))}
     </nav>
   );
 }
@@ -171,7 +173,9 @@ function UserBox() {
                 ? "Administrador"
                 : me.role === "operator"
                   ? "Operador"
-                  : "Leitura"}
+                  : me.role === "x1"
+                    ? "X1 · atendimento"
+                    : "Leitura"}
         </p>
       </div>
       {me.login !== false && (

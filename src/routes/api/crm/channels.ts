@@ -14,6 +14,7 @@ export const Route = createFileRoute("/api/crm/channels")({
         const { pushfyBalance } = await import("@/server/crm/pushfy");
         const session = await getSession(request);
         if (!session) return json({ error: "unauthenticated" }, 401);
+        if (session.role === "x1") return json({ error: "forbidden" }, 403, session.setCookies);
         const cfg = pushfyConfig();
         let balance: unknown = null;
         let balanceError: string | null = null;

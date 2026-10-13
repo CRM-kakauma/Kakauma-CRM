@@ -6,7 +6,7 @@ import { Copy, Plus, Workflow } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { ApiErrorBox, Empty, Loading, Pill, RequireAuth } from "@/components/crm/ui";
 import { Button } from "@/components/ui/button";
-import { FACT_LABEL, label, useCrm, type Me } from "@/lib/crm-api";
+import { canOperate, FACT_LABEL, label, useCrm, type Me } from "@/lib/crm-api";
 import { duplicateFlow } from "@/lib/crm-flow-copy";
 import { count, date, pct } from "@/lib/crm-format";
 
@@ -71,7 +71,7 @@ function Flows({ me }: { me: Me }) {
         description="Jornadas com várias etapas: um fato coloca o cliente no fluxo, que envia mensagens, espera, verifica condições e testa variações até a meta."
         help="fluxos"
       >
-        {me.role !== "viewer" && (
+        {canOperate(me) && (
           <Button asChild>
             <Link to="/flows/$key" params={{ key: "new" }}>
               <Plus className="size-4" /> Novo fluxo
@@ -132,7 +132,7 @@ function Flows({ me }: { me: Me }) {
                       : "nunca publicado"}{" "}
                     · editado {date(f.updated_at)}
                   </p>
-                  {me.role !== "viewer" && (
+                  {canOperate(me) && (
                     <Button
                       size="sm"
                       variant="ghost"

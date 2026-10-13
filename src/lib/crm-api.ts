@@ -49,7 +49,7 @@ export function useCrm<T = unknown>(
 
 export interface Me {
   email: string;
-  role: "admin" | "operator" | "viewer";
+  role: "admin" | "operator" | "viewer" | "x1";
   /** false when running locally without login */
   login?: boolean;
   /** true when running on the in-memory database with fictitious data */
@@ -171,3 +171,11 @@ export const SKIP_LABEL: Record<string, string> = {
 
 export const label = (map: Record<string, string>, key: string | null | undefined) =>
   key ? (map[key] ?? key) : "—";
+
+/** Can change things (segments, flows, messages…): operator or admin. */
+export const canOperate = (me: { role: string }) => me.role === "operator" || me.role === "admin";
+
+/** Screens an X1 (attendance) user may open; everything else sends them to Clientes. */
+export const X1_PATHS = ["/customers", "/recovery", "/help"];
+export const x1Allowed = (pathname: string) =>
+  X1_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));

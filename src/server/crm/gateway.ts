@@ -63,7 +63,18 @@ export const RPC_PERMISSIONS: Record<string, { role: Role; actor?: true }> = {
   crm_anonymize_customer: { role: "admin", actor: true },
 };
 
-const RANK: Record<Role, number> = { viewer: 1, operator: 2, admin: 3 };
+const RANK: Record<Role, number> = { x1: 0, viewer: 1, operator: 2, admin: 3 };
+
+/**
+ * The X1 level (attendance) reaches only what the Clientes and Recuperação screens read:
+ * customer list / board / 360 and the recovery queue. Nothing else, no changes.
+ */
+export const X1_FUNCTIONS = new Set([
+  "crm_search_customers",
+  "crm_customer_board",
+  "crm_customer_360",
+  "crm_recovery_queue",
+]);
 
 export function authorizeRpc(
   fn: unknown,
@@ -76,7 +87,8 @@ export function authorizeRpc(
     return { ok: false, status: 404, error: "unknown_function" };
   }
   const rule = RPC_PERMISSIONS[fn]!;
-  if (RANK[session.role] < RANK[rule.role]) return { ok: false, status: 403, error: "forbidden" };
+  if (session.role === "x1" ? !X1_FUNCTIONS.has(fn) : RANK[session.role] < RANK[rule.role])
+    return { ok: false, status: 403, error: "forbidden" };
   if (args !== undefined && (args === null || typeof args !== "object" || Array.isArray(args))) {
     return { ok: false, status: 400, error: "invalid_args" };
   }

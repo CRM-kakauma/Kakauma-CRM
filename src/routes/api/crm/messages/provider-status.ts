@@ -14,6 +14,7 @@ export const Route = createFileRoute("/api/crm/messages/provider-status")({
         try {
           const session = await getSession(request);
           if (!session) return json({ error: "unauthenticated" }, 401);
+          if (session.role === "x1") return json({ error: "forbidden" }, 403, session.setCookies);
           const id = new URL(request.url).searchParams.get("id") ?? "";
           if (!/^[0-9a-f-]{36}$/i.test(id))
             return json({ error: "invalid_request" }, 400, session.setCookies);

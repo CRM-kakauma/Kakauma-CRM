@@ -11,7 +11,7 @@ export const Route = createFileRoute("/api/crm/messages/test")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const { getSession, json } = await import("@/server/crm/auth.server");
+        const { atLeast, getSession, json } = await import("@/server/crm/auth.server");
         const { crmRpc } = await import("@/server/crm/supabase.server");
         const { pushfyConfig, resendConfig } = await import("@/server/crm/pipeline.server");
         const { isEmail, resendSend } = await import("@/server/crm/resend");
@@ -20,7 +20,7 @@ export const Route = createFileRoute("/api/crm/messages/test")({
         try {
           const session = await getSession(request);
           if (!session) return json({ error: "unauthenticated" }, 401);
-          if (session.role === "viewer")
+          if (!atLeast(session.role, "operator"))
             return json({ error: "forbidden" }, 403, session.setCookies);
           const fail = (status: number, error: string, message: string) =>
             json({ error, message }, status, session.setCookies);

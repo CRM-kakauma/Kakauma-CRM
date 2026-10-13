@@ -205,3 +205,25 @@ test("gateway: operator edits segments/automations but not settings or users", (
   assert.equal(authorizeRpc("crm_claim_messages", {}, op).ok, false);
   assert.equal(authorizeRpc("crm_list_audit", {}, op).ok, false);
 });
+
+test("gateway: X1 reaches only Clientes and Recuperação, read-only", () => {
+  const x1 = { role: "x1" as const, email: "x@x.com" };
+  for (const fn of [
+    "crm_search_customers",
+    "crm_customer_board",
+    "crm_customer_360",
+    "crm_recovery_queue",
+  ])
+    assert.equal(authorizeRpc(fn, {}, x1).ok, true, fn);
+  for (const fn of [
+    "crm_dashboard",
+    "crm_list_segments",
+    "crm_list_flows",
+    "crm_list_messages",
+    "crm_set_optout",
+    "crm_upsert_segment",
+    "crm_list_app_users",
+    "crm_anonymize_customer",
+  ])
+    assert.deepEqual(authorizeRpc(fn, {}, x1), { ok: false, status: 403, error: "forbidden" }, fn);
+});

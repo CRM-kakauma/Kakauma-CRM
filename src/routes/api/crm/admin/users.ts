@@ -31,7 +31,10 @@ export const Route = createFileRoute("/api/crm/admin/users")({
           const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
           const password = typeof body.password === "string" ? body.password : "";
           const role =
-            body.role === "admin" || body.role === "operator" || body.role === "viewer"
+            body.role === "admin" ||
+            body.role === "operator" ||
+            body.role === "viewer" ||
+            body.role === "x1"
               ? body.role
               : null;
           if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || password.length < 10 || !role) {

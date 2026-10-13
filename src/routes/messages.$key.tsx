@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { crmCall, useCrm, type Me } from "@/lib/crm-api";
+import { canOperate, crmCall, useCrm, type Me } from "@/lib/crm-api";
 import {
   CHANNEL_LABEL,
   SAMPLE_CUSTOMER,
@@ -89,7 +89,7 @@ const slug = (s: string) =>
 function Editor({ me, initial, isNew }: { me: Me; initial: Draft; isNew: boolean }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
-  const canEdit = me.role !== "viewer";
+  const canEdit = canOperate(me);
   const [d, setD] = useState<Draft>(initial);
   const [keyTouched, setKeyTouched] = useState(!isNew);
   const [vars, setVars] = useState<{ v: Record<string, unknown>; label: string }>({

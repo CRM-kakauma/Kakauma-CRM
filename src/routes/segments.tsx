@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RuleBuilder, type Rule } from "@/components/crm/rule-builder";
 import { ManualSegmentDialog } from "@/components/crm/test-launch";
-import { crmCall, useCrm, type Me } from "@/lib/crm-api";
+import { canOperate, crmCall, useCrm, type Me } from "@/lib/crm-api";
 
 export const Route = createFileRoute("/segments")({
   head: () => ({ meta: [{ title: "Segmentos — Kakauma CRM" }] }),
@@ -68,7 +68,7 @@ function Segments({ me }: { me: Me }) {
         help="segmentos"
         description="Grupos dinâmicos: a participação é recalculada a cada evento e periodicamente. “Teste” é uma lista manual para testar fluxos."
       >
-        {me.role !== "viewer" && (
+        {canOperate(me) && (
           <Button onClick={() => setEditing("new")}>
             <Plus className="size-4" /> Novo segmento
           </Button>
@@ -105,7 +105,7 @@ function Segments({ me }: { me: Me }) {
                         </Button>
                       ) : (
                         !s.is_system &&
-                        me.role !== "viewer" && (
+                        canOperate(me) && (
                           <Button size="sm" variant="ghost" onClick={() => setEditing(s)}>
                             Editar
                           </Button>
@@ -122,7 +122,7 @@ function Segments({ me }: { me: Me }) {
       {listing && (
         <ManualSegmentDialog
           segment={listing}
-          canEdit={me.role !== "viewer"}
+          canEdit={canOperate(me)}
           onClose={() => setListing(null)}
         />
       )}

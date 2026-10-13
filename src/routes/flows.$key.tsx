@@ -40,7 +40,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FACT_LABEL, crmCall, label, useCrm, type Me } from "@/lib/crm-api";
+import { canOperate, FACT_LABEL, crmCall, label, useCrm, type Me } from "@/lib/crm-api";
 import { duplicateFlow } from "@/lib/crm-flow-copy";
 import {
   EMPTY_GRAPH,
@@ -131,7 +131,7 @@ const settingsOf = (d: FlowDoc): FlowSettings => ({
 function Builder({ me, initial, isNew }: { me: Me; initial: FlowDoc; isNew: boolean }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
-  const canEdit = me.role !== "viewer" && initial.status !== "ARCHIVED";
+  const canEdit = canOperate(me) && initial.status !== "ARCHIVED";
   const [settings, setSettings] = useState<FlowSettings>(settingsOf(initial));
   const [graph, setGraph] = useState<Graph>(initial.graph);
   const [savedSnapshot, setSavedSnapshot] = useState(

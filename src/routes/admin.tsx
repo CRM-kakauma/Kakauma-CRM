@@ -41,11 +41,13 @@ const ROLE: Record<string, string> = {
   admin: "Administrador",
   operator: "Operador",
   viewer: "Leitura",
+  x1: "X1 · atendimento",
 };
 const ROLE_HINT: Record<string, string> = {
   admin: "tudo: regras, usuários, dados e auditoria",
   operator: "clientes, segmentos e automações",
   viewer: "só consulta",
+  x1: "só as telas Clientes e Recuperação, sem alterar nada",
 };
 
 function Admin({ me }: { me: Me }) {

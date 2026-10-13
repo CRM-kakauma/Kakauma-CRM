@@ -19,6 +19,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  canOperate,
   FACT_LABEL,
   RUN_STATUS_LABEL,
   SKIP_LABEL,
@@ -81,7 +82,7 @@ function Automations({ me }: { me: Me }) {
   const qc = useQueryClient();
   const [filter, setFilter] = useState("all");
   const [editing, setEditing] = useState<Automation | "new" | null>(null);
-  const canEdit = me.role !== "viewer";
+  const canEdit = canOperate(me);
   const list = useCrm<Automation[]>("crm_list_automations");
   const runs = useCrm<Run[]>("crm_list_automation_runs", {
     p_key: filter === "all" ? null : filter,

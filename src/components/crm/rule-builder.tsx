@@ -171,10 +171,11 @@ export function RuleBuilder({
   const fieldOptions = fields.filter((f) => f !== "customer_id");
 
   return (
-    <div className="space-y-3">
+    // a container: the rows follow the width they get (page or narrow side panel)
+    <div className="@container min-w-0 space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         {mode === "visual" ? (
-          <div className="flex items-center gap-2 text-sm">
+          <div className="flex flex-wrap items-center gap-2 text-sm">
             <span>Clientes que atendem a</span>
             <Select value={join} onValueChange={(v) => setRows(v as "all" | "any", conds)}>
               <SelectTrigger className="h-8 w-auto">
@@ -221,9 +222,12 @@ export function RuleBuilder({
                 conds.map((x, j) => (j === i ? { ...x, ...patch } : x)),
               );
             return (
-              <div key={i} className="grid gap-2 sm:grid-cols-[1.4fr_1fr_1.2fr_auto]">
+              <div
+                key={i}
+                className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] gap-2 @xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1.2fr)_auto]"
+              >
                 <Select value={c.field} onValueChange={(v) => update({ field: v })}>
-                  <SelectTrigger className="h-9">
+                  <SelectTrigger className="col-span-3 h-9 @xl:col-span-1">
                     <SelectValue placeholder="Campo" />
                   </SelectTrigger>
                   <SelectContent>

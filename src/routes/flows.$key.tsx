@@ -254,14 +254,15 @@ function Builder({ me, initial, isNew }: { me: Me; initial: FlowDoc; isNew: bool
         <ArrowLeft className="size-4" /> Fluxos
       </Link>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="min-w-0 flex-1">
+        {/* the name keeps room for itself; when narrow the buttons go to the next line */}
+        <div className="min-w-0 flex-[1_1_26rem]">
           <div className="flex flex-wrap items-center gap-2">
             <Input
               value={settings.name}
               disabled={!canEdit}
               onChange={(e) => setSettings((s) => ({ ...s, name: e.target.value }))}
               placeholder="Nome do fluxo"
-              className="h-10 max-w-md border-transparent bg-transparent px-1 text-xl font-semibold shadow-none md:text-xl hover:border-border focus-visible:border-input"
+              className="h-10 w-full max-w-xl min-w-0 flex-1 border-transparent bg-transparent px-1 text-xl font-semibold shadow-none md:text-xl hover:border-border focus-visible:border-input"
             />
             {!isNew && <Pill tone={st.tone}>{st.label}</Pill>}
             {!isNew && initial.version > 0 && (

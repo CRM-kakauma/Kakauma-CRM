@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   Bell,
   CircleAlert,
@@ -68,6 +68,29 @@ interface CanvasProps {
 export function FlowCanvas(props: CanvasProps) {
   const [zoom, setZoom] = useState(1);
   const box = useRef<HTMLDivElement>(null);
+  const inner = useRef<HTMLDivElement>(null);
+  /** Zoom so the whole width of the flow fits (never above 100%), then center it. */
+  const fit = () => {
+    const b = box.current;
+    const i = inner.current;
+    if (!b || !i) return;
+    const content = i.firstElementChild as HTMLElement | null;
+    if (!content) return;
+    // drawn width at 100% (+ the 40px padding on each side)
+    const natural = content.getBoundingClientRect().width / zoom + 80;
+    const z = Math.min(1, Math.max(0.5, Math.floor(((b.clientWidth - 8) / natural) * 10) / 10));
+    setZoom(z);
+  };
+  // first look at a flow: fit it to the space available
+  useEffect(() => {
+    fit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  // keep the flow centered horizontally when the zoom changes
+  useEffect(() => {
+    const b = box.current;
+    if (b) b.scrollLeft = Math.max(0, (b.scrollWidth - b.clientWidth) / 2);
+  }, [zoom]);
   const drag = useRef<{ x: number; y: number; left: number; top: number } | null>(null);
   const root = props.graph.nodes.find((n) => n.type === "trigger");
 
@@ -93,7 +116,7 @@ export function FlowCanvas(props: CanvasProps) {
         onMouseUp={() => (drag.current = null)}
         onMouseLeave={() => (drag.current = null)}
       >
-        <div className="flex w-max min-w-full justify-center p-10" style={{ zoom }}>
+        <div ref={inner} className="flex w-max min-w-full justify-center p-10" style={{ zoom }}>
           {root ? <Branch id={root.id} p={props} depth={0} seen={new Set()} /> : null}
         </div>
       </div>
@@ -121,8 +144,9 @@ export function FlowCanvas(props: CanvasProps) {
           size="icon"
           variant="ghost"
           className="size-7"
-          onClick={() => setZoom(1)}
-          aria-label="Tamanho normal"
+          onClick={fit}
+          aria-label="Ajustar à tela"
+          title="Ajustar à tela"
         >
           <Maximize2 className="size-3.5" />
         </Button>

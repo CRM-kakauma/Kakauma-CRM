@@ -260,7 +260,7 @@ function Editor({ me, initial, isNew }: { me: Me; initial: Draft; isNew: boolean
             )}
           </div>
 
-          <fieldset disabled={!canEdit} className="surface space-y-4 p-4">
+          <fieldset disabled={!canEdit} className="surface min-w-0 space-y-4 p-4">
             <VariableBar />
             <ChannelEditor
               channel={d.channel}

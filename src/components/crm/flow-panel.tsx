@@ -133,7 +133,7 @@ export function FlowPanel({
         </Button>
       </div>
 
-      <fieldset disabled={readOnly} className="flex-1 space-y-4 overflow-y-auto p-4">
+      <fieldset disabled={readOnly} className="min-w-0 flex-1 space-y-4 overflow-y-auto p-4">
         <div className="rounded-lg bg-muted/60 p-3 text-xs leading-relaxed">
           <p className="flex gap-1.5">
             <Info className="mt-0.5 size-3.5 shrink-0 text-primary" />

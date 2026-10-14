@@ -235,6 +235,42 @@ export function FlowPanel({
             </div>
           )}
 
+          {node.type === "wait_delivery" && (
+            <>
+              <Row
+                title="Prazo para a confirmação (horas)"
+                hint="Uma falha no envio (recusa, número inválido, sem saldo) segue na hora por “Não entregue”. Aqui é quanto esperar o aviso da operadora."
+              >
+                <Input
+                  type="number"
+                  min={1}
+                  max={168}
+                  value={Number(c["timeout_hours"] ?? 24)}
+                  onChange={(e) =>
+                    set({ timeout_hours: Math.min(168, Math.max(1, Number(e.target.value) || 1)) })
+                  }
+                />
+              </Row>
+              <Row
+                title="Sem confirmação no prazo"
+                hint="Sem o webhook da Pushfy cadastrado nunca chega confirmação: com “considerar entregue” o fluxo segue normal; com “considerar não entregue” manda sempre a mensagem de reserva."
+              >
+                <Select
+                  value={String(c["on_timeout"] ?? "delivered")}
+                  onValueChange={(v) => set({ on_timeout: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="delivered">Considerar entregue</SelectItem>
+                    <SelectItem value="failed">Considerar não entregue</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Row>
+            </>
+          )}
+
           {node.type === "wait_event" && (
             <>
               <Row title="Esperar que o cliente…">

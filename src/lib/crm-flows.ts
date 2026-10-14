@@ -7,7 +7,15 @@ import { FACT_LABEL, label } from "./crm-api.ts";
 import { CHANNEL_LABEL, type Channel } from "./crm-messages.ts";
 
 export type NodeType =
-  "trigger" | "send" | "wait" | "wait_event" | "condition" | "split" | "alert_team" | "exit";
+  | "trigger"
+  | "send"
+  | "wait"
+  | "wait_event"
+  | "wait_delivery"
+  | "condition"
+  | "split"
+  | "alert_team"
+  | "exit";
 
 export interface FlowNode {
   id: string;
@@ -58,6 +66,13 @@ export const NODE_META: Record<
     when: "Ideal para recuperação: só manda o lembrete seguinte para quem ainda não resolveu.",
     handles: { event: "Aconteceu", timeout: "Não aconteceu" },
   },
+  wait_delivery: {
+    label: "Aguardar entrega",
+    tone: "bg-[oklch(0.62_0.12_230)] text-white",
+    what: "Coloque logo depois de um envio. Segue por “Entregue” ou “Não entregue” conforme o resultado dessa mensagem — ex.: RCS não entregue → mandar SMS.",
+    when: "“Não entregue” = não saiu (recusada, número inválido, descadastro…) ou a operadora avisou que não chegou. A confirmação de entrega vem pelo webhook da Pushfy.",
+    handles: { delivered: "Entregue", failed: "Não entregue" },
+  },
   condition: {
     label: "Condição",
     tone: "bg-[oklch(0.6_0.13_158)] text-white",
@@ -89,6 +104,7 @@ export const ADDABLE: NodeType[] = [
   "send",
   "wait",
   "wait_event",
+  "wait_delivery",
   "condition",
   "split",
   "alert_team",
@@ -99,6 +115,8 @@ export function handlesOf(n: FlowNode): string[] {
   switch (n.type) {
     case "wait_event":
       return ["event", "timeout"];
+    case "wait_delivery":
+      return ["delivered", "failed"];
     case "condition":
       return ["yes", "no"];
     case "split":
@@ -124,6 +142,8 @@ export function defaultConfig(t: NodeType): Record<string, unknown> {
       return { amount: 1, unit: "days" };
     case "wait_event":
       return { fact: "PURCHASE_PAID", timeout_hours: 48 };
+    case "wait_delivery":
+      return { timeout_hours: 24, on_timeout: "delivered" };
     case "condition":
       return { rule: {} };
     case "split":
@@ -270,6 +290,8 @@ export function describe(
       return `Esperar ${waitText(Number(c["amount"] ?? 0), String(c["unit"] ?? "hours"))}`;
     case "wait_event":
       return `Até ${hoursText(Number(c["timeout_hours"] ?? 0))}: ${label(FACT_LABEL, String(c["fact"] ?? ""))}`;
+    case "wait_delivery":
+      return `Mensagem anterior entregue? (até ${hoursText(Number(c["timeout_hours"] ?? 0))})`;
     case "condition": {
       const r = c["rule"] as Record<string, unknown> | undefined;
       if (!r || !Object.keys(r).length) return "Defina a regra";

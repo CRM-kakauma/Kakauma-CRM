@@ -67,6 +67,11 @@ export const Route = createFileRoute("/api/webhooks/pushfy")({
             if (r.error) throw new Error(r.error.message);
             results.push(r.data);
           }
+          // a delivery report may continue a flow waiting on it ("Aguardar entrega")
+          if (results.some((r) => (r as { message_matched?: boolean } | null)?.message_matched)) {
+            const { runFlows } = await import("@/server/crm/pipeline.server");
+            await runFlows(100).catch((e) => console.error("[crm] flows after pushfy event", e));
+          }
           return Response.json({ ok: true, received: events.length, results });
         } catch (e) {
           // 5xx: Pushfy delivers again later, nothing is lost

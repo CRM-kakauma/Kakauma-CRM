@@ -622,6 +622,8 @@ function SimulationPanel({
     ...new Set(
       graph.nodes.filter((n) => n.type === "wait_event").map((n) => String(n.config["fact"])),
     ),
+    // "Aguardar entrega": simulate the message not being delivered
+    ...(graph.nodes.some((n) => n.type === "wait_delivery") ? ["DELIVERY_FAILED"] : []),
   ];
   const { data: found } = useCrm<Obj[]>(
     "crm_search_customers",
@@ -731,7 +733,9 @@ function SimulationPanel({
                     setEvents((e) => (v ? [...e, f] : e.filter((x) => x !== f)))
                   }
                 />
-                {label(FACT_LABEL, f)} durante a espera
+                {f === "DELIVERY_FAILED"
+                  ? "a mensagem não for entregue"
+                  : `${label(FACT_LABEL, f)} durante a espera`}
               </label>
             ))}
           </div>

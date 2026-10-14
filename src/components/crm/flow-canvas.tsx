@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   Bell,
+  CheckCheck,
   CircleAlert,
   Clock,
   FlaskConical,
@@ -39,6 +40,7 @@ export const NODE_ICON: Record<NodeType, typeof Zap> = {
   send: Send,
   wait: Clock,
   wait_event: Hourglass,
+  wait_delivery: CheckCheck,
   condition: GitBranch,
   split: FlaskConical,
   alert_team: Bell,

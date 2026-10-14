@@ -195,7 +195,15 @@ export async function runFlows(rpc: Rpc, opts: MessageOptions = {}): Promise<Flo
   const tick = await rpc("crm_flow_tick", { p_limit: 500 });
   if (tick.error) throw new Error(tick.error.message);
   const messages = await runMessages(rpc, opts);
-  return { advanced: Number(tick.data ?? 0), messages };
+  // second pass: a send that failed just now wakes "Aguardar entrega", whose
+  // "not delivered" path (e.g. an SMS after an RCS) then goes out in this same run
+  const again = await rpc("crm_flow_tick", { p_limit: 500 });
+  if (again.error) throw new Error(again.error.message);
+  const more = Number(again.data ?? 0) > 0 ? await runMessages(rpc, opts) : [];
+  return {
+    advanced: Number(tick.data ?? 0) + Number(again.data ?? 0),
+    messages: [...messages, ...more],
+  };
 }
 
 /** Brings Pushfy's opt-out list (PARAR, SAIR…) into crm.channel_optouts. Without `date`, everything. */

@@ -133,6 +133,7 @@ export const HELP: HelpArticle[] = [
               "**Versões**: editar um fluxo publicado não muda nada até você publicar de novo. Quem já estava dentro termina na versão em que entrou.",
               "**Pausar** congela: ninguém entra e ninguém avança. **Arquivar** tira todo mundo do fluxo.",
               "**Fatos antigos não disparam** (padrão: 72 h), para importações de histórico não mandarem mensagens.",
+              "**Aguardar entrega** (ex.: RCS que não chegou → SMS): coloque logo depois do envio. Falha no envio (recusa, número inválido, sem saldo, descadastro) segue na hora por “Não entregue”; o aviso da operadora de que não chegou também, quando o webhook da Pushfy está cadastrado. Sem aviso dentro do prazo, vale o que você escolher (“considerar entregue” ou “não entregue”).",
               "**Checkout abandonado de um produto só** (ex.: só a assinatura): no Início, gatilho “Checkout abandonado” e escolha o produto ou a oferta em “Produto ou oferta abandonada”. Use a meta “Compra aprovada” para parar as mensagens de quem comprou.",
               "**Meta**: ao acontecer, o cliente sai como “meta atingida” e não recebe as próximas mensagens. A taxa de meta aparece no resumo do fluxo.",
               "Mensagens de marketing respeitam **descadastro**, **horário de envio** (8h–21h, ajustável) e o **limite diário** por cliente.",

@@ -162,6 +162,13 @@
       "when": 1791915288147,
       "tag": "0022_crm_role_x1",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1791989068474,
+      "tag": "0023_crm_wait_delivery",
+      "breakpoints": true
     }
   ]
 }

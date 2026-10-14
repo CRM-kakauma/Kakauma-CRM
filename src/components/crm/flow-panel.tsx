@@ -134,7 +134,7 @@ export function FlowPanel({
       </div>
 
       {/* the panel has a max height; this area scrolls (min-h-0 lets it shrink inside the column) */}
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+      <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain">
         <fieldset disabled={readOnly} className="min-w-0 space-y-4 p-4">
           <div className="rounded-lg bg-muted/60 p-3 text-xs leading-relaxed">
             <p className="flex gap-1.5">
@@ -160,7 +160,7 @@ export function FlowPanel({
               />
               <Row
                 title="Quem pode entrar"
-                hint="Conferido no estado do cliente quando ele entra. Vazio = todos."
+                hint="Filtro extra, conferido no estado do cliente quando ele entra (vazio = todos). O “Agora” abaixo conta a base inteira, não quem tem o gatilho."
               >
                 <RuleBuilder
                   value={settings.entry_rule}
@@ -177,6 +177,12 @@ export function FlowPanel({
                   onChange={(v) => onSettings({ goal_fact: v })}
                   none="Sem meta"
                 />
+                {settings.goal_fact && settings.goal_fact === settings.trigger_fact && (
+                  <p className="rounded-lg bg-warning-soft px-2.5 py-1.5 text-[11px] text-warning-foreground">
+                    A meta é igual ao gatilho: quem repetir o gatilho sai como “meta atingida”. Use
+                    o resultado que você quer, ex.: “Compra aprovada”.
+                  </p>
+                )}
               </Row>
               <Row title="Pode entrar de novo?">
                 <Select

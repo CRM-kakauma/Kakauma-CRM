@@ -156,7 +156,7 @@ function CheckoutFilter({
           onChange(kind === "offer" ? { offer_id: id } : { product_id: id });
         }}
       >
-        <SelectTrigger>
+        <SelectTrigger className="w-full min-w-0 [&>span]:min-w-0 [&>span]:truncate">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

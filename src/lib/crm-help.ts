@@ -241,6 +241,7 @@ export const HELP: HelpArticle[] = [
               "**E-mail em HTML próprio**: no editor, troque “Montar com blocos” por “HTML próprio” para colar o HTML de um editor de e-mail ou de uma agência, importar um arquivo .html ou gerar o HTML a partir dos blocos. As variáveis {{first_name}} funcionam; imagens precisam estar publicadas (https://); scripts, formulários e iframes não são aceitos; até 100 mil caracteres (o Gmail corta e-mails maiores). A versão em texto é gerada sozinha.",
               "**SMS**: comece com “Kakauma:”; evite acentos para caber em 1 parte; o medidor mostra partes e codificação.",
               "**WhatsApp**: categoria “Utilidade” para pagamento/entrega (mais barata), “Marketing” para ofertas; até 3 botões; *negrito* e _itálico_ funcionam.",
+              "**Dados do pedido** no e-mail/SMS: {{order_number}}, {{product_name}}, {{offer_name}}, {{quantity}}, {{payment_method}}, {{order_total}}, {{order_date}}, {{coupon_code}}, Pix/boleto ({{pix_code}}, {{boleto_url}}), {{checkout_url}} (carrinho abandonado), rastreio ({{tracking_code}}, {{tracking_url}}) e assinatura ({{plan_name}}, {{next_charge_date}}). Vêm do evento da B4you que colocou o cliente no fluxo; se o fluxo não começou por um pedido, do último pedido. Use sempre duas chaves: {{order_number}}.",
               "**RCS**: escolha texto, cartão ou carrossel; até 4 sugestões; sempre escreva o SMS alternativo. Na Pushfy o cartão leva um botão (o primeiro “Abrir link”).",
             ],
           },

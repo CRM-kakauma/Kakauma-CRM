@@ -1,5 +1,5 @@
 import type { Rpc } from "./pipeline.ts";
-import { renderMessage, type Channel, type Content } from "../../lib/crm-messages.ts";
+import { renderMessage, VARIABLES, type Channel, type Content } from "../../lib/crm-messages.ts";
 import { renderTemplate } from "../../lib/crm-template.ts";
 import {
   pushfyOptouts,
@@ -107,6 +107,25 @@ export async function runRcsFallbacks(rpc: Rpc, opts: MessageOptions = {}) {
   return out;
 }
 
+const ORDER_SAMPLE = Object.fromEntries(
+  VARIABLES.filter((v) => v.group === "pedido").map((v) => [v.key, v.sample]),
+);
+
+/** Order variables per message. Without the database function (update not applied yet): none. */
+async function messageVars(rpc: Rpc, msgs: ClaimedMessage[]) {
+  const map = new Map<string, Record<string, unknown>>();
+  const ids = msgs.filter((m) => m.channel !== "team").map((m) => m.message_id);
+  if (!ids.length) return map;
+  const { data, error } = await rpc("crm_message_vars", { p_message_ids: ids });
+  if (error) {
+    console.error("[crm] order variables", error.message);
+    return map;
+  }
+  for (const r of (data ?? []) as { message_id: string; vars: Record<string, unknown> | null }[])
+    map.set(r.message_id, r.vars ?? {});
+  return map;
+}
+
 export async function runMessages(rpc: Rpc, opts: MessageOptions = {}) {
   // never holds up the queue (e.g. the database update with this function not applied yet)
   const fallbacks = await runRcsFallbacks(rpc, opts).catch((e: Error) => {
@@ -117,8 +136,16 @@ export async function runMessages(rpc: Rpc, opts: MessageOptions = {}) {
   if (error) throw new Error(error.message);
   const out: FlowSummary["messages"] = [...fallbacks];
   const doFetch = opts.fetchImpl ?? fetch;
+  const claimed = (data ?? []) as ClaimedMessage[];
+  const orderVars = await messageVars(rpc, claimed);
 
-  for (const m of (data ?? []) as ClaimedMessage[]) {
+  for (const m of claimed) {
+    // order data ({{order_number}}, {{product_name}}…); a test contact without orders gets the samples
+    const order = orderVars.get(m.message_id) ?? {};
+    m.customer = {
+      ...(m.is_test && !Object.keys(order).length ? ORDER_SAMPLE : order),
+      ...m.customer,
+    };
     const rendered =
       m.channel === "team"
         ? { text: renderTemplate(m.team_text ?? "", m.customer) }

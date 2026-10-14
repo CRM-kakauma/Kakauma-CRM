@@ -76,7 +76,12 @@ export const CHANNEL_LABEL: Record<Channel | "team", string> = {
 };
 
 /** Variables available in every template ({{name}}), with a sample value for previews. */
-export const VARIABLES: { key: string; label: string; sample: string | number }[] = [
+export const VARIABLES: {
+  key: string;
+  label: string;
+  sample: string | number;
+  group?: "pedido";
+}[] = [
   { key: "first_name", label: "Primeiro nome", sample: "Maria" },
   { key: "full_name", label: "Nome completo", sample: "Maria Souza" },
   { key: "email", label: "E-mail", sample: "maria@exemplo.com.br" },
@@ -87,6 +92,31 @@ export const VARIABLES: { key: string; label: string; sample: string | number }[
   { key: "days_since_last_purchase", label: "Dias desde a última compra", sample: 42 },
   { key: "lifecycle", label: "Etapa do ciclo de vida", sample: "ACTIVE_SUBSCRIBER" },
   { key: "risk", label: "Risco", sample: "AT_RISK" },
+  // the order behind the flow (the B4you event that started it; otherwise the latest order)
+  ...(
+    [
+      ["order_number", "Número do pedido", "a1b2c3d4"],
+      ["order_date", "Data do pedido", "14/10/2026"],
+      ["order_total", "Total do pedido", "R$ 129,90"],
+      ["product_name", "Produto", "Kakauma Sleep Drink"],
+      ["offer_name", "Oferta", "1 Lata - Kakauma"],
+      ["quantity", "Quantidade", "1"],
+      ["product_image", "Imagem do produto (URL)", "https://kakauma.com.br/produto.png"],
+      ["payment_method", "Forma de pagamento", "Cartão de crédito em 3x"],
+      ["installments", "Parcelas", 3],
+      ["coupon_code", "Cupom", "BEMVINDO10"],
+      ["pix_code", "Pix copia e cola", "00020126…"],
+      ["pix_url", "Link do QR Code Pix", "https://pix.exemplo.com/qr"],
+      ["boleto_url", "Link do boleto", "https://boleto.exemplo.com/123"],
+      ["boleto_code", "Linha digitável do boleto", "23790.00000 00000.000000 …"],
+      ["checkout_url", "Link do checkout (carrinho)", "https://checkout.b4you.com.br/…"],
+      ["tracking_code", "Código de rastreio", "BR123456789BR"],
+      ["tracking_url", "Link de rastreio", "https://rastreio.exemplo.com/BR123456789BR"],
+      ["carrier", "Transportadora", "Correios"],
+      ["plan_name", "Plano da assinatura", "Mensal"],
+      ["next_charge_date", "Próxima cobrança", "14/11/2026"],
+    ] as const
+  ).map(([key, label, sample]) => ({ key, label, sample, group: "pedido" as const })),
 ];
 export const SAMPLE_CUSTOMER: Record<string, unknown> = Object.fromEntries(
   VARIABLES.map((v) => [v.key, v.sample]),

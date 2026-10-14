@@ -176,6 +176,13 @@
       "when": 1792075468474,
       "tag": "0024_crm_rcs_sms_fallback",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1792161868474,
+      "tag": "0025_crm_order_variables",
+      "breakpoints": true
     }
   ]
 }

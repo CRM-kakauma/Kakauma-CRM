@@ -76,21 +76,31 @@ export function VariableBar() {
         Personalize: clique em um campo de texto e depois na variável. Se o cliente não tiver o
         dado, ela fica vazia.
       </p>
-      <div className="flex flex-wrap gap-1.5">
-        {VARIABLES.map((v) => (
-          <button
-            key={v.key}
-            type="button"
-            // keep the focus (and cursor) in the field being edited
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => insert(v.key)}
-            className="rounded-md bg-primary-soft px-2 py-1 font-mono text-[11px] text-primary hover:bg-primary/15"
-            title={v.label}
-          >
-            {`{{${v.key}}}`}
-          </button>
-        ))}
-      </div>
+      {(
+        [
+          ["Cliente", VARIABLES.filter((v) => !v.group)],
+          ["Pedido (do evento da B4you que disparou o fluxo)", VARIABLES.filter((v) => v.group)],
+        ] as const
+      ).map(([title, vars]) => (
+        <div key={title} className="mt-2 first:mt-0">
+          <p className="mb-1 text-[11px] font-medium text-muted-foreground">{title}</p>
+          <div className="flex flex-wrap gap-1.5">
+            {vars.map((v) => (
+              <button
+                key={v.key}
+                type="button"
+                // keep the focus (and cursor) in the field being edited
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => insert(v.key)}
+                className="rounded-md bg-primary-soft px-2 py-1 font-mono text-[11px] text-primary hover:bg-primary/15"
+                title={v.label}
+              >
+                {`{{${v.key}}}`}
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

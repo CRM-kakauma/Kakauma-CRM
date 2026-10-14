@@ -919,7 +919,7 @@ function RcsEditor({ c, set }: { c: RcsContent; set: (c: RcsContent) => void }) 
       </div>
       <Field
         label="SMS alternativo"
-        hint="Enviado para quem não tem RCS (iPhone, aparelhos antigos). Obrigatório."
+        hint="Enviado para quem não tem RCS (iPhone, aparelhos antigos) e, automaticamente, quando o RCS falha ou a operadora avisa que não foi entregue. Obrigatório."
       >
         <TextArea value={c.fallback_sms} onChange={(v) => upd({ fallback_sms: v })} rows={3} />
       </Field>

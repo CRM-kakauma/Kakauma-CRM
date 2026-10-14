@@ -1,4 +1,4 @@
-/** "Aguardar entrega": RCS not delivered → SMS. Immediate failures, operator reports, timeout. */
+/** "Aguardar entrega" and the RCS → "SMS alternativo" fallback: immediate failures, operator reports, timeout. */
 import { after, before, describe, test } from "node:test";
 import assert from "node:assert/strict";
 import postgres from "postgres";
@@ -112,7 +112,7 @@ describe(
       assert.deepEqual(await call("crm_flow_graph_errors", { p_graph: graph() }), []);
     });
 
-    test("RCS refused by Pushfy → SMS goes in the same run", async () => {
+    test("RCS refused by Pushfy → its own SMS alternativo goes at once, no branch needed", async () => {
       const f = pushfy({ status: 400, body: { error: "rcs_campaign_not_found" } });
       await call("crm_launch_flow_test", { p_key: "wd_flow" });
       await runFlows(rpc, f.opts);
@@ -123,15 +123,16 @@ describe(
       const rows = await state();
       assert.deepEqual(
         rows.map((r) => [r["channel"], r["msg"]]),
-        [
-          ["rcs", "FAILED"],
-          ["sms", "SENT"],
-        ],
+        [["rcs", "SENT"]],
       );
-      assert.equal(rows[0]!["status"], "COMPLETED");
+      const [m] =
+        await sql!`select m.result ->> 'sent_as' as sent_as, m.result #>> '{fallback,status}' as fb
+                               from crm.messages m join crm.flows f using (flow_id)
+                              where f.key = 'wd_flow' order by m.created_at desc limit 1`;
+      assert.deepEqual([m!["sent_as"], m!["fb"]], ["sms_fallback", "SENT"]);
     });
 
-    test("RCS accepted, then the operator reports Undelivered → SMS", async () => {
+    test("RCS accepted, then the operator reports Undelivered → SMS alternativo once (+ the branch, if kept)", async () => {
       const f = pushfy(RCS_OK);
       await call("crm_launch_flow_test", { p_key: "wd_flow" });
       await runFlows(rpc, f.opts);
@@ -157,9 +158,10 @@ describe(
         },
       });
       await runFlows(rpc, f.opts);
+      // the RCS's own SMS alternativo, then the "Não entregue" branch of this test flow
       assert.deepEqual(
         f.calls.map((c) => c.path),
-        ["/apircsbasic", "/webapi"],
+        ["/apircsbasic", "/webapi", "/webapi"],
       );
       rows = await state();
       assert.deepEqual(
@@ -169,6 +171,36 @@ describe(
           ["sms", "SENT", null],
         ],
       );
+      // another report or run never sends the fallback again
+      await call("crm_pushfy_event", {
+        p_payload: {
+          id: 77,
+          status: "Expired",
+          ext_id: m!["message_id"],
+          date_dlr: "2026-10-14 11:00:00",
+        },
+      });
+      await runFlows(rpc, f.opts);
+      assert.equal(f.calls.length, 3);
+      const [r] =
+        await sql!`select result ->> 'sent_as' as sent_as from crm.messages where message_id = ${m!["message_id"]}`;
+      assert.equal(r!["sent_as"], "sms_fallback");
+    });
+
+    test("a fallback for a real customer is only simulated while Pushfy is not live", async () => {
+      const [m] =
+        await sql!`select m.message_id from crm.messages m join crm.flows f using (flow_id)
+                              where f.key = 'wd_flow' and m.channel = 'rcs' order by m.created_at limit 1`;
+      await sql!`update crm.flow_enrollments set is_test = false
+                  where enrollment_id = (select enrollment_id from crm.messages where message_id = ${m!["message_id"]})`;
+      await sql!`update crm.messages set status = 'SENT', provider_status = 'Rejected', provider_status_at = now(),
+                        result = coalesce(result, '{}') - 'fallback' where message_id = ${m!["message_id"]}`;
+      const f = pushfy(RCS_OK);
+      await runFlows(rpc, { pushfy: { ...f.opts.pushfy, live: false } });
+      assert.equal(f.calls.length, 0);
+      const [r] =
+        await sql!`select result #>> '{fallback,status}' as fb from crm.messages where message_id = ${m!["message_id"]}`;
+      assert.equal(r!["fb"], "DRY_RUN");
     });
 
     test("Delivered → the delivered path, no SMS", async () => {

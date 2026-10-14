@@ -216,7 +216,7 @@ export function TestSend({
   const [to, setTo] = useState("");
   const send = useMutation({
     mutationFn: () =>
-      getJson<{ to: string }>("/api/crm/messages/test", {
+      getJson<{ to: string; sent_as?: string; rcs_error?: string }>("/api/crm/messages/test", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ template_key: templateKey, to }),
@@ -225,7 +225,9 @@ export function TestSend({
       toast.success(isEmail ? "Enviado pelo Resend" : "Enviado pela Pushfy", {
         description: isEmail
           ? `Para ${r.to}. Confira a caixa de entrada (e o spam).`
-          : `Para ${r.to}. Confira no celular.`,
+          : r.sent_as === "sms_fallback"
+            ? `O RCS falhou (${r.rcs_error ?? "recusado"}); foi o SMS alternativo para ${r.to}.`
+            : `Para ${r.to}. Confira no celular.`,
       }),
     onError: (e) => toast.error("Não enviou", { description: (e as Error).message }),
   });

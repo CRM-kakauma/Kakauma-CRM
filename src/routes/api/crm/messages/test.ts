@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 
 /**
  * Test send of one saved template (operator or admin), audited:
- *   SMS / RCS → a phone, through Pushfy (RCS card with image via /apircs);
+ *   SMS / RCS → a phone, through Pushfy (RCS card with image via /apircs; a refused RCS
+ *               goes as its "SMS alternativo");
  *   e-mail    → an address, through Resend.
  * Works before PUSHFY_LIVE / EMAIL_LIVE, so a channel can be checked without
  * messaging customers. Body: { template_key, to, customer_id? } — customer_id fills the variables.
@@ -108,6 +109,45 @@ export const Route = createFileRoute("/api/crm/messages/test")({
             text: plan.text,
             extId: `teste-${randomUUID()}`,
           });
+          // RCS refused: the template's "SMS alternativo" goes instead, as it would for a customer
+          const smsText =
+            !sent.ok && tpl.channel === "rcs"
+              ? String((rendered as { fallback_sms?: unknown }).fallback_sms ?? "").trim()
+              : "";
+          if (smsText) {
+            const sms = await pushfySend(cfg, "sms", {
+              to,
+              text: smsText,
+              extId: `teste-${randomUUID()}`,
+            });
+            await audit(
+              to,
+              sms.ok,
+              sms.ok
+                ? `RCS falhou (${sent.error}); foi o SMS alternativo`
+                : `RCS: ${sent.error} · SMS: ${sms.error}`,
+            );
+            return json(
+              sms.ok
+                ? {
+                    ok: true,
+                    to,
+                    provider: "pushfy",
+                    response: sms.body,
+                    endpoint: "sms",
+                    sent_as: "sms_fallback",
+                    rcs_error: sent.error,
+                  }
+                : {
+                    ok: false,
+                    error: "send_failed",
+                    message: `RCS: ${sent.error} · SMS: ${sms.error}`,
+                    response: sms.body,
+                  },
+              sms.ok ? 200 : 502,
+              session.setCookies,
+            );
+          }
           await audit(to, sent.ok, sent.ok ? null : (sent.error ?? null));
           return json(
             sent.ok

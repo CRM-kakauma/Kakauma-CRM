@@ -17,7 +17,8 @@ import { isEmail, resendSend, type ResendConfig } from "./resend.ts";
  * daily cap, outside the send window). Here each message is rendered with the
  * same code the editor's simulator uses, then:
  *   - SMS and RCS go through Pushfy: RCS text as Basic, a card as Single (image + button),
- *     a carousel as its first card when PUSHFY_API_TOKEN is set and
+ *     a carousel as its first card; an RCS refused or reported as not delivered goes again
+ *     as its "SMS alternativo". All this when PUSHFY_API_TOKEN is set and
  *     PUSHFY_LIVE=true (with the token but not live: DRY_RUN, nothing is sent —
  *     except test launches, which go out so the channel can be checked);
  *   - e-mail goes through Resend when RESEND_API_KEY + EMAIL_FROM are set and EMAIL_LIVE=true
@@ -58,10 +59,63 @@ async function sign(secret: string, body: string) {
   return createHmac("sha256", secret).update(body).digest("hex");
 }
 
+/** The RCS template's "SMS alternativo", already filled with the customer's data. */
+function rcsFallbackText(rendered: unknown): string {
+  return String((rendered as { fallback_sms?: unknown } | null)?.fallback_sms ?? "").trim();
+}
+
+/**
+ * RCS the operator later reported as not delivered (Pushfy webhook) goes again as its
+ * "SMS alternativo". The database hands each message out once.
+ */
+export async function runRcsFallbacks(rpc: Rpc, opts: MessageOptions = {}) {
+  const out: FlowSummary["messages"] = [];
+  if (!opts.pushfy) return out;
+  const { data, error } = await rpc("crm_claim_rcs_fallbacks", { p_limit: opts.limit ?? 100 });
+  if (error) throw new Error(error.message);
+  for (const m of (data ?? []) as {
+    message_id: string;
+    recipient: string | null;
+    fallback_sms: string | null;
+    is_test: boolean;
+  }[]) {
+    const done = async (status: string, result: Record<string, unknown>, err?: string) => {
+      const r = await rpc("crm_rcs_fallback_done", {
+        p_message_id: m.message_id,
+        p_status: status,
+        p_result: result,
+      });
+      if (r.error) throw new Error(r.error.message);
+      out.push({
+        message_id: m.message_id,
+        channel: "sms",
+        status,
+        ...(err ? { error: err } : {}),
+      });
+    };
+    const to = toPushfyNumber(m.recipient);
+    const text = (m.fallback_sms ?? "").trim();
+    if (!opts.pushfy.live && !m.is_test) await done("DRY_RUN", { reason: "pushfy_not_live" });
+    else if (!to || !text) await done("SKIPPED", {}, !to ? "invalid_phone" : "empty_message");
+    else {
+      const sms = await pushfySend(opts.pushfy, "sms", { to, text, extId: m.message_id });
+      const result = { to, http_status: sms.httpStatus, response: sms.body };
+      if (sms.ok) await done("SENT", result);
+      else await done("FAILED", result, sms.error ?? "falha no envio");
+    }
+  }
+  return out;
+}
+
 export async function runMessages(rpc: Rpc, opts: MessageOptions = {}) {
+  // never holds up the queue (e.g. the database update with this function not applied yet)
+  const fallbacks = await runRcsFallbacks(rpc, opts).catch((e: Error) => {
+    console.error("[crm] rcs sms fallback", e.message);
+    return [];
+  });
   const { data, error } = await rpc("crm_claim_messages", { p_limit: opts.limit ?? 100 });
   if (error) throw new Error(error.message);
-  const out: FlowSummary["messages"] = [];
+  const out: FlowSummary["messages"] = [...fallbacks];
   const doFetch = opts.fetchImpl ?? fetch;
 
   for (const m of (data ?? []) as ClaimedMessage[]) {
@@ -127,8 +181,37 @@ export async function runMessages(rpc: Rpc, opts: MessageOptions = {}) {
         http_status: sent.httpStatus,
         response: sent.body,
       };
-      if (sent.ok) await complete("SENT", result);
-      else await complete("FAILED", result, sent.error ?? "falha no envio", !sent.permanent);
+      if (sent.ok) {
+        await complete("SENT", result);
+        continue;
+      }
+      // RCS refused: the template's own "SMS alternativo" goes instead, right away
+      const smsText = m.channel === "rcs" ? rcsFallbackText(rendered) : "";
+      if (smsText) {
+        const sms = await pushfySend(opts.pushfy, "sms", {
+          to,
+          text: smsText,
+          extId: m.message_id,
+        });
+        const fallback = {
+          status: sms.ok ? "SENT" : "FAILED",
+          rcs_error: sent.error ?? null,
+          http_status: sms.httpStatus,
+          response: sms.body,
+        };
+        if (sms.ok) {
+          await complete("SENT", { ...result, sent_as: "sms_fallback", fallback });
+          continue;
+        }
+        await complete(
+          "FAILED",
+          { ...result, fallback },
+          `RCS: ${sent.error ?? "falha"} · SMS: ${sms.error ?? "falha"}`,
+          !sent.permanent || !sms.permanent,
+        );
+        continue;
+      }
+      await complete("FAILED", result, sent.error ?? "falha no envio", !sent.permanent);
       continue;
     }
 

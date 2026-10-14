@@ -169,6 +169,13 @@
       "when": 1791989068474,
       "tag": "0023_crm_wait_delivery",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1792075468474,
+      "tag": "0024_crm_rcs_sms_fallback",
+      "breakpoints": true
     }
   ]
 }

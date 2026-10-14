@@ -69,7 +69,7 @@ export const NODE_META: Record<
   wait_delivery: {
     label: "Aguardar entrega",
     tone: "bg-[oklch(0.62_0.12_230)] text-white",
-    what: "Coloque logo depois de um envio. Segue por “Entregue” ou “Não entregue” conforme o resultado dessa mensagem — ex.: RCS não entregue → mandar SMS.",
+    what: "Coloque logo depois de um envio. Segue por “Entregue” ou “Não entregue” conforme o resultado dessa mensagem — ex.: e-mail não entregue → alertar a equipe. (RCS → SMS não precisa: o RCS já manda o próprio SMS alternativo quando falha.)",
     when: "“Não entregue” = não saiu (recusada, número inválido, descadastro…) ou a operadora avisou que não chegou. A confirmação de entrega vem pelo webhook da Pushfy.",
     handles: { delivered: "Entregue", failed: "Não entregue" },
   },

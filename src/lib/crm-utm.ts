@@ -19,7 +19,8 @@ export interface UtmContext {
 
 export const UTM_DOMAINS = ["kakauma.com.br"];
 
-const ownDomain = (host: string) => UTM_DOMAINS.some((d) => host === d || host.endsWith(`.${d}`));
+export const ownDomain = (host: string) =>
+  UTM_DOMAINS.some((d) => host === d || host.endsWith(`.${d}`));
 
 export function tagUrl(url: string, ctx: UtmContext): string {
   let u: URL;
@@ -36,6 +37,18 @@ export function tagUrl(url: string, ctx: UtmContext): string {
   if (ctx.campaign) u.searchParams.set("utm_campaign", ctx.campaign);
   if (ctx.content) u.searchParams.set("utm_content", ctx.content);
   return u.toString();
+}
+
+/** The address without the four UTMs the CRM fills in (other parameters stay). */
+export function stripUtm(url: string): string {
+  try {
+    const u = new URL(url);
+    for (const k of [...u.searchParams.keys()])
+      if (/^utm_(source|medium|campaign|content)$/i.test(k)) u.searchParams.delete(k);
+    return u.toString();
+  } catch {
+    return url;
+  }
 }
 
 /** Links written in plain text (SMS, RCS, the text version of an e-mail). */

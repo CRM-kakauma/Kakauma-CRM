@@ -2,6 +2,7 @@ import { useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Mail, MessageCircle, MessageSquareText, Plus, Smartphone } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { ExpandLinksButton } from "@/components/crm/expand-links";
 import { ApiErrorBox, Empty, Loading, Pill, RequireAuth } from "@/components/crm/ui";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -67,7 +68,9 @@ function Messages({ me }: { me: Me }) {
         title="Mensagens"
         description="Modelos de e-mail, SMS, WhatsApp e RCS usados pelos fluxos. Cada um tem um simulador que mostra exatamente o que o cliente vai receber."
         help="mensagens"
-      />
+      >
+        {canEdit && <ExpandLinksButton />}
+      </PageHeader>
 
       {canEdit && (
         <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

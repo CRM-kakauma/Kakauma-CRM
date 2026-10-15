@@ -48,6 +48,7 @@ import { Route as ApiCrmAuthMeRouteImport } from './routes/api/crm/auth/me'
 import { Route as ApiCrmAuthSetPasswordRouteImport } from './routes/api/crm/auth/set-password'
 import { Route as ApiCrmFlowsRunRouteImport } from './routes/api/crm/flows/run'
 import { Route as ApiCrmFlowsTestLaunchRouteImport } from './routes/api/crm/flows/test-launch'
+import { Route as ApiCrmMessagesExpandLinksRouteImport } from './routes/api/crm/messages/expand-links'
 import { Route as ApiCrmMessagesProviderStatusRouteImport } from './routes/api/crm/messages/provider-status'
 import { Route as ApiCrmMessagesTestRouteImport } from './routes/api/crm/messages/test'
 
@@ -246,6 +247,12 @@ const ApiCrmFlowsTestLaunchRoute = ApiCrmFlowsTestLaunchRouteImport.update({
   path: '/api/crm/flows/test-launch',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCrmMessagesExpandLinksRoute =
+  ApiCrmMessagesExpandLinksRouteImport.update({
+    id: '/api/crm/messages/expand-links',
+    path: '/api/crm/messages/expand-links',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiCrmMessagesProviderStatusRoute =
   ApiCrmMessagesProviderStatusRouteImport.update({
     id: '/api/crm/messages/provider-status',
@@ -298,6 +305,7 @@ export interface FileRoutesByFullPath {
   '/api/crm/auth/set-password': typeof ApiCrmAuthSetPasswordRoute
   '/api/crm/flows/run': typeof ApiCrmFlowsRunRoute
   '/api/crm/flows/test-launch': typeof ApiCrmFlowsTestLaunchRoute
+  '/api/crm/messages/expand-links': typeof ApiCrmMessagesExpandLinksRoute
   '/api/crm/messages/provider-status': typeof ApiCrmMessagesProviderStatusRoute
   '/api/crm/messages/test': typeof ApiCrmMessagesTestRoute
 }
@@ -341,6 +349,7 @@ export interface FileRoutesByTo {
   '/api/crm/auth/set-password': typeof ApiCrmAuthSetPasswordRoute
   '/api/crm/flows/run': typeof ApiCrmFlowsRunRoute
   '/api/crm/flows/test-launch': typeof ApiCrmFlowsTestLaunchRoute
+  '/api/crm/messages/expand-links': typeof ApiCrmMessagesExpandLinksRoute
   '/api/crm/messages/provider-status': typeof ApiCrmMessagesProviderStatusRoute
   '/api/crm/messages/test': typeof ApiCrmMessagesTestRoute
 }
@@ -385,6 +394,7 @@ export interface FileRoutesById {
   '/api/crm/auth/set-password': typeof ApiCrmAuthSetPasswordRoute
   '/api/crm/flows/run': typeof ApiCrmFlowsRunRoute
   '/api/crm/flows/test-launch': typeof ApiCrmFlowsTestLaunchRoute
+  '/api/crm/messages/expand-links': typeof ApiCrmMessagesExpandLinksRoute
   '/api/crm/messages/provider-status': typeof ApiCrmMessagesProviderStatusRoute
   '/api/crm/messages/test': typeof ApiCrmMessagesTestRoute
 }
@@ -430,6 +440,7 @@ export interface FileRouteTypes {
     | '/api/crm/auth/set-password'
     | '/api/crm/flows/run'
     | '/api/crm/flows/test-launch'
+    | '/api/crm/messages/expand-links'
     | '/api/crm/messages/provider-status'
     | '/api/crm/messages/test'
   fileRoutesByTo: FileRoutesByTo
@@ -473,6 +484,7 @@ export interface FileRouteTypes {
     | '/api/crm/auth/set-password'
     | '/api/crm/flows/run'
     | '/api/crm/flows/test-launch'
+    | '/api/crm/messages/expand-links'
     | '/api/crm/messages/provider-status'
     | '/api/crm/messages/test'
   id:
@@ -516,6 +528,7 @@ export interface FileRouteTypes {
     | '/api/crm/auth/set-password'
     | '/api/crm/flows/run'
     | '/api/crm/flows/test-launch'
+    | '/api/crm/messages/expand-links'
     | '/api/crm/messages/provider-status'
     | '/api/crm/messages/test'
   fileRoutesById: FileRoutesById
@@ -560,6 +573,7 @@ export interface RootRouteChildren {
   ApiCrmAuthSetPasswordRoute: typeof ApiCrmAuthSetPasswordRoute
   ApiCrmFlowsRunRoute: typeof ApiCrmFlowsRunRoute
   ApiCrmFlowsTestLaunchRoute: typeof ApiCrmFlowsTestLaunchRoute
+  ApiCrmMessagesExpandLinksRoute: typeof ApiCrmMessagesExpandLinksRoute
   ApiCrmMessagesProviderStatusRoute: typeof ApiCrmMessagesProviderStatusRoute
   ApiCrmMessagesTestRoute: typeof ApiCrmMessagesTestRoute
 }
@@ -839,6 +853,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCrmFlowsTestLaunchRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/crm/messages/expand-links': {
+      id: '/api/crm/messages/expand-links'
+      path: '/api/crm/messages/expand-links'
+      fullPath: '/api/crm/messages/expand-links'
+      preLoaderRoute: typeof ApiCrmMessagesExpandLinksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/crm/messages/provider-status': {
       id: '/api/crm/messages/provider-status'
       path: '/api/crm/messages/provider-status'
@@ -896,6 +917,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCrmAuthSetPasswordRoute: ApiCrmAuthSetPasswordRoute,
   ApiCrmFlowsRunRoute: ApiCrmFlowsRunRoute,
   ApiCrmFlowsTestLaunchRoute: ApiCrmFlowsTestLaunchRoute,
+  ApiCrmMessagesExpandLinksRoute: ApiCrmMessagesExpandLinksRoute,
   ApiCrmMessagesProviderStatusRoute: ApiCrmMessagesProviderStatusRoute,
   ApiCrmMessagesTestRoute: ApiCrmMessagesTestRoute,
 }

@@ -294,7 +294,14 @@ function Editor({ me, initial, isNew }: { me: Me; initial: Draft; isNew: boolean
               <CircleCheck className="size-3.5" /> Pronta para usar nos fluxos.
             </p>
           )}
-          <FlowsUsing templateKey={isNew ? "" : d.key} value={flowName} onChange={setFlowName} />
+          {/kakauma\.com\.br/i.test(JSON.stringify(d.content)) ? (
+            <FlowsUsing templateKey={isNew ? "" : d.key} value={flowName} onChange={setFlowName} />
+          ) : (
+            <p className="text-[11px] text-muted-foreground">
+              Sem link para kakauma.com.br nesta mensagem. Quando tiver, o simulador mostra o link
+              com os UTMs (canal, nome do fluxo e nome da mensagem).
+            </p>
+          )}
           <Simulator
             channel={d.channel}
             content={d.content}
@@ -331,16 +338,19 @@ function useFlowsUsing(templateKey: string) {
     queryFn: async () => {
       const flows =
         await crmCall<{ key: string; name: string; status: string }[]>("crm_list_flows");
-      const out: string[] = [];
-      for (const f of flows.filter((x) => x.status !== "ARCHIVED")) {
-        const g = await crmCall<{
-          graph?: { nodes?: { config?: { template_key?: string } }[] };
-          published_graph?: { nodes?: { config?: { template_key?: string } }[] } | null;
-        }>("crm_get_flow", { p_key: f.key });
-        const nodes = [...(g.graph?.nodes ?? []), ...(g.published_graph?.nodes ?? [])];
-        if (nodes.some((n) => n.config?.template_key === templateKey)) out.push(f.name);
-      }
-      return out;
+      type Graph = { nodes?: { config?: { template_key?: string } }[] } | null | undefined;
+      const found = await Promise.all(
+        flows
+          .filter((x) => x.status !== "ARCHIVED")
+          .map(async (f) => {
+            const g = await crmCall<{ graph?: Graph; published_graph?: Graph }>("crm_get_flow", {
+              p_key: f.key,
+            }).catch(() => null);
+            const nodes = [...(g?.graph?.nodes ?? []), ...(g?.published_graph?.nodes ?? [])];
+            return nodes.some((n) => n.config?.template_key === templateKey) ? f.name : null;
+          }),
+      );
+      return found.filter((n): n is string => !!n);
     },
   });
 }
@@ -355,12 +365,18 @@ function FlowsUsing({
   value: string;
   onChange: (v: string) => void;
 }) {
-  const { data } = useFlowsUsing(templateKey);
+  const { data, isLoading } = useFlowsUsing(templateKey);
   useEffect(() => {
     if (data?.length && !data.includes(value)) onChange(data[0]!);
   }, [data, value, onChange]);
-  if (!templateKey || !data) return null;
-  if (!data.length)
+  if (!templateKey) return null;
+  if (isLoading)
+    return (
+      <p className="text-[11px] text-muted-foreground">
+        Procurando os fluxos que usam esta mensagem…
+      </p>
+    );
+  if (!data?.length)
     return (
       <p className="text-[11px] text-muted-foreground">
         Ainda não está em nenhum fluxo: nos links, utm_campaign aparece como nome_do_fluxo. No envio

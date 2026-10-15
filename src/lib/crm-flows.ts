@@ -62,7 +62,7 @@ export const NODE_META: Record<
   wait_event: {
     label: "Aguardar evento",
     tone: "bg-[oklch(0.75_0.12_78)] text-neutral-900",
-    what: "Espera o cliente fazer algo (ex.: pagar) até um prazo. Se acontecer, segue por “Aconteceu”; se o prazo acabar, por “Não aconteceu”.",
+    what: "Espera o cliente fazer algo (ex.: pagar) até um prazo. Se acontecer, segue por “Aconteceu”; se o prazo acabar, por “Não aconteceu”. Se já aconteceu depois que o cliente entrou no fluxo (ex.: rastreio que chegou antes desta etapa), segue na hora.",
     when: "Ideal para recuperação: só manda o lembrete seguinte para quem ainda não resolveu.",
     handles: { event: "Aconteceu", timeout: "Não aconteceu" },
   },

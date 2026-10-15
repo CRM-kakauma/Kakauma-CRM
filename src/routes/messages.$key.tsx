@@ -268,6 +268,11 @@ function Editor({ me, initial, isNew }: { me: Me; initial: Draft; isNew: boolean
               channel={d.channel}
               content={d.content}
               onChange={(c: Content) => setD((x) => ({ ...x, content: c }))}
+              utm={{
+                channel: d.channel,
+                campaign: utmSlug(flowName) || "nome_do_fluxo",
+                content: utmSlug(d.name) || "nome_da_mensagem",
+              }}
             />
           </fieldset>
         </div>

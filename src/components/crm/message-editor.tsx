@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { SmsMeter } from "@/components/crm/simulators";
+import { tagText, type UtmContext } from "@/lib/crm-utm";
 import { useCrm } from "@/lib/crm-api";
 import {
   EMAIL_HTML_MAX,
@@ -279,20 +280,23 @@ export function ChannelEditor({
   channel,
   content,
   onChange,
+  utm,
 }: {
   channel: Channel;
   content: Content;
   onChange: (c: Content) => void;
+  /** the UTMs links will get when sent, so SMS counters show the real size */
+  utm?: UtmContext | undefined;
 }) {
   switch (channel) {
     case "email":
       return <EmailEditor c={content as EmailContent} set={onChange} />;
     case "sms":
-      return <SmsEditor c={content as SmsContent} set={onChange} />;
+      return <SmsEditor c={content as SmsContent} set={onChange} utm={utm} />;
     case "whatsapp":
       return <WhatsappEditor c={content as WhatsappContent} set={onChange} />;
     case "rcs":
-      return <RcsEditor c={content as RcsContent} set={onChange} />;
+      return <RcsEditor c={content as RcsContent} set={onChange} utm={utm} />;
   }
 }
 
@@ -585,7 +589,32 @@ function HtmlField({ c, upd }: { c: EmailContent; upd: (p: Partial<EmailContent>
 
 // ------------------------------------------------------------------ SMS
 
-function SmsEditor({ c, set }: { c: SmsContent; set: (c: SmsContent) => void }) {
+/** SMS size as sent: store links already carrying their UTMs. */
+function SentSmsMeter({ text, utm }: { text: string; utm?: UtmContext | undefined }) {
+  const sent = utm ? tagText(text, utm) : text;
+  const extra = sent.length - text.length;
+  return (
+    <>
+      <SmsMeter info={smsInfo(sent)} />
+      {extra > 0 && (
+        <p className="text-[11px] text-muted-foreground">
+          Já conta +{extra} caracteres dos UTMs que o envio coloca no link do site (o nome do fluxo
+          pode mudar um pouco o tamanho). Para economizar, use um link curto já com os UTMs.
+        </p>
+      )}
+    </>
+  );
+}
+
+function SmsEditor({
+  c,
+  set,
+  utm,
+}: {
+  c: SmsContent;
+  set: (c: SmsContent) => void;
+  utm?: UtmContext | undefined;
+}) {
   return (
     <div className="space-y-3">
       <Field
@@ -594,7 +623,7 @@ function SmsEditor({ c, set }: { c: SmsContent; set: (c: SmsContent) => void }) 
       >
         <TextArea value={c.text} onChange={(v) => set({ text: v })} rows={6} />
       </Field>
-      <SmsMeter info={smsInfo(c.text)} />
+      <SentSmsMeter text={c.text} utm={utm} />
     </div>
   );
 }
@@ -754,7 +783,15 @@ function WhatsappEditor({ c, set }: { c: WhatsappContent; set: (c: WhatsappConte
 
 // ------------------------------------------------------------------ RCS
 
-function RcsEditor({ c, set }: { c: RcsContent; set: (c: RcsContent) => void }) {
+function RcsEditor({
+  c,
+  set,
+  utm,
+}: {
+  c: RcsContent;
+  set: (c: RcsContent) => void;
+  utm?: UtmContext | undefined;
+}) {
   const upd = (patch: Partial<RcsContent>) => set({ ...c, ...patch });
   const cards = c.cards ?? [];
   const sugg = c.suggestions ?? [];
@@ -940,7 +977,7 @@ function RcsEditor({ c, set }: { c: RcsContent; set: (c: RcsContent) => void }) 
       >
         <TextArea value={c.fallback_sms} onChange={(v) => upd({ fallback_sms: v })} rows={3} />
       </Field>
-      <SmsMeter info={smsInfo(c.fallback_sms)} />
+      <SentSmsMeter text={c.fallback_sms} utm={utm} />
     </div>
   );
 }

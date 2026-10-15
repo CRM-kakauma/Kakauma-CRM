@@ -3,6 +3,7 @@ import {
   ArrowDown,
   ArrowUp,
   Code,
+  Copy,
   FileUp,
   Heading,
   LayoutList,
@@ -26,7 +27,8 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { SmsMeter } from "@/components/crm/simulators";
-import { tagText, type UtmContext } from "@/lib/crm-utm";
+import { ownDomain, tagText, tagUrl, type UtmContext } from "@/lib/crm-utm";
+import { toast } from "sonner";
 import { useCrm } from "@/lib/crm-api";
 import {
   EMAIL_HTML_MAX,
@@ -589,6 +591,66 @@ function HtmlField({ c, upd }: { c: EmailContent; upd: (p: Partial<EmailContent>
 
 // ------------------------------------------------------------------ SMS
 
+/** Long store link with this message's UTMs, to copy into a link shortener. */
+function UtmLinkBuilder({ utm }: { utm?: UtmContext | undefined }) {
+  const [page, setPage] = useState("https://kakauma.com.br/");
+  if (!utm) return null;
+  let url = "";
+  let problem = "";
+  try {
+    const u = new URL(page.trim());
+    url = tagUrl(u.toString(), utm);
+    if (!ownDomain(u.hostname.toLowerCase())) problem = "Use um endereço do kakauma.com.br.";
+  } catch {
+    problem = "Cole o endereço completo da página (com https://).";
+  }
+  const noFlow = utm.campaign === "nome_do_fluxo";
+  return (
+    <div className="rounded-lg border border-dashed border-border p-3">
+      <p className="text-xs font-medium">Gerar link com UTM (para encurtar)</p>
+      <p className="mt-0.5 text-[11px] text-muted-foreground">
+        Cole a página do site. O link abaixo já tem canal ({utm.channel}), fluxo e mensagem: copie,
+        encurte (bit.ly etc.) e use o link curto no texto — o CRM não mexe em link curto.
+      </p>
+      <Input
+        value={page}
+        onChange={(e) => setPage(e.target.value)}
+        placeholder="https://kakauma.com.br/produto"
+        className="mt-2 h-8 text-xs"
+      />
+      {problem ? (
+        <p className="mt-2 text-[11px] text-destructive">{problem}</p>
+      ) : (
+        <div className="mt-2 flex items-start gap-2">
+          <code className="min-w-0 flex-1 break-all rounded bg-muted px-2 py-1.5 text-[11px]">
+            {url}
+          </code>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-7 shrink-0 text-xs"
+            onClick={() =>
+              void navigator.clipboard
+                .writeText(url)
+                .then(() => toast.success("Link copiado"))
+                .catch(() => toast.error("Não foi possível copiar; selecione e copie à mão"))
+            }
+          >
+            <Copy className="size-3.5" /> Copiar
+          </Button>
+        </div>
+      )}
+      {noFlow && (
+        <p className="mt-2 text-[11px] text-warning-foreground">
+          Esta mensagem ainda não está em nenhum fluxo: coloque-a no fluxo e volte aqui para o link
+          sair com o nome dele (ou escolha o fluxo em “Ver links como no fluxo”, ao lado).
+        </p>
+      )}
+    </div>
+  );
+}
+
 /** SMS size as sent: store links already carrying their UTMs. */
 function SentSmsMeter({ text, utm }: { text: string; utm?: UtmContext | undefined }) {
   const sent = utm ? tagText(text, utm) : text;
@@ -624,6 +686,7 @@ function SmsEditor({
         <TextArea value={c.text} onChange={(v) => set({ text: v })} rows={6} />
       </Field>
       <SentSmsMeter text={c.text} utm={utm} />
+      <UtmLinkBuilder utm={utm} />
     </div>
   );
 }
@@ -978,6 +1041,7 @@ function RcsEditor({
         <TextArea value={c.fallback_sms} onChange={(v) => upd({ fallback_sms: v })} rows={3} />
       </Field>
       <SentSmsMeter text={c.fallback_sms} utm={utm} />
+      <UtmLinkBuilder utm={utm} />
     </div>
   );
 }

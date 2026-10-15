@@ -46,6 +46,7 @@ import { Route as ApiCrmAuthLoginRouteImport } from './routes/api/crm/auth/login
 import { Route as ApiCrmAuthLogoutRouteImport } from './routes/api/crm/auth/logout'
 import { Route as ApiCrmAuthMeRouteImport } from './routes/api/crm/auth/me'
 import { Route as ApiCrmAuthSetPasswordRouteImport } from './routes/api/crm/auth/set-password'
+import { Route as ApiCrmFlowsRunRouteImport } from './routes/api/crm/flows/run'
 import { Route as ApiCrmFlowsTestLaunchRouteImport } from './routes/api/crm/flows/test-launch'
 import { Route as ApiCrmMessagesProviderStatusRouteImport } from './routes/api/crm/messages/provider-status'
 import { Route as ApiCrmMessagesTestRouteImport } from './routes/api/crm/messages/test'
@@ -235,6 +236,11 @@ const ApiCrmAuthSetPasswordRoute = ApiCrmAuthSetPasswordRouteImport.update({
   path: '/api/crm/auth/set-password',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCrmFlowsRunRoute = ApiCrmFlowsRunRouteImport.update({
+  id: '/api/crm/flows/run',
+  path: '/api/crm/flows/run',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiCrmFlowsTestLaunchRoute = ApiCrmFlowsTestLaunchRouteImport.update({
   id: '/api/crm/flows/test-launch',
   path: '/api/crm/flows/test-launch',
@@ -290,6 +296,7 @@ export interface FileRoutesByFullPath {
   '/api/crm/auth/logout': typeof ApiCrmAuthLogoutRoute
   '/api/crm/auth/me': typeof ApiCrmAuthMeRoute
   '/api/crm/auth/set-password': typeof ApiCrmAuthSetPasswordRoute
+  '/api/crm/flows/run': typeof ApiCrmFlowsRunRoute
   '/api/crm/flows/test-launch': typeof ApiCrmFlowsTestLaunchRoute
   '/api/crm/messages/provider-status': typeof ApiCrmMessagesProviderStatusRoute
   '/api/crm/messages/test': typeof ApiCrmMessagesTestRoute
@@ -332,6 +339,7 @@ export interface FileRoutesByTo {
   '/api/crm/auth/logout': typeof ApiCrmAuthLogoutRoute
   '/api/crm/auth/me': typeof ApiCrmAuthMeRoute
   '/api/crm/auth/set-password': typeof ApiCrmAuthSetPasswordRoute
+  '/api/crm/flows/run': typeof ApiCrmFlowsRunRoute
   '/api/crm/flows/test-launch': typeof ApiCrmFlowsTestLaunchRoute
   '/api/crm/messages/provider-status': typeof ApiCrmMessagesProviderStatusRoute
   '/api/crm/messages/test': typeof ApiCrmMessagesTestRoute
@@ -375,6 +383,7 @@ export interface FileRoutesById {
   '/api/crm/auth/logout': typeof ApiCrmAuthLogoutRoute
   '/api/crm/auth/me': typeof ApiCrmAuthMeRoute
   '/api/crm/auth/set-password': typeof ApiCrmAuthSetPasswordRoute
+  '/api/crm/flows/run': typeof ApiCrmFlowsRunRoute
   '/api/crm/flows/test-launch': typeof ApiCrmFlowsTestLaunchRoute
   '/api/crm/messages/provider-status': typeof ApiCrmMessagesProviderStatusRoute
   '/api/crm/messages/test': typeof ApiCrmMessagesTestRoute
@@ -419,6 +428,7 @@ export interface FileRouteTypes {
     | '/api/crm/auth/logout'
     | '/api/crm/auth/me'
     | '/api/crm/auth/set-password'
+    | '/api/crm/flows/run'
     | '/api/crm/flows/test-launch'
     | '/api/crm/messages/provider-status'
     | '/api/crm/messages/test'
@@ -461,6 +471,7 @@ export interface FileRouteTypes {
     | '/api/crm/auth/logout'
     | '/api/crm/auth/me'
     | '/api/crm/auth/set-password'
+    | '/api/crm/flows/run'
     | '/api/crm/flows/test-launch'
     | '/api/crm/messages/provider-status'
     | '/api/crm/messages/test'
@@ -503,6 +514,7 @@ export interface FileRouteTypes {
     | '/api/crm/auth/logout'
     | '/api/crm/auth/me'
     | '/api/crm/auth/set-password'
+    | '/api/crm/flows/run'
     | '/api/crm/flows/test-launch'
     | '/api/crm/messages/provider-status'
     | '/api/crm/messages/test'
@@ -546,6 +558,7 @@ export interface RootRouteChildren {
   ApiCrmAuthLogoutRoute: typeof ApiCrmAuthLogoutRoute
   ApiCrmAuthMeRoute: typeof ApiCrmAuthMeRoute
   ApiCrmAuthSetPasswordRoute: typeof ApiCrmAuthSetPasswordRoute
+  ApiCrmFlowsRunRoute: typeof ApiCrmFlowsRunRoute
   ApiCrmFlowsTestLaunchRoute: typeof ApiCrmFlowsTestLaunchRoute
   ApiCrmMessagesProviderStatusRoute: typeof ApiCrmMessagesProviderStatusRoute
   ApiCrmMessagesTestRoute: typeof ApiCrmMessagesTestRoute
@@ -812,6 +825,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCrmAuthSetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/crm/flows/run': {
+      id: '/api/crm/flows/run'
+      path: '/api/crm/flows/run'
+      fullPath: '/api/crm/flows/run'
+      preLoaderRoute: typeof ApiCrmFlowsRunRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/crm/flows/test-launch': {
       id: '/api/crm/flows/test-launch'
       path: '/api/crm/flows/test-launch'
@@ -874,6 +894,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCrmAuthLogoutRoute: ApiCrmAuthLogoutRoute,
   ApiCrmAuthMeRoute: ApiCrmAuthMeRoute,
   ApiCrmAuthSetPasswordRoute: ApiCrmAuthSetPasswordRoute,
+  ApiCrmFlowsRunRoute: ApiCrmFlowsRunRoute,
   ApiCrmFlowsTestLaunchRoute: ApiCrmFlowsTestLaunchRoute,
   ApiCrmMessagesProviderStatusRoute: ApiCrmMessagesProviderStatusRoute,
   ApiCrmMessagesTestRoute: ApiCrmMessagesTestRoute,

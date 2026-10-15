@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Copy, Plus, Workflow } from "lucide-react";
+import { Copy, Play, Plus, Workflow } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { ApiErrorBox, Empty, Loading, Pill, RequireAuth } from "@/components/crm/ui";
 import { Button } from "@/components/ui/button";
@@ -71,6 +71,7 @@ function Flows({ me }: { me: Me }) {
         description="Jornadas com várias etapas: um fato coloca o cliente no fluxo, que envia mensagens, espera, verifica condições e testa variações até a meta."
         help="fluxos"
       >
+        {canOperate(me) && <RunNow />}
         {canOperate(me) && (
           <Button asChild>
             <Link to="/flows/$key" params={{ key: "new" }}>
@@ -164,5 +165,54 @@ function Mini({ label: l, v }: { label: string; v: string }) {
       <p className="text-base font-semibold tabular-nums">{v}</p>
       <p className="text-[10px] text-muted-foreground">{l}</p>
     </div>
+  );
+}
+
+/** Advances every flow and sends what is due now, without waiting for the scheduled job. */
+function RunNow() {
+  const qc = useQueryClient();
+  const [busy, setBusy] = useState(false);
+  const run = async () => {
+    setBusy(true);
+    try {
+      const res = await fetch("/api/crm/flows/run", {
+        method: "POST",
+        credentials: "same-origin",
+      });
+      const b = (await res.json().catch(() => ({}))) as {
+        advanced?: number;
+        messages?: number;
+        sent?: number;
+        dry_run?: number;
+        skipped?: number;
+        failed?: number;
+        message?: string;
+        error?: string;
+      };
+      if (!res.ok) throw new Error(b.message ?? b.error ?? `HTTP ${res.status}`);
+      const parts = [
+        b.sent ? `${b.sent} enviada(s)` : "",
+        b.dry_run ? `${b.dry_run} em simulação` : "",
+        b.skipped ? `${b.skipped} ignorada(s)` : "",
+        b.failed ? `${b.failed} com falha` : "",
+      ].filter(Boolean);
+      toast.success("Fluxos processados", {
+        description: b.messages
+          ? `${b.advanced ?? 0} etapa(s) avançada(s); mensagens: ${parts.join(", ")}.`
+          : b.advanced
+            ? `${b.advanced} etapa(s) avançada(s); nenhuma mensagem para enviar agora.`
+            : "Nada pendente agora: quem está nos fluxos está esperando uma etapa de espera.",
+      });
+      void qc.invalidateQueries({ queryKey: ["crm"] });
+    } catch (e) {
+      toast.error("Não processou", { description: (e as Error).message });
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Button variant="outline" onClick={() => void run()} disabled={busy}>
+      <Play className="size-4" /> {busy ? "Processando…" : "Processar agora"}
+    </Button>
   );
 }

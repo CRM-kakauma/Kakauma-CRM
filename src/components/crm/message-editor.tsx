@@ -79,7 +79,14 @@ export function VariableBar() {
       {(
         [
           ["Cliente", VARIABLES.filter((v) => !v.group)],
-          ["Pedido (do evento da B4you que disparou o fluxo)", VARIABLES.filter((v) => v.group)],
+          [
+            "Pedido (do evento da B4you que disparou o fluxo)",
+            VARIABLES.filter((v) => v.group === "pedido"),
+          ],
+          [
+            "Rastreamento — links para kakauma.com.br já recebem os UTMs sozinhos no envio",
+            VARIABLES.filter((v) => v.group === "utm"),
+          ],
         ] as const
       ).map(([title, vars]) => (
         <div key={title} className="mt-2 first:mt-0">

@@ -9,6 +9,7 @@ import {
   type PushfyConfig,
 } from "./pushfy.ts";
 import { isEmail, resendSend, type ResendConfig } from "./resend.ts";
+import { tagRendered } from "../../lib/crm-utm.ts";
 
 /**
  * Flow worker: advances due flow enrollments, then delivers queued messages.
@@ -145,11 +146,19 @@ export async function runMessages(rpc: Rpc, opts: MessageOptions = {}) {
     m.customer = {
       ...(m.is_test && !Object.keys(order).length ? ORDER_SAMPLE : order),
       ...m.customer,
+      // for links written with their own tracking: {{canal}}, {{nome_fluxo}}, {{chave}}
+      canal: m.channel,
+      nome_fluxo: m.flow_key ?? "",
+      chave: m.template_key ?? "",
     };
     const rendered =
       m.channel === "team"
         ? { text: renderTemplate(m.team_text ?? "", m.customer) }
-        : renderMessage(m.channel, m.content as Content, m.customer);
+        : tagRendered(m.channel, renderMessage(m.channel, m.content as Content, m.customer), {
+            channel: m.channel,
+            campaign: m.flow_key,
+            content: m.template_key,
+          });
     const recipient =
       m.channel === "team"
         ? "equipe"

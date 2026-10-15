@@ -80,7 +80,7 @@ export const VARIABLES: {
   key: string;
   label: string;
   sample: string | number;
-  group?: "pedido";
+  group?: "pedido" | "utm";
 }[] = [
   { key: "first_name", label: "Primeiro nome", sample: "Maria" },
   { key: "full_name", label: "Nome completo", sample: "Maria Souza" },
@@ -117,6 +117,10 @@ export const VARIABLES: {
       ["next_charge_date", "Próxima cobrança", "14/11/2026"],
     ] as const
   ).map(([key, label, sample]) => ({ key, label, sample, group: "pedido" as const })),
+  // filled when sending; links to the store already get them as UTMs automatically
+  { key: "canal", label: "Canal (email, sms, rcs)", sample: "email", group: "utm" },
+  { key: "nome_fluxo", label: "Fluxo (chave)", sample: "compra_aprovada", group: "utm" },
+  { key: "chave", label: "Mensagem (chave)", sample: "email_compra_aprovada", group: "utm" },
 ];
 export const SAMPLE_CUSTOMER: Record<string, unknown> = Object.fromEntries(
   VARIABLES.map((v) => [v.key, v.sample]),

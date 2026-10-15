@@ -18,6 +18,7 @@ export const Route = createFileRoute("/api/crm/messages/test")({
         const { isEmail, resendSend } = await import("@/server/crm/resend");
         const { pushfyPlan, pushfySend, toPushfyNumber } = await import("@/server/crm/pushfy");
         const { renderMessage, SAMPLE_CUSTOMER } = await import("@/lib/crm-messages");
+        const { tagRendered } = await import("@/lib/crm-utm");
         try {
           const session = await getSession(request);
           if (!session) return json({ error: "unauthenticated" }, 401);
@@ -45,6 +46,9 @@ export const Route = createFileRoute("/api/crm/messages/test")({
             const c = await crmRpc("crm_message_customer", { p_customer_id: body.customer_id });
             if (c.data) vars = c.data as Record<string, unknown>;
           }
+          // store links get the same UTMs as a real send, with campaign "teste"
+          const utm = { channel: tpl.channel, campaign: "teste", content: tpl.key };
+          vars = { ...vars, canal: tpl.channel, nome_fluxo: "teste", chave: tpl.key };
           const rawTo = typeof body.to === "string" ? body.to.trim() : "";
           const { randomUUID } = await import("node:crypto");
           const audit = (to: string, ok: boolean, detail: string | null) =>
@@ -66,7 +70,11 @@ export const Route = createFileRoute("/api/crm/messages/test")({
                 "Configure RESEND_API_KEY e EMAIL_FROM na Vercel para enviar e-mails.",
               );
             if (!isEmail(rawTo)) return fail(400, "invalid_request", "Informe um e-mail válido.");
-            const e = renderMessage("email", tpl.content as never, vars) as {
+            const e = tagRendered(
+              "email",
+              renderMessage("email", tpl.content as never, vars),
+              utm,
+            ) as {
               subject: string;
               html: string;
               text: string;
@@ -102,7 +110,11 @@ export const Route = createFileRoute("/api/crm/messages/test")({
             return fail(400, "not_configured", "Configure PUSHFY_API_TOKEN na Vercel para enviar.");
           const to = toPushfyNumber(rawTo);
           if (!to) return fail(400, "invalid_request", "Informe um celular com DDD.");
-          const rendered = renderMessage(tpl.channel, tpl.content as never, vars);
+          const rendered = tagRendered(
+            tpl.channel,
+            renderMessage(tpl.channel, tpl.content as never, vars),
+            utm,
+          );
           const plan = pushfyPlan(tpl.channel, rendered);
           const sent = await pushfySend(cfg, plan.kind, {
             to,

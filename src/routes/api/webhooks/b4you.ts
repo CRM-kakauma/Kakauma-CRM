@@ -57,6 +57,11 @@ export const Route = createFileRoute("/api/webhooks/b4you")({
         const { ingestWebhook } = await import("@/server/crm/pipeline.server");
         try {
           const result = await ingestWebhook("b4you", await request.text());
+          // the flow this event starts sends its first message now, not at the next cron run
+          if (result.status < 300) {
+            const { runFlows } = await import("@/server/crm/pipeline.server");
+            await runFlows(50).catch((e) => console.error("[crm] flows after b4you event", e));
+          }
           return Response.json(result.body, { status: result.status });
         } catch (e) {
           // JSON 5xx: the B4you retries, nothing is lost

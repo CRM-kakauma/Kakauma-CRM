@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Archive, ArrowLeft, CircleAlert, CircleCheck } from "lucide-react";
 import { ApiErrorBox, Empty, Loading, RequireAuth } from "@/components/crm/ui";
@@ -98,6 +98,7 @@ function Editor({ me, initial, isNew }: { me: Me; initial: Draft; isNew: boolean
     label: "Cliente de exemplo",
   });
   const [errors, setErrors] = useState<string[] | null>(null);
+  const [flowName, setFlowName] = useState("");
   const dirty = JSON.stringify(d) !== JSON.stringify(initial);
 
   // Live check with the same rules the server applies on save.
@@ -293,11 +294,16 @@ function Editor({ me, initial, isNew }: { me: Me; initial: Draft; isNew: boolean
               <CircleCheck className="size-3.5" /> Pronta para usar nos fluxos.
             </p>
           )}
+          <FlowsUsing templateKey={isNew ? "" : d.key} value={flowName} onChange={setFlowName} />
           <Simulator
             channel={d.channel}
             content={d.content}
-            // the message's own name goes into utm_content; the flow is only known when sending
-            vars={{ ...vars.v, chave: utmSlug(d.name) || "nome_da_mensagem" }}
+            // links show the UTMs they will get: the flow chosen above and this message's name
+            vars={{
+              ...vars.v,
+              nome_fluxo: utmSlug(flowName) || "nome_do_fluxo",
+              chave: utmSlug(d.name) || "nome_da_mensagem",
+            }}
           />
           {!isNew && canEdit && d.channel !== "whatsapp" && (
             <TestSend
@@ -313,5 +319,76 @@ function Editor({ me, initial, isNew }: { me: Me; initial: Draft; isNew: boolean
         </div>
       </div>
     </>
+  );
+}
+
+/** Flows whose steps send this message (published or draft), for the UTM preview. */
+function useFlowsUsing(templateKey: string) {
+  return useQuery({
+    queryKey: ["crm", "flows-using", templateKey],
+    enabled: !!templateKey,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const flows =
+        await crmCall<{ key: string; name: string; status: string }[]>("crm_list_flows");
+      const out: string[] = [];
+      for (const f of flows.filter((x) => x.status !== "ARCHIVED")) {
+        const g = await crmCall<{
+          graph?: { nodes?: { config?: { template_key?: string } }[] };
+          published_graph?: { nodes?: { config?: { template_key?: string } }[] } | null;
+        }>("crm_get_flow", { p_key: f.key });
+        const nodes = [...(g.graph?.nodes ?? []), ...(g.published_graph?.nodes ?? [])];
+        if (nodes.some((n) => n.config?.template_key === templateKey)) out.push(f.name);
+      }
+      return out;
+    },
+  });
+}
+
+/** Which flow's name the preview puts in utm_campaign (the real send uses the flow that sends it). */
+function FlowsUsing({
+  templateKey,
+  value,
+  onChange,
+}: {
+  templateKey: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const { data } = useFlowsUsing(templateKey);
+  useEffect(() => {
+    if (data?.length && !data.includes(value)) onChange(data[0]!);
+  }, [data, value, onChange]);
+  if (!templateKey || !data) return null;
+  if (!data.length)
+    return (
+      <p className="text-[11px] text-muted-foreground">
+        Ainda não está em nenhum fluxo: nos links, utm_campaign aparece como nome_do_fluxo. No envio
+        entra o nome do fluxo que mandar.
+      </p>
+    );
+  if (data.length === 1)
+    return (
+      <p className="text-[11px] text-muted-foreground">
+        Usada no fluxo <span className="font-medium text-foreground">{data[0]}</span>: nos links,
+        utm_campaign={utmSlug(data[0])}.
+      </p>
+    );
+  return (
+    <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+      <span className="shrink-0">Ver links como no fluxo:</span>
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger className="h-7 min-w-0 text-xs [&>span]:truncate">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {data.map((n) => (
+            <SelectItem key={n} value={n}>
+              {n}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
   );
 }

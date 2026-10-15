@@ -23,6 +23,7 @@ import {
   type SmsContent,
   type WhatsappContent,
 } from "@/lib/crm-messages";
+import { tagRendered } from "@/lib/crm-utm";
 
 /**
  * Device simulators: they render exactly what the worker sends (same
@@ -31,6 +32,15 @@ import {
  */
 
 type Vars = Record<string, unknown>;
+
+/** What the worker sends: rendered, with the store links already carrying their UTMs. */
+function preview(channel: Channel, content: Content, vars: Vars) {
+  return tagRendered(channel, renderMessage(channel, content, vars), {
+    channel,
+    campaign: String(vars["nome_fluxo"] || "chave_do_fluxo"),
+    content: String(vars["chave"] || "chave_da_mensagem"),
+  });
+}
 
 export function Simulator({
   channel,
@@ -83,7 +93,7 @@ function Device({ children, bar, dark }: { children: ReactNode; bar?: ReactNode;
 
 function EmailSimulator({ content, vars }: { content: EmailContent; vars: Vars }) {
   const [mode, setMode] = useState<"desktop" | "mobile">("desktop");
-  const r = renderMessage("email", content, vars) as {
+  const r = preview("email", content, vars) as {
     subject: string;
     preheader: string;
     from_name: string;
@@ -170,7 +180,7 @@ function EmailSimulator({ content, vars }: { content: EmailContent; vars: Vars }
 // ------------------------------------------------------------------ SMS
 
 function SmsSimulator({ content, vars }: { content: SmsContent; vars: Vars }) {
-  const r = renderMessage("sms", content, vars) as { text: string };
+  const r = preview("sms", content, vars) as { text: string };
   const info = smsInfo(r.text);
   return (
     <div>
@@ -237,7 +247,7 @@ function waFormat(text: string): ReactNode[] {
 }
 
 function WhatsappSimulator({ content, vars }: { content: WhatsappContent; vars: Vars }) {
-  const r = renderMessage("whatsapp", content, vars) as {
+  const r = preview("whatsapp", content, vars) as {
     header: { type: string; text?: string; url?: string | null } | null;
     body: string;
     footer: string | null;
@@ -321,7 +331,7 @@ function WhatsappSimulator({ content, vars }: { content: WhatsappContent; vars: 
 
 function RcsSimulator({ content, vars }: { content: RcsContent; vars: Vars }) {
   const [fallback, setFallback] = useState(false);
-  const r = renderMessage("rcs", content, vars) as {
+  const r = preview("rcs", content, vars) as {
     kind: string;
     text: string | null;
     cards: { title: string; description: string; media_url: string | null; media_height: string }[];

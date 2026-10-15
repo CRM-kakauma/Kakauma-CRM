@@ -17,9 +17,16 @@ describe("UTM tracking", () => {
       "https://instagram.com/kakauma",
       "https://kakauma.com.br.golpe.com/x",
       "mailto:atendimento@kakauma.com.br",
-      "https://kakauma.com.br/?utm_source=manual",
     ])
       assert.equal(tagUrl(other, ctx), other);
+    // old hand-written UTMs (even broken ones) are replaced; other parameters stay
+    assert.equal(
+      tagUrl(
+        "https://kakauma.com.br/?utm_source=&utm_medium=crm&utm_campaign=x&utm_content=&utm_term=sono&cupom=A",
+        ctx,
+      ),
+      `https://kakauma.com.br/?utm_term=sono&cupom=A&${UTM}`,
+    );
   });
 
   test("HTML: only <a href>, keeping &amp; and images untouched", () => {

@@ -84,7 +84,7 @@ export function VariableBar() {
             VARIABLES.filter((v) => v.group === "pedido"),
           ],
           [
-            "Rastreamento — links para kakauma.com.br já recebem os UTMs sozinhos no envio",
+            "Rastreamento — links para kakauma.com.br recebem os UTMs sozinhos (também os já escritos)",
             VARIABLES.filter((v) => v.group === "utm"),
           ],
         ] as const

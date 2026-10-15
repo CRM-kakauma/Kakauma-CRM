@@ -2,8 +2,9 @@
  * UTM tracking on links to the store, added when a message is sent:
  *   utm_source = channel (email, sms, rcs, whatsapp), utm_medium = crm,
  *   utm_campaign = flow key, utm_content = message key.
- * Only links to our own domains are tagged, and a link that already has any
- * utm_ parameter is left exactly as written (manual tracking wins).
+ * Only links to our own domains are tagged. These four always follow the rule,
+ * replacing any value written by hand (old links keep working); other
+ * parameters, utm_term and utm_id included, stay as written.
  */
 
 import { smsInfo } from "./crm-messages.ts";
@@ -28,7 +29,8 @@ export function tagUrl(url: string, ctx: UtmContext): string {
     return url;
   }
   if (!/^https?:$/.test(u.protocol) || !ownDomain(u.hostname.toLowerCase())) return url;
-  if ([...u.searchParams.keys()].some((k) => k.toLowerCase().startsWith("utm_"))) return url;
+  for (const k of [...u.searchParams.keys()])
+    if (/^utm_(source|medium|campaign|content)$/i.test(k)) u.searchParams.delete(k);
   u.searchParams.set("utm_source", ctx.channel);
   u.searchParams.set("utm_medium", "crm");
   if (ctx.campaign) u.searchParams.set("utm_campaign", ctx.campaign);

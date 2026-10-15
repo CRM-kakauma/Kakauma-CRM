@@ -37,8 +37,8 @@ type Vars = Record<string, unknown>;
 function preview(channel: Channel, content: Content, vars: Vars) {
   return tagRendered(channel, renderMessage(channel, content, vars), {
     channel,
-    campaign: String(vars["nome_fluxo"] || "chave_do_fluxo"),
-    content: String(vars["chave"] || "chave_da_mensagem"),
+    campaign: String(vars["nome_fluxo"] || "nome_do_fluxo"),
+    content: String(vars["chave"] || "nome_da_mensagem"),
   });
 }
 

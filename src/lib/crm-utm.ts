@@ -1,7 +1,8 @@
 /**
  * UTM tracking on links to the store, added when a message is sent:
  *   utm_source = channel (email, sms, rcs, whatsapp), utm_medium = crm,
- *   utm_campaign = flow key, utm_content = message key.
+ *   utm_campaign = flow name, utm_content = message name — as link-friendly
+ *   words ("Compra aprovada" → compra_aprovada).
  * Only links to our own domains are tagged. These four always follow the rule,
  * replacing any value written by hand (old links keep working); other
  * parameters, utm_term and utm_id included, stay as written.
@@ -11,13 +12,24 @@ import { smsInfo } from "./crm-messages.ts";
 
 export interface UtmContext {
   channel: string;
-  /** flow key (or "teste" for a test send) */
+  /** flow name as a UTM value (or "teste" for a test send) */
   campaign: string | null;
-  /** message (template) key */
+  /** message name as a UTM value */
   content: string | null;
 }
 
 export const UTM_DOMAINS = ["kakauma.com.br"];
+
+/** A name as a UTM value: no accents, lowercase, words joined by "_". */
+export function utmSlug(name: string | null | undefined): string {
+  return (name ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 80);
+}
 
 export const ownDomain = (host: string) =>
   UTM_DOMAINS.some((d) => host === d || host.endsWith(`.${d}`));

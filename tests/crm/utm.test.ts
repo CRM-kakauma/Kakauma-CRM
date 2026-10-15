@@ -1,12 +1,19 @@
 /** UTM tracking added to store links when a message is sent. */
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
-import { tagHtml, tagRendered, tagText, tagUrl } from "../../src/lib/crm-utm.ts";
+import { tagHtml, tagRendered, tagText, tagUrl, utmSlug } from "../../src/lib/crm-utm.ts";
 
 const ctx = { channel: "email", campaign: "compra_aprovada", content: "email_compra" };
 const UTM = "utm_source=email&utm_medium=crm&utm_campaign=compra_aprovada&utm_content=email_compra";
 
 describe("UTM tracking", () => {
+  test("names become link-friendly values", () => {
+    assert.equal(utmSlug("Compra aprovada"), "compra_aprovada");
+    assert.equal(utmSlug("E-mail: Pedido Saiu para entrega!"), "e_mail_pedido_saiu_para_entrega");
+    assert.equal(utmSlug("1 Lata - Kakauma (Sleep Drink)"), "1_lata_kakauma_sleep_drink");
+    assert.equal(utmSlug("Ação ñ"), "acao_n");
+  });
+
   test("store links get the four parameters; others stay as written", () => {
     assert.equal(tagUrl("https://kakauma.com.br/", ctx), `https://kakauma.com.br/?${UTM}`);
     assert.equal(

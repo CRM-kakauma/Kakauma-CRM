@@ -6,6 +6,7 @@ import { Archive, ArrowLeft, CircleAlert, CircleCheck } from "lucide-react";
 import { ApiErrorBox, Empty, Loading, RequireAuth } from "@/components/crm/ui";
 import { ChannelEditor, PreviewAs, VariableBar } from "@/components/crm/message-editor";
 import { Simulator } from "@/components/crm/simulators";
+import { utmSlug } from "@/lib/crm-utm";
 import { TestSend } from "@/components/crm/channels";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -292,7 +293,12 @@ function Editor({ me, initial, isNew }: { me: Me; initial: Draft; isNew: boolean
               <CircleCheck className="size-3.5" /> Pronta para usar nos fluxos.
             </p>
           )}
-          <Simulator channel={d.channel} content={d.content} vars={vars.v} />
+          <Simulator
+            channel={d.channel}
+            content={d.content}
+            // the message's own name goes into utm_content; the flow is only known when sending
+            vars={{ ...vars.v, chave: utmSlug(d.name) || "nome_da_mensagem" }}
+          />
           {!isNew && canEdit && d.channel !== "whatsapp" && (
             <TestSend
               templateKey={d.key}

@@ -119,8 +119,13 @@ export const VARIABLES: {
   ).map(([key, label, sample]) => ({ key, label, sample, group: "pedido" as const })),
   // filled when sending; links to the store already get them as UTMs automatically
   { key: "canal", label: "Canal (email, sms, rcs)", sample: "email", group: "utm" },
-  { key: "nome_fluxo", label: "Fluxo (chave)", sample: "chave_do_fluxo", group: "utm" },
-  { key: "chave", label: "Mensagem (chave)", sample: "chave_da_mensagem", group: "utm" },
+  {
+    key: "nome_fluxo",
+    label: "Nome do fluxo (ex.: compra_aprovada)",
+    sample: "nome_do_fluxo",
+    group: "utm",
+  },
+  { key: "chave", label: "Nome da mensagem", sample: "nome_da_mensagem", group: "utm" },
 ];
 export const SAMPLE_CUSTOMER: Record<string, unknown> = Object.fromEntries(
   VARIABLES.map((v) => [v.key, v.sample]),

@@ -32,6 +32,7 @@ const SUMMARY = [
   "TOTAL {{order_total}}",
   "DATA {{order_date}}",
   "CUPOM {{coupon_code}}",
+  '<a href="https://kakauma.com.br/?utm_source=sms&utm_content={{USER_ID}}">Loja</a>',
 ].join("<br>");
 
 describe("Order variables", { skip: !sql && "CRM_TEST_DATABASE_URL not set" }, () => {
@@ -114,6 +115,11 @@ describe("Order variables", { skip: !sql && "CRM_TEST_DATABASE_URL not set" }, (
     ])
       assert.ok(r.text.includes(part), `${part} in ${r.text}`);
     assert.match(r.text, /DATA \d\d\/\d\d\/\d{4}/);
+    // store link: UTMs with the flow's and the message's names
+    assert.match(
+      r.html,
+      /href="https:\/\/kakauma\.com\.br\/\?utm_source=email&amp;utm_medium=crm&amp;utm_campaign=ov_paid&amp;utm_content=resumo_do_pedido"/,
+    );
   });
 
   test("an abandoned checkout brings its link and product, not an older order", async () => {

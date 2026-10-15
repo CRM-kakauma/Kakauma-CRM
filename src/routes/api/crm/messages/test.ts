@@ -18,7 +18,7 @@ export const Route = createFileRoute("/api/crm/messages/test")({
         const { isEmail, resendSend } = await import("@/server/crm/resend");
         const { pushfyPlan, pushfySend, toPushfyNumber } = await import("@/server/crm/pushfy");
         const { renderMessage, SAMPLE_CUSTOMER } = await import("@/lib/crm-messages");
-        const { tagRendered } = await import("@/lib/crm-utm");
+        const { tagRendered, utmSlug } = await import("@/lib/crm-utm");
         try {
           const session = await getSession(request);
           if (!session) return json({ error: "unauthenticated" }, 401);
@@ -37,7 +37,7 @@ export const Route = createFileRoute("/api/crm/messages/test")({
           const list = await crmRpc("crm_list_templates", { p_include_archived: true });
           if (list.error) throw new Error(list.error.message);
           const tpl = (
-            (list.data ?? []) as { key: string; channel: string; content: unknown }[]
+            (list.data ?? []) as { key: string; name: string; channel: string; content: unknown }[]
           ).find((t) => t.key === body.template_key);
           if (!tpl) return fail(404, "not_found", "Mensagem não encontrada.");
 
@@ -47,8 +47,12 @@ export const Route = createFileRoute("/api/crm/messages/test")({
             if (c.data) vars = c.data as Record<string, unknown>;
           }
           // store links get the same UTMs as a real send, with campaign "teste"
-          const utm = { channel: tpl.channel, campaign: "teste", content: tpl.key };
-          vars = { ...vars, canal: tpl.channel, nome_fluxo: "teste", chave: tpl.key };
+          const utm = {
+            channel: tpl.channel,
+            campaign: "teste",
+            content: utmSlug(tpl.name) || tpl.key,
+          };
+          vars = { ...vars, canal: tpl.channel, nome_fluxo: "teste", chave: utm.content };
           const rawTo = typeof body.to === "string" ? body.to.trim() : "";
           const { randomUUID } = await import("node:crypto");
           const audit = (to: string, ok: boolean, detail: string | null) =>

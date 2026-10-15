@@ -9,7 +9,7 @@ import {
   type PushfyConfig,
 } from "./pushfy.ts";
 import { isEmail, resendSend, type ResendConfig } from "./resend.ts";
-import { tagRendered } from "../../lib/crm-utm.ts";
+import { tagRendered, utmSlug } from "../../lib/crm-utm.ts";
 
 /**
  * Flow worker: advances due flow enrollments, then delivers queued messages.
@@ -127,6 +127,20 @@ async function messageVars(rpc: Rpc, msgs: ClaimedMessage[]) {
   return map;
 }
 
+/** Flow and message names for the UTMs (keys stand in if the lists cannot be read). */
+async function utmNames(rpc: Rpc, msgs: ClaimedMessage[]) {
+  const flows = new Map<string, string>();
+  const templates = new Map<string, string>();
+  if (!msgs.some((m) => m.channel !== "team")) return { flows, templates };
+  const [f, t] = await Promise.all([
+    rpc("crm_list_flows", {}),
+    rpc("crm_list_templates", { p_include_archived: true }),
+  ]);
+  for (const r of (f.data ?? []) as { key: string; name: string }[]) flows.set(r.key, r.name);
+  for (const r of (t.data ?? []) as { key: string; name: string }[]) templates.set(r.key, r.name);
+  return { flows, templates };
+}
+
 export async function runMessages(rpc: Rpc, opts: MessageOptions = {}) {
   // never holds up the queue (e.g. the database update with this function not applied yet)
   const fallbacks = await runRcsFallbacks(rpc, opts).catch((e: Error) => {
@@ -139,26 +153,29 @@ export async function runMessages(rpc: Rpc, opts: MessageOptions = {}) {
   const doFetch = opts.fetchImpl ?? fetch;
   const claimed = (data ?? []) as ClaimedMessage[];
   const orderVars = await messageVars(rpc, claimed);
+  const names = await utmNames(rpc, claimed);
 
   for (const m of claimed) {
     // order data ({{order_number}}, {{product_name}}…); a test contact without orders gets the samples
     const order = orderVars.get(m.message_id) ?? {};
+    // UTM values: the flow's and the message's names (keys when a name is missing)
+    const utm = {
+      channel: m.channel,
+      campaign: utmSlug(names.flows.get(m.flow_key ?? "") ?? m.flow_key) || null,
+      content: utmSlug(names.templates.get(m.template_key ?? "") ?? m.template_key) || null,
+    };
     m.customer = {
       ...(m.is_test && !Object.keys(order).length ? ORDER_SAMPLE : order),
       ...m.customer,
       // for links written with their own tracking: {{canal}}, {{nome_fluxo}}, {{chave}}
       canal: m.channel,
-      nome_fluxo: m.flow_key ?? "",
-      chave: m.template_key ?? "",
+      nome_fluxo: utm.campaign ?? "",
+      chave: utm.content ?? "",
     };
     const rendered =
       m.channel === "team"
         ? { text: renderTemplate(m.team_text ?? "", m.customer) }
-        : tagRendered(m.channel, renderMessage(m.channel, m.content as Content, m.customer), {
-            channel: m.channel,
-            campaign: m.flow_key,
-            content: m.template_key,
-          });
+        : tagRendered(m.channel, renderMessage(m.channel, m.content as Content, m.customer), utm);
     const recipient =
       m.channel === "team"
         ? "equipe"

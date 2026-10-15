@@ -42,6 +42,8 @@ export function tagUrl(url: string, ctx: UtmContext): string {
     return url;
   }
   if (!/^https?:$/.test(u.protocol) || !ownDomain(u.hostname.toLowerCase())) return url;
+  // a CRM short link (/l/<code>, e.g. on a kakauma.com.br subdomain) already carries its UTMs
+  if (/^\/l\/[A-Za-z0-9]{4,12}\/?$/.test(u.pathname)) return url;
   for (const k of [...u.searchParams.keys()])
     if (/^utm_(source|medium|campaign|content)$/i.test(k)) u.searchParams.delete(k);
   u.searchParams.set("utm_source", ctx.channel);

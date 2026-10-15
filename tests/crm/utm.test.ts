@@ -26,6 +26,11 @@ describe("UTM tracking", () => {
       "mailto:atendimento@kakauma.com.br",
     ])
       assert.equal(tagUrl(other, ctx), other);
+    // a CRM short link on a store subdomain keeps its own UTMs
+    assert.equal(
+      tagUrl("https://k.kakauma.com.br/l/Ab3xY9", ctx),
+      "https://k.kakauma.com.br/l/Ab3xY9",
+    );
     // old hand-written UTMs (even broken ones) are replaced; other parameters stay
     assert.equal(
       tagUrl(

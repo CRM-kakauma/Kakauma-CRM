@@ -5,6 +5,7 @@ import {
   Code,
   Copy,
   FileUp,
+  Link2,
   Heading,
   LayoutList,
   Image as ImageIcon,
@@ -29,7 +30,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { SmsMeter } from "@/components/crm/simulators";
 import { ownDomain, tagText, tagUrl, type UtmContext } from "@/lib/crm-utm";
 import { toast } from "sonner";
-import { useCrm } from "@/lib/crm-api";
+import { crmCall, useCrm } from "@/lib/crm-api";
 import {
   EMAIL_HTML_MAX,
   SAMPLE_CUSTOMER,
@@ -594,6 +595,8 @@ function HtmlField({ c, upd }: { c: EmailContent; upd: (p: Partial<EmailContent>
 /** Long store link with this message's UTMs, to copy into a link shortener. */
 function UtmLinkBuilder({ utm }: { utm?: UtmContext | undefined }) {
   const [page, setPage] = useState("https://kakauma.com.br/");
+  const [short, setShort] = useState<{ long: string; url: string } | null>(null);
+  const [busy, setBusy] = useState(false);
   if (!utm) return null;
   let url = "";
   let problem = "";
@@ -605,12 +608,33 @@ function UtmLinkBuilder({ utm }: { utm?: UtmContext | undefined }) {
     problem = "Cole o endereço completo da página (com https://).";
   }
   const noFlow = utm.campaign === "nome_do_fluxo";
+  const copy = (text: string) =>
+    void navigator.clipboard
+      .writeText(text)
+      .then(() => toast.success("Link copiado"))
+      .catch(() => toast.error("Não foi possível copiar; selecione e copie à mão"));
+  const shorten = async () => {
+    setBusy(true);
+    try {
+      const r = await crmCall<{ code: string }>("crm_create_short_link", { p_url: url });
+      // VITE_SHORT_LINK_BASE: a short domain of yours pointing to this CRM (e.g. https://k.kakauma.com.br)
+      const base =
+        (import.meta.env["VITE_SHORT_LINK_BASE"] as string | undefined)?.replace(/\/+$/, "") ||
+        window.location.origin;
+      setShort({ long: url, url: `${base}/l/${r.code}` });
+    } catch (e) {
+      toast.error("Não encurtou", { description: (e as Error).message });
+    } finally {
+      setBusy(false);
+    }
+  };
   return (
     <div className="rounded-lg border border-dashed border-border p-3">
       <p className="text-xs font-medium">Gerar link com UTM (para encurtar)</p>
       <p className="mt-0.5 text-[11px] text-muted-foreground">
-        Cole a página do site. O link abaixo já tem canal ({utm.channel}), fluxo e mensagem: copie,
-        encurte (bit.ly etc.) e use o link curto no texto — o CRM não mexe em link curto.
+        Cole a página do site. O link abaixo já tem canal ({utm.channel}), fluxo e mensagem. Clique
+        em “Encurtar” e use o link curto no texto (ou copie o longo para outro encurtador) — o CRM
+        não mexe em link curto.
       </p>
       <Input
         value={page}
@@ -630,14 +654,34 @@ function UtmLinkBuilder({ utm }: { utm?: UtmContext | undefined }) {
             size="sm"
             variant="outline"
             className="h-7 shrink-0 text-xs"
-            onClick={() =>
-              void navigator.clipboard
-                .writeText(url)
-                .then(() => toast.success("Link copiado"))
-                .catch(() => toast.error("Não foi possível copiar; selecione e copie à mão"))
-            }
+            onClick={() => copy(url)}
           >
             <Copy className="size-3.5" /> Copiar
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            className="h-7 shrink-0 text-xs"
+            disabled={busy}
+            onClick={() => void shorten()}
+          >
+            <Link2 className="size-3.5" /> {busy ? "Encurtando…" : "Encurtar"}
+          </Button>
+        </div>
+      )}
+      {!problem && short?.long === url && (
+        <div className="mt-2 flex items-center gap-2">
+          <code className="min-w-0 flex-1 break-all rounded bg-primary-soft px-2 py-1.5 text-xs font-medium text-primary">
+            {short.url}
+          </code>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-7 shrink-0 text-xs"
+            onClick={() => copy(short.url)}
+          >
+            <Copy className="size-3.5" /> Copiar curto
           </Button>
         </div>
       )}

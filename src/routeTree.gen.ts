@@ -32,6 +32,7 @@ import { Route as FlowsIndexRouteImport } from './routes/flows.index'
 import { Route as FlowsKeyRouteImport } from './routes/flows.$key'
 import { Route as HelpIndexRouteImport } from './routes/help.index'
 import { Route as HelpSlugRouteImport } from './routes/help.$slug'
+import { Route as LCodeRouteImport } from './routes/l.$code'
 import { Route as MessagesIndexRouteImport } from './routes/messages.index'
 import { Route as MessagesKeyRouteImport } from './routes/messages.$key'
 import { Route as ApiCrmChannelsRouteImport } from './routes/api/crm/channels'
@@ -167,6 +168,11 @@ const HelpSlugRoute = HelpSlugRouteImport.update({
   path: '/help/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LCodeRoute = LCodeRouteImport.update({
+  id: '/l/$code',
+  path: '/l/$code',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MessagesIndexRoute = MessagesIndexRouteImport.update({
   id: '/messages/',
   path: '/messages/',
@@ -285,6 +291,7 @@ export interface FileRoutesByFullPath {
   '/customers/$customerId': typeof CustomersCustomerIdRoute
   '/flows/$key': typeof FlowsKeyRoute
   '/help/$slug': typeof HelpSlugRoute
+  '/l/$code': typeof LCodeRoute
   '/messages/$key': typeof MessagesKeyRoute
   '/api/': typeof ApiIndexRoute
   '/customers/': typeof CustomersIndexRoute
@@ -329,6 +336,7 @@ export interface FileRoutesByTo {
   '/customers/$customerId': typeof CustomersCustomerIdRoute
   '/flows/$key': typeof FlowsKeyRoute
   '/help/$slug': typeof HelpSlugRoute
+  '/l/$code': typeof LCodeRoute
   '/messages/$key': typeof MessagesKeyRoute
   '/api': typeof ApiIndexRoute
   '/customers': typeof CustomersIndexRoute
@@ -374,6 +382,7 @@ export interface FileRoutesById {
   '/customers/$customerId': typeof CustomersCustomerIdRoute
   '/flows/$key': typeof FlowsKeyRoute
   '/help/$slug': typeof HelpSlugRoute
+  '/l/$code': typeof LCodeRoute
   '/messages/$key': typeof MessagesKeyRoute
   '/api/': typeof ApiIndexRoute
   '/customers/': typeof CustomersIndexRoute
@@ -420,6 +429,7 @@ export interface FileRouteTypes {
     | '/customers/$customerId'
     | '/flows/$key'
     | '/help/$slug'
+    | '/l/$code'
     | '/messages/$key'
     | '/api/'
     | '/customers/'
@@ -464,6 +474,7 @@ export interface FileRouteTypes {
     | '/customers/$customerId'
     | '/flows/$key'
     | '/help/$slug'
+    | '/l/$code'
     | '/messages/$key'
     | '/api'
     | '/customers'
@@ -508,6 +519,7 @@ export interface FileRouteTypes {
     | '/customers/$customerId'
     | '/flows/$key'
     | '/help/$slug'
+    | '/l/$code'
     | '/messages/$key'
     | '/api/'
     | '/customers/'
@@ -553,6 +565,7 @@ export interface RootRouteChildren {
   CustomersCustomerIdRoute: typeof CustomersCustomerIdRoute
   FlowsKeyRoute: typeof FlowsKeyRoute
   HelpSlugRoute: typeof HelpSlugRoute
+  LCodeRoute: typeof LCodeRoute
   MessagesKeyRoute: typeof MessagesKeyRoute
   ApiIndexRoute: typeof ApiIndexRoute
   CustomersIndexRoute: typeof CustomersIndexRoute
@@ -741,6 +754,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HelpSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/l/$code': {
+      id: '/l/$code'
+      path: '/l/$code'
+      fullPath: '/l/$code'
+      preLoaderRoute: typeof LCodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/messages/': {
       id: '/messages/'
       path: '/messages'
@@ -897,6 +917,7 @@ const rootRouteChildren: RootRouteChildren = {
   CustomersCustomerIdRoute: CustomersCustomerIdRoute,
   FlowsKeyRoute: FlowsKeyRoute,
   HelpSlugRoute: HelpSlugRoute,
+  LCodeRoute: LCodeRoute,
   MessagesKeyRoute: MessagesKeyRoute,
   ApiIndexRoute: ApiIndexRoute,
   CustomersIndexRoute: CustomersIndexRoute,

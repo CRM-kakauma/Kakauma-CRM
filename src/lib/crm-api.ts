@@ -136,7 +136,7 @@ export const FACT_LABEL: Record<string, string> = {
   SUBSCRIPTION_EXPIRED: "Assinatura expirada",
   SUBSCRIPTION_REACTIVATED: "Assinatura reativada",
   SUBSCRIPTION_SAVED: "Retido (desistiu de cancelar)",
-  SUBSCRIPTION_EXPIRING_SOON: "Assinatura expirando",
+  SUBSCRIPTION_EXPIRING_SOON: "Aviso de próxima cobrança (assinatura)",
   LIFECYCLE_CHANGED: "Mudou de etapa",
   RISK_CHANGED: "Mudou de risco",
   SEGMENT_ENTERED: "Entrou em segmento",

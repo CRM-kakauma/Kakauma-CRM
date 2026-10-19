@@ -19,6 +19,8 @@ interface Channels {
   };
   email?: { configured: boolean; provider?: string; live?: boolean; from?: string };
   webhook: { configured: boolean };
+  /** store links become <base>/l/<code> when sent (e-mail only with a domain of the brand) */
+  link_tracking?: { base: string; email: boolean } | null;
 }
 
 async function getJson<T>(url: string, init?: RequestInit): Promise<T> {

@@ -9,7 +9,7 @@ import {
   type PushfyConfig,
 } from "./pushfy.ts";
 import { isEmail, resendSend, type ResendConfig } from "./resend.ts";
-import { tagRendered, utmSlug } from "../../lib/crm-utm.ts";
+import { mapRenderedLinks, storeLinks, tagRendered, utmSlug } from "../../lib/crm-utm.ts";
 
 /**
  * Flow worker: advances due flow enrollments, then delivers queued messages.
@@ -47,6 +47,8 @@ export interface MessageOptions {
   resend?: (ResendConfig & { live: boolean }) | undefined;
   webhookUrl?: string | undefined;
   webhookSecret?: string | undefined;
+  /** click tracking: links become <base>/l/<code>; e-mail only with a domain of the brand */
+  links?: { base: string; email: boolean } | undefined;
   fetchImpl?: typeof fetch;
 }
 
@@ -127,6 +129,28 @@ async function messageVars(rpc: Rpc, msgs: ClaimedMessage[]) {
   return map;
 }
 
+/**
+ * Each store link of the message becomes a CRM link that counts the click (per message and
+ * customer) and then opens the store page. Without the database function: links as they are.
+ */
+async function trackLinks<T>(
+  rpc: Rpc,
+  messageId: string,
+  channel: string,
+  rendered: T,
+  base: string,
+) {
+  const urls = storeLinks(channel, rendered);
+  if (!urls.length) return rendered;
+  const { data, error } = await rpc("crm_track_links", { p_message_id: messageId, p_urls: urls });
+  if (error || !data) {
+    if (error) console.error("[crm] click tracking", error.message);
+    return rendered;
+  }
+  const codes = data as Record<string, string>;
+  return mapRenderedLinks(channel, rendered, (u) => (codes[u] ? `${base}/l/${codes[u]}` : u));
+}
+
 /** Flow and message names for the UTMs (keys stand in if the lists cannot be read). */
 async function utmNames(rpc: Rpc, msgs: ClaimedMessage[]) {
   const flows = new Map<string, string>();
@@ -172,10 +196,19 @@ export async function runMessages(rpc: Rpc, opts: MessageOptions = {}) {
       nome_fluxo: utm.campaign ?? "",
       chave: utm.content ?? "",
     };
-    const rendered =
+    let rendered =
       m.channel === "team"
         ? { text: renderTemplate(m.team_text ?? "", m.customer) }
         : tagRendered(m.channel, renderMessage(m.channel, m.content as Content, m.customer), utm);
+    // store links become CRM click links (/l/<code>) when the message really goes out
+    const goesOut =
+      m.channel === "email"
+        ? !!opts.resend && (opts.resend.live || !!m.is_test)
+        : (m.channel === "sms" || m.channel === "rcs") &&
+          !!opts.pushfy &&
+          (opts.pushfy.live || !!m.is_test);
+    if (goesOut && opts.links && (m.channel !== "email" || opts.links.email))
+      rendered = await trackLinks(rpc, m.message_id, m.channel, rendered, opts.links.base);
     const recipient =
       m.channel === "team"
         ? "equipe"

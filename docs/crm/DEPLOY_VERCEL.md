@@ -115,6 +115,13 @@ Descadastros: quem responde PARAR/SAIR é bloqueado pela própria Pushfy e o wor
 (`/apircs`, imagem + um botão de link), RCS de texto pelo Basic (`/apircsbasic`); carrossel vai como o primeiro
 cartão. WhatsApp continua em simulação até a documentação desse canal.
 
+Rastreio de cliques: no envio, cada link do site vira um link do CRM (`/l/<código>`) que conta o
+clique (por mensagem e cliente, aparece em **Resultados**) e leva à página com os UTMs. Sem configurar
+nada, vale para SMS e RCS usando o endereço da Vercel. Para valer também no e-mail, crie um subdomínio
+seu (ex.: `k.kakauma.com.br`) em **Settings → Domains** apontando para este projeto e coloque
+`CRM_LINK_BASE=https://k.kakauma.com.br` (e `VITE_SHORT_LINK_BASE` com o mesmo valor, para o botão
+“Encurtar”). `CRM_LINK_TRACKING=false` desliga.
+
 Status de entrega e respostas: crie `PUSHFY_WEBHOOK_TOKEN` (senha aleatória) na Vercel e cadastre no painel da
 Pushfy a URL `https://kakauma-crm.vercel.app/api/webhooks/pushfy?token=VALOR`. Abrir essa URL no navegador
 mostra se o token está certo. Com ela, o CRM mostra "entregue", "clicou", "não entregue" etc. em cada mensagem,

@@ -150,7 +150,7 @@ function Results() {
             <Stat
               label="Cliques"
               value={count(t.clicks)}
-              hint={`${share(t.clicks, t.sent)} das mensagens · links curtos e RCS`}
+              hint={`${share(t.clicks, t.sent)} das mensagens · links do CRM e RCS`}
             />
             <Stat
               label="Receita influenciada"
@@ -228,9 +228,11 @@ function Results() {
               checkout.
             </p>
             <p>
-              <span className="font-medium text-foreground">Cliques</span>: links curtos do CRM (a
-              partir desta atualização) e cliques em RCS avisados pela Pushfy. Cliques em links
-              longos de e-mail aparecem no Google Analytics.
+              <span className="font-medium text-foreground">Cliques</span>: mensagens clicadas (o
+              link do site vira um link do CRM no envio, que registra o clique — no e-mail só com o
+              domínio próprio CRM_LINK_BASE), cliques em RCS avisados pela Pushfy e links curtos
+              criados no botão “Encurtar”. Mensagens enviadas antes disso não têm o link do CRM: os
+              cliques delas não aparecem aqui, só as vendas com UTM.
             </p>
           </div>
         </>

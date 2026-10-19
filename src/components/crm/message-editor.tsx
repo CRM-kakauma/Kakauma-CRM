@@ -28,7 +28,8 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { SmsMeter } from "@/components/crm/simulators";
-import { ownDomain, tagText, tagUrl, type UtmContext } from "@/lib/crm-utm";
+import { mapText, ownDomain, tagText, tagUrl, type UtmContext } from "@/lib/crm-utm";
+import { useChannels } from "@/components/crm/channels";
 import { toast } from "sonner";
 import { crmCall, useCrm } from "@/lib/crm-api";
 import {
@@ -695,14 +696,32 @@ function UtmLinkBuilder({ utm }: { utm?: UtmContext | undefined }) {
   );
 }
 
-/** SMS size as sent: store links already carrying their UTMs. */
+/** SMS size as sent: store links with their UTMs, or as CRM click links when tracking is on. */
 function SentSmsMeter({ text, utm }: { text: string; utm?: UtmContext | undefined }) {
-  const sent = utm ? tagText(text, utm) : text;
+  const { data: ch } = useChannels();
+  const tracking = ch?.link_tracking?.base;
+  const sent = tracking
+    ? mapText(text, (u) => {
+        try {
+          return ownDomain(new URL(u).hostname.toLowerCase()) ? `${tracking}/l/XXXXXXX` : u;
+        } catch {
+          return u;
+        }
+      })
+    : utm
+      ? tagText(text, utm)
+      : text;
   const extra = sent.length - text.length;
   return (
     <>
       <SmsMeter info={smsInfo(sent)} />
-      {extra > 0 && (
+      {tracking && sent !== text && (
+        <p className="text-[11px] text-muted-foreground">
+          No envio, o link do site vira um link curto do CRM ({tracking}/l/…) que conta o clique e
+          leva à página com os UTMs — o contador já considera esse tamanho.
+        </p>
+      )}
+      {!tracking && extra > 0 && (
         <p className="text-[11px] text-muted-foreground">
           Já conta +{extra} caracteres dos UTMs que o envio coloca no link do site (o nome do fluxo
           pode mudar um pouco o tamanho). Para economizar, use um link curto já com os UTMs.

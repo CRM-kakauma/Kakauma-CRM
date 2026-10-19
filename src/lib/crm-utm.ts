@@ -65,49 +65,53 @@ export function stripUtm(url: string): string {
   }
 }
 
-/** Links written in plain text (SMS, RCS, the text version of an e-mail). */
-export function tagText(text: string, ctx: UtmContext): string {
+/** Each link written in plain text (SMS, RCS, the text version of an e-mail), through `fn`. */
+export function mapText(text: string, fn: (url: string) => string): string {
   return text.replace(/https?:\/\/[^\s<>"']+/g, (m) => {
     // a sentence's final punctuation is not part of the link
     const tail = /[.,;:!?)\]]+$/.exec(m)?.[0] ?? "";
-    return tagUrl(m.slice(0, m.length - tail.length), ctx) + tail;
+    return fn(m.slice(0, m.length - tail.length)) + tail;
   });
 }
 
-/** href="…" links of an HTML e-mail (images keep their address). */
-export function tagHtml(html: string, ctx: UtmContext): string {
+/** Each href="…" link of an HTML e-mail through `fn` (images keep their address). */
+export function mapHtml(html: string, fn: (url: string) => string): string {
   return html.replace(
     /(<a\b[^>]*?\bhref\s*=\s*)(["'])([^"']*)\2/gi,
     (_, pre: string, q: string, href: string) => {
-      const tagged = tagUrl(href.replace(/&amp;/g, "&"), ctx);
-      return `${pre}${q}${tagged === href.replace(/&amp;/g, "&") ? href : tagged.replace(/&/g, "&amp;")}${q}`;
+      const plain = href.replace(/&amp;/g, "&");
+      const to = fn(plain);
+      return `${pre}${q}${to === plain ? href : to.replace(/&/g, "&amp;")}${q}`;
     },
   );
 }
 
+export const tagText = (text: string, ctx: UtmContext) => mapText(text, (u) => tagUrl(u, ctx));
+export const tagHtml = (html: string, ctx: UtmContext) => mapHtml(html, (u) => tagUrl(u, ctx));
+
 type Obj = Record<string, unknown>;
 
-/** The rendered message with its store links tagged, per channel. */
-export function tagRendered<T>(channel: string, rendered: T, ctx: UtmContext): T {
+/** Every link of a rendered message through `fn`, per channel (SMS parts recounted). */
+export function mapRenderedLinks<T>(channel: string, rendered: T, fn: (url: string) => string): T {
   const r = rendered as Obj;
   if (!r || typeof r !== "object") return rendered;
-  const text = (v: unknown) => (typeof v === "string" ? tagText(v, ctx) : v);
+  const text = (v: unknown) => (typeof v === "string" ? mapText(v, fn) : v);
   const withUrl = (list: unknown) =>
     Array.isArray(list)
       ? list.map((x: Obj) =>
-          typeof x?.["url"] === "string" ? { ...x, url: tagUrl(x["url"] as string, ctx) } : x,
+          typeof x?.["url"] === "string" ? { ...x, url: fn(x["url"] as string) } : x,
         )
       : list;
   switch (channel) {
     case "email":
       return {
         ...r,
-        html: typeof r["html"] === "string" ? tagHtml(r["html"], ctx) : r["html"],
+        html: typeof r["html"] === "string" ? mapHtml(r["html"], fn) : r["html"],
         text: text(r["text"]),
       } as T;
     case "sms": {
       const t = String(text(r["text"]) ?? "");
-      const info = smsInfo(t); // a longer link can mean one more SMS part
+      const info = smsInfo(t); // a longer or shorter link changes the SMS parts
       return { ...r, text: t, segments: info.segments, encoding: info.encoding } as T;
     }
     case "rcs":
@@ -125,4 +129,28 @@ export function tagRendered<T>(channel: string, rendered: T, ctx: UtmContext): T
     default:
       return rendered;
   }
+}
+
+/** The rendered message with its store links tagged, per channel. */
+export const tagRendered = <T>(channel: string, rendered: T, ctx: UtmContext): T =>
+  mapRenderedLinks(channel, rendered, (u) => tagUrl(u, ctx));
+
+/** Store links of a rendered message that a CRM click link can stand for. */
+export function storeLinks(channel: string, rendered: unknown): string[] {
+  const out = new Set<string>();
+  mapRenderedLinks(channel, rendered, (u) => {
+    try {
+      const x = new URL(u);
+      if (
+        x.protocol === "https:" &&
+        ownDomain(x.hostname.toLowerCase()) &&
+        !/^\/l\//.test(x.pathname)
+      )
+        out.add(u);
+    } catch {
+      /* not a link */
+    }
+    return u;
+  });
+  return [...out];
 }

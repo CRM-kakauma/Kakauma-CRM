@@ -204,6 +204,13 @@
       "when": 1792421068474,
       "tag": "0028_crm_results",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1792507468474,
+      "tag": "0029_crm_click_tracking",
+      "breakpoints": true
     }
   ]
 }

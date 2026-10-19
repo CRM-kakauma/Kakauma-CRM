@@ -27,6 +27,22 @@ export function pushfyConfig() {
     live: env("PUSHFY_LIVE") === "true",
   };
 }
+/**
+ * Click tracking base. CRM_LINK_BASE (a domain of the brand, e.g. https://k.kakauma.com.br,
+ * pointing to this project) turns it on for every channel; without it, the project's own
+ * Vercel address is used for SMS/RCS only (an unknown domain in e-mails hurts delivery).
+ * CRM_LINK_TRACKING=false turns it off.
+ */
+export function linkTracking() {
+  if (env("CRM_LINK_TRACKING") === "false") return undefined;
+  const own = env("CRM_LINK_BASE")?.replace(/\/+$/, "");
+  if (own) return { base: own, email: true };
+  const vercel = env("VERCEL_PROJECT_PRODUCTION_URL");
+  return vercel
+    ? { base: `https://${vercel.replace(/^https?:\/\//, "")}`, email: false }
+    : undefined;
+}
+
 export function resendConfig() {
   const apiKey = env("RESEND_API_KEY");
   const from = env("EMAIL_FROM");
@@ -43,6 +59,7 @@ export const runFlows = (limit = 100) =>
     limit,
     pushfy: pushfyConfig(),
     resend: resendConfig(),
+    links: linkTracking(),
     webhookUrl: env("CRM_AUTOMATION_WEBHOOK_URL"),
     webhookSecret: env("CRM_AUTOMATION_WEBHOOK_SECRET"),
   });

@@ -150,7 +150,7 @@ function Results() {
             <Stat
               label="Cliques"
               value={count(t.clicks)}
-              hint={`${share(t.clicks, t.sent)} das mensagens · links do CRM e RCS`}
+              hint={`${share(t.clicks, t.sent)} das mensagens · links do CRM, RCS e vendas com UTM`}
             />
             <Stat
               label="Receita influenciada"
@@ -231,8 +231,9 @@ function Results() {
               <span className="font-medium text-foreground">Cliques</span>: mensagens clicadas (o
               link do site vira um link do CRM no envio, que registra o clique — no e-mail só com o
               domínio próprio CRM_LINK_BASE), cliques em RCS avisados pela Pushfy e links curtos
-              criados no botão “Encurtar”. Mensagens enviadas antes disso não têm o link do CRM: os
-              cliques delas não aparecem aqui, só as vendas com UTM.
+              criados no botão “Encurtar”. Uma venda com utm_medium=crm também conta como clique (o
+              cliente clicou no link) — assim mensagens antigas, sem o link do CRM, entram também —
+              sem contar de novo quando o CRM já registrou o clique daquele cliente no fluxo.
             </p>
           </div>
         </>

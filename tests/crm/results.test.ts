@@ -142,7 +142,8 @@ describe("Resultados do CRM", { skip: !sql && "CRM_TEST_DATABASE_URL not set" },
         flow.utm_orders,
         Number(flow.utm_revenue),
       ],
-      [1, 2, 1, 150, 1, 150],
+      // clicks: 2 on the short link + 1 proved by the sale with the CRM's UTMs
+      [1, 3, 1, 150, 1, 150],
     );
     // Bia's order is neither influenced nor CRM-tracked
     assert.equal(Number(r.totals.infl_revenue), 150);

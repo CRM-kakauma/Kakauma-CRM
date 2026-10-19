@@ -106,6 +106,38 @@ describe("Click tracking", { skip: !sql && "CRM_TEST_DATABASE_URL not set" }, ()
     });
     // two clicks on the same message: one clicked message
     assert.equal(r.by_flow.find((f) => f.campaign === "carrinho_abandonado")?.clicks, 1);
+    // her purchase with the CRM's UTMs does not count that click again
+    await ingestWebhook(
+      rpc,
+      "b4you",
+      JSON.stringify(
+        b4("approved-payment", {
+          customer: {
+            id: "cus_ck",
+            full_name: "Cora K",
+            email: "ck@example.com",
+            whatsapp: "11977773333",
+          },
+          sale_id: "CK-1",
+          payment_method: "pix",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          paid_at: new Date().toISOString(),
+          charges: [{ id: "CCK-1", amount: 100 }],
+          utm: { utm_source: "sms", utm_medium: "crm", utm_campaign: "carrinho_abandonado" },
+        }),
+      ),
+    );
+    const r2 = await call<{ by_flow: { campaign: string; clicks: number; utm_orders: number }[] }>(
+      "crm_results",
+      {
+        p_from: new Date(Date.now() - 86_400_000).toISOString(),
+        p_to: new Date(Date.now() + 60_000).toISOString(),
+        p_window_days: 7,
+      },
+    );
+    const f2 = r2.by_flow.find((f) => f.campaign === "carrinho_abandonado");
+    assert.deepEqual([f2?.clicks, f2?.utm_orders], [1, 1]);
   });
 
   test("utm_source extended by the site still counts as its channel", async () => {

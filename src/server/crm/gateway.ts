@@ -43,6 +43,7 @@ export const RPC_PERMISSIONS: Record<string, { role: Role; actor?: true }> = {
   crm_add_test_contact: { role: "operator", actor: true },
   crm_create_short_link: { role: "operator", actor: true },
   crm_list_short_links: { role: "viewer" },
+  crm_results: { role: "viewer" },
   crm_remove_segment_contact: { role: "operator", actor: true },
   crm_set_automation_active: { role: "operator", actor: true },
   crm_upsert_automation: { role: "operator", actor: true },

@@ -22,6 +22,7 @@ import {
   Users,
   Workflow,
   Wrench,
+  TrendingUp,
 } from "lucide-react";
 import { useMe, x1Allowed } from "@/lib/crm-api";
 import { LEGACY_ENABLED } from "@/lib/legacy";
@@ -41,6 +42,7 @@ const NAV_CRM: NavItem[] = [
   { to: "/segments", label: "Segmentos", icon: Tags },
   { to: "/flows", label: "Fluxos", icon: GitFork },
   { to: "/messages", label: "Mensagens", icon: Mail },
+  { to: "/results", label: "Resultados", icon: TrendingUp },
   { to: "/automations", label: "Automações simples", icon: Workflow },
   { to: "/insights", label: "Insights", icon: LineChart },
   { to: "/operations", label: "Operação", icon: Wrench },

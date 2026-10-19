@@ -169,6 +169,28 @@ export const HELP: HelpArticle[] = [
     ],
   },
   {
+    slug: "resultados",
+    title: "Resultados do CRM",
+    summary: "Envios, cliques e vendas que os fluxos trouxeram, por fluxo, mensagem e canal.",
+    category: "Dados e análises",
+    screen: { to: "/results", label: "Abrir Resultados" },
+    sections: [
+      {
+        blocks: [
+          {
+            list: [
+              "**Receita influenciada**: pedidos pagos até 3, 7 ou 14 dias (você escolhe) depois de o cliente receber uma mensagem do CRM. Conta para a última mensagem antes da compra. Funciona mesmo sem UTM no checkout.",
+              "**Receita com UTM do CRM**: pedidos cujo checkout da B4you trouxe utm_medium=crm, ou seja, o cliente clicou num link da mensagem e comprou. utm_campaign diz o fluxo e utm_content a mensagem.",
+              "**Cliques**: links curtos do CRM e cliques em RCS avisados pela Pushfy. Cliques em links longos de e-mail aparecem no Google Analytics (origem/mídia email / crm).",
+              "**Conversão**: pedidos influenciados ÷ clientes que receberam mensagem. **Taxa de clique**: cliques ÷ mensagens enviadas.",
+              "Contatos de teste e o “Enviar teste” não entram na conta. O período é o do seletor no topo da tela.",
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
     slug: "mensagens",
     title: "Mensagens: e-mail, SMS, WhatsApp e RCS",
     summary:

@@ -21,6 +21,7 @@ import { Route as JourneyRouteImport } from './routes/journey'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as OperationsRouteImport } from './routes/operations'
 import { Route as RecoveryRouteImport } from './routes/recovery'
+import { Route as ResultsRouteImport } from './routes/results'
 import { Route as SalesRouteImport } from './routes/sales'
 import { Route as SegmentsRouteImport } from './routes/segments'
 import { Route as SettingsRouteImport } from './routes/settings'
@@ -111,6 +112,11 @@ const OperationsRoute = OperationsRouteImport.update({
 const RecoveryRoute = RecoveryRouteImport.update({
   id: '/recovery',
   path: '/recovery',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResultsRoute = ResultsRouteImport.update({
+  id: '/results',
+  path: '/results',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SalesRoute = SalesRouteImport.update({
@@ -284,6 +290,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/operations': typeof OperationsRoute
   '/recovery': typeof RecoveryRoute
+  '/results': typeof ResultsRoute
   '/sales': typeof SalesRoute
   '/segments': typeof SegmentsRoute
   '/settings': typeof SettingsRoute
@@ -329,6 +336,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/operations': typeof OperationsRoute
   '/recovery': typeof RecoveryRoute
+  '/results': typeof ResultsRoute
   '/sales': typeof SalesRoute
   '/segments': typeof SegmentsRoute
   '/settings': typeof SettingsRoute
@@ -375,6 +383,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/operations': typeof OperationsRoute
   '/recovery': typeof RecoveryRoute
+  '/results': typeof ResultsRoute
   '/sales': typeof SalesRoute
   '/segments': typeof SegmentsRoute
   '/settings': typeof SettingsRoute
@@ -422,6 +431,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/operations'
     | '/recovery'
+    | '/results'
     | '/sales'
     | '/segments'
     | '/settings'
@@ -467,6 +477,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/operations'
     | '/recovery'
+    | '/results'
     | '/sales'
     | '/segments'
     | '/settings'
@@ -512,6 +523,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/operations'
     | '/recovery'
+    | '/results'
     | '/sales'
     | '/segments'
     | '/settings'
@@ -558,6 +570,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   OperationsRoute: typeof OperationsRoute
   RecoveryRoute: typeof RecoveryRoute
+  ResultsRoute: typeof ResultsRoute
   SalesRoute: typeof SalesRoute
   SegmentsRoute: typeof SegmentsRoute
   SettingsRoute: typeof SettingsRoute
@@ -675,6 +688,13 @@ declare module '@tanstack/react-router' {
       path: '/recovery'
       fullPath: '/recovery'
       preLoaderRoute: typeof RecoveryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/results': {
+      id: '/results'
+      path: '/results'
+      fullPath: '/results'
+      preLoaderRoute: typeof ResultsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sales': {
@@ -910,6 +930,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   OperationsRoute: OperationsRoute,
   RecoveryRoute: RecoveryRoute,
+  ResultsRoute: ResultsRoute,
   SalesRoute: SalesRoute,
   SegmentsRoute: SegmentsRoute,
   SettingsRoute: SettingsRoute,

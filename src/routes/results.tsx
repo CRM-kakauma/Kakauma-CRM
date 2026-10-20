@@ -94,6 +94,10 @@ const CHANNEL: Record<string, string> = {
 const channelLabel = (c: string) => CHANNEL[c] ?? c;
 const WINDOWS = [3, 7, 14] as const;
 
+/** Links shortened while the message was in no flow carry the placeholder name. */
+const flowLabel = (name: string) =>
+  name === "nome_do_fluxo" ? "Links encurtados sem fluxo (nome_do_fluxo)" : name;
+
 /** Share as a percentage, "—" when there is no base. */
 const share = (n: number, d: number) => (d > 0 ? pct((100 * n) / d) : "—");
 
@@ -202,14 +206,14 @@ function Results() {
             <TabsContent value="flows" className="mt-4">
               <MetricsTable
                 rows={data.by_flow}
-                first={[["Fluxo", (r) => <span className="font-medium">{r.name}</span>]]}
+                first={[["Fluxo", (r) => <span className="font-medium">{flowLabel(r.name)}</span>]]}
               />
             </TabsContent>
             <TabsContent value="messages" className="mt-4">
               <MetricsTable
                 rows={data.by_message}
                 first={[
-                  ["Fluxo", (r) => r.flow_name],
+                  ["Fluxo", (r) => flowLabel(r.flow_name)],
                   [
                     "Mensagem",
                     (r) => (

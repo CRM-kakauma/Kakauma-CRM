@@ -51,6 +51,7 @@ async function run(request: Request) {
     runAutomations,
     runFlows,
     syncPushfyOptouts,
+    syncResendStatus,
   } = await import("@/server/crm/pipeline.server");
   const backfilled = body.backfill ? await backfillFromLegacy() : 0;
   const summary = await processPending({
@@ -61,6 +62,7 @@ async function run(request: Request) {
   // opt-outs first, so nobody who answered PARAR gets the next marketing message
   const optouts = await syncPushfyOptouts().catch((e: Error) => ({ error: e.message }));
   const flows = await runFlows();
+  const emails = await syncResendStatus().catch((e: Error) => ({ error: e.message }));
   return Response.json({
     ok: true,
     backfilled,
@@ -69,6 +71,7 @@ async function run(request: Request) {
     automations,
     optouts,
     flows,
+    emails,
   });
 }
 

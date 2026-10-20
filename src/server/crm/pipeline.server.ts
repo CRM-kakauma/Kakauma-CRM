@@ -2,6 +2,7 @@ import * as core from "./pipeline.ts";
 import { runAutomations as runAutomationsCore } from "./automation.ts";
 import { runFlows as runFlowsCore, syncPushfyOptouts as syncOptoutsCore } from "./messages.ts";
 import { crmRpc as rpc, env } from "./supabase.server.ts";
+import { syncResendStatus as syncResendCore } from "./resend-sync.ts";
 
 // Everything runs against the CRM's own Supabase project (CRM_SUPABASE_* in .env).
 export const ingestWebhook = (source: string, rawBody: string) =>
@@ -80,3 +81,6 @@ export async function syncPushfyOptouts(full = false) {
     added: a.added + b.added,
   };
 }
+
+/** E-mail opens/clicks/deliveries the webhook did not bring, from the Resend API (a few per run). */
+export const syncResendStatus = (limit = 20) => syncResendCore(rpc, resendConfig(), limit);

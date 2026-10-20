@@ -103,3 +103,18 @@ export async function resendSend(
     };
   }
 }
+
+/** Last event Resend has for an e-mail (GET /emails/<id> → last_event), or null. */
+export async function resendLastEvent(c: ResendConfig, id: string): Promise<string | null> {
+  try {
+    const res = await (c.fetchImpl ?? fetch)(
+      `${(c.baseUrl ?? "https://api.resend.com").replace(/\/+$/, "")}/emails/${encodeURIComponent(id)}`,
+      { headers: { authorization: `Bearer ${c.apiKey}` } },
+    );
+    if (!res.ok) return null;
+    const body = (await res.json().catch(() => null)) as { last_event?: unknown } | null;
+    return typeof body?.last_event === "string" ? body.last_event : null;
+  } catch {
+    return null;
+  }
+}

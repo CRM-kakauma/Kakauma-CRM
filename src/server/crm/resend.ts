@@ -44,6 +44,8 @@ export async function resendSend(
     text: string;
     fromName?: string | null | undefined;
     idempotencyKey: string;
+    /** sent back in the webhooks (Resend tags: letters, numbers, "_" and "-") */
+    tags?: Record<string, string> | undefined;
   },
 ): Promise<ResendResult> {
   const body = {
@@ -53,6 +55,9 @@ export async function resendSend(
     html: msg.html,
     text: msg.text,
     ...(c.replyTo ? { reply_to: c.replyTo } : {}),
+    ...(msg.tags
+      ? { tags: Object.entries(msg.tags).map(([name, value]) => ({ name, value })) }
+      : {}),
   };
   try {
     const res = await (c.fetchImpl ?? fetch)(

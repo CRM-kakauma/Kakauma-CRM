@@ -115,6 +115,14 @@ Descadastros: quem responde PARAR/SAIR é bloqueado pela própria Pushfy e o wor
 (`/apircs`, imagem + um botão de link), RCS de texto pelo Basic (`/apircsbasic`); carrossel vai como o primeiro
 cartão. WhatsApp continua em simulação até a documentação desse canal.
 
+Entregas, aberturas e cliques de e-mail (Resend): em **Resend → Webhooks → Add endpoint**, use a URL
+`https://<seu-projeto>.vercel.app/api/webhooks/resend` com os eventos `email.delivered`, `email.opened`,
+`email.clicked`, `email.bounced`, `email.complained`, `email.delivery_delayed` e `email.failed`. Copie o
+**Signing secret** (`whsec_…`) para `RESEND_WEBHOOK_SECRET` na Vercel e faça o deploy. Abrir a URL no
+navegador mostra se está ativo. Para aberturas e cliques, ligue **Open tracking** e **Click tracking** no
+domínio, em **Resend → Domains → (seu domínio) → Configuration**. Quem marcar como spam é descadastrado
+do e-mail.
+
 Rastreio de cliques: no envio, cada link do site vira um link do CRM (`/l/<código>`) que conta o
 clique (por mensagem e cliente, aparece em **Resultados**) e leva à página com os UTMs. Sem configurar
 nada, vale para SMS e RCS usando o endereço da Vercel. Para valer também no e-mail, crie um subdomínio

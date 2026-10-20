@@ -531,6 +531,10 @@ export const PROVIDER_STATUS: Record<string, { label: string; tone: Tone }> = {
   Blocked: { label: "bloqueada", tone: "danger" },
   Expired: { label: "expirou", tone: "warning" },
   "No credits": { label: "sem saldo na Pushfy", tone: "danger" },
+  Opened: { label: "abriu", tone: "success" },
+  Bounced: { label: "e-mail voltou (bounce)", tone: "danger" },
+  Complained: { label: "marcou como spam", tone: "danger" },
+  Delayed: { label: "entrega atrasada", tone: "warning" },
 };
 export const SENT_AS: Record<string, string> = {
   rcs_single_first_card: "carrossel enviado como 1º cartão",
@@ -548,7 +552,10 @@ export function ProviderStatus({
   return (
     <>
       {status && (
-        <Pill tone={PROVIDER_STATUS[status]?.tone ?? "muted"} title="Retorno da operadora (Pushfy)">
+        <Pill
+          tone={PROVIDER_STATUS[status]?.tone ?? "muted"}
+          title="Retorno do provedor (Pushfy ou Resend)"
+        >
           {PROVIDER_STATUS[status]?.label ?? status}
         </Pill>
       )}

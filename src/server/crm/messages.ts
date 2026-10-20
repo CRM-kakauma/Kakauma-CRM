@@ -319,6 +319,7 @@ export async function runMessages(rpc: Rpc, opts: MessageOptions = {}) {
         text: e.text ?? "",
         fromName: e.from_name,
         idempotencyKey: m.message_id,
+        tags: { message_id: m.message_id }, // the Resend webhook finds the message by it
       });
       const result = {
         provider: "resend",

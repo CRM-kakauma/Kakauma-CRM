@@ -43,6 +43,8 @@ export const Route = createFileRoute("/results")({
 interface Metrics {
   sent: number;
   reached: number;
+  delivered: number;
+  opens: number;
   clicks: number;
   infl_orders: number;
   infl_revenue: number;
@@ -68,6 +70,7 @@ interface Day {
   sent_email: number;
   sent_sms: number;
   sent_rcs: number;
+  opens: number;
   clicks: number;
   infl_revenue: number;
   utm_revenue: number;
@@ -141,11 +144,24 @@ function Results() {
         <Loading rows={4} />
       ) : (
         <>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <Stat
               label="Mensagens enviadas"
               value={count(t.sent)}
               hint={`${count(t.reached)} clientes alcançados`}
+            />
+            <Stat
+              label="Entregues"
+              value={count(t.delivered)}
+              hint={`${share(t.delivered, t.sent)} das mensagens · confirmadas por Resend e Pushfy`}
+            />
+            <Stat
+              label="Aberturas (e-mail)"
+              value={count(t.opens)}
+              hint={(() => {
+                const mails = data.by_channel.find((c) => c.channel === "email")?.sent ?? 0;
+                return `${share(t.opens, mails)} dos e-mails enviados · avisadas pelo Resend`;
+              })()}
             />
             <Stat
               label="Cliques"
@@ -226,6 +242,12 @@ function Results() {
               cujo checkout da B4you trouxe utm_medium=crm (o cliente clicou num link e comprou). Se
               ficar zerada com vendas influenciadas, o site não está passando os UTMs para o
               checkout.
+            </p>
+            <p>
+              <span className="font-medium text-foreground">Entregues e aberturas</span>: avisados
+              pelo Resend (e-mail) e pela Pushfy (SMS/RCS, só entrega) pelos webhooks. A abertura é
+              contada uma vez por e-mail; alguns leitores (como o Apple Mail) abrem sozinhos, então
+              a taxa de abertura costuma ficar acima da real.
             </p>
             <p>
               <span className="font-medium text-foreground">Cliques</span>: mensagens clicadas (o
@@ -312,6 +334,7 @@ function Daily({ rows }: { rows: Day[] }) {
                 <TableHead className="text-right">E-mail</TableHead>
                 <TableHead className="text-right">SMS</TableHead>
                 <TableHead className="text-right">RCS</TableHead>
+                <TableHead className="text-right">Aberturas</TableHead>
                 <TableHead className="text-right">Cliques</TableHead>
                 <TableHead className="text-right">Receita influenciada</TableHead>
                 <TableHead className="text-right">Receita com UTM</TableHead>
@@ -324,6 +347,7 @@ function Daily({ rows }: { rows: Day[] }) {
                   <TableCell className="text-right num">{count(r.sent_email)}</TableCell>
                   <TableCell className="text-right num">{count(r.sent_sms)}</TableCell>
                   <TableCell className="text-right num">{count(r.sent_rcs)}</TableCell>
+                  <TableCell className="text-right num">{count(r.opens)}</TableCell>
                   <TableCell className="text-right num">{count(r.clicks)}</TableCell>
                   <TableCell className="text-right num">{money(r.infl_revenue)}</TableCell>
                   <TableCell className="text-right num">{money(r.utm_revenue)}</TableCell>
@@ -442,6 +466,9 @@ function MetricsTable<R extends Metrics>({
               <TableHead key={h}>{h}</TableHead>
             ))}
             <TableHead className="text-right">Enviadas</TableHead>
+            <TableHead className="text-right">Entregues</TableHead>
+            <TableHead className="text-right">Aberturas</TableHead>
+            <TableHead className="text-right">Taxa de abertura</TableHead>
             <TableHead className="text-right">Cliques</TableHead>
             <TableHead className="text-right">Taxa de clique</TableHead>
             <TableHead className="text-right">Pedidos influenciados</TableHead>
@@ -458,6 +485,9 @@ function MetricsTable<R extends Metrics>({
                 <TableCell key={h}>{cell(r)}</TableCell>
               ))}
               <TableCell className="text-right num">{count(r.sent)}</TableCell>
+              <TableCell className="text-right num">{count(r.delivered)}</TableCell>
+              <TableCell className="text-right num">{count(r.opens)}</TableCell>
+              <TableCell className="text-right num">{share(r.opens, r.sent)}</TableCell>
               <TableCell className="text-right num">{count(r.clicks)}</TableCell>
               <TableCell className="text-right num">{share(r.clicks, r.sent)}</TableCell>
               <TableCell className="text-right num">{count(r.infl_orders)}</TableCell>

@@ -97,7 +97,7 @@ export function TriggerFilter({
   );
   const entries = (m: Record<string, string>) =>
     Object.entries(m).map(([v, l]) => ({ value: v, label: l }));
-  if (fact === "PAYMENT_PENDING")
+  if (fact === "PAYMENT_PENDING" || fact === "PAYMENT_EXPIRED")
     return pick(
       "method",
       [

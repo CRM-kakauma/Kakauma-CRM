@@ -808,6 +808,7 @@ const EXIT_REASON: Record<string, string> = {
   exit_step: "etapa “Sair”",
   flow_archived: "fluxo arquivado",
   test_relaunched: "substituído por um novo teste",
+  "trigger_reclassified:PAYMENT_EXPIRED": "era Pix/boleto expirado, não recusa",
 };
 
 function People({ s }: { s: Obj | undefined }) {

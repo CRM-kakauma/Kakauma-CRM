@@ -125,6 +125,7 @@ export const FACT_LABEL: Record<string, string> = {
   PURCHASE_PAID: "Compra aprovada",
   RENEWAL_PAID: "Renovação paga",
   PAYMENT_FAILED: "Pagamento recusado",
+  PAYMENT_EXPIRED: "Pix/boleto expirado",
   REFUND_ISSUED: "Reembolso",
   CHARGEBACK_RECEIVED: "Chargeback",
   SUBSCRIPTION_CREATED: "Assinatura criada",

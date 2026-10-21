@@ -253,6 +253,13 @@
       "when": 1793025868474,
       "tag": "0035_crm_payment_expired",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1793112268474,
+      "tag": "0036_crm_whatsapp_cloud",
+      "breakpoints": true
     }
   ]
 }

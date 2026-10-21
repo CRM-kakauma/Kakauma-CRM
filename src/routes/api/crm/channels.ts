@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 /**
- * GET: which sending channels are connected (no secrets), plus the Pushfy balance.
+ * GET: which sending channels are connected (no secrets), plus the Pushfy balance and the
+ * WhatsApp number (which also checks the Meta token).
  * POST: full opt-out sync from Pushfy (admin).
  */
 export const Route = createFileRoute("/api/crm/channels")({
@@ -10,8 +11,9 @@ export const Route = createFileRoute("/api/crm/channels")({
       GET: async ({ request }) => {
         const { getSession, json } = await import("@/server/crm/auth.server");
         const { env } = await import("@/server/crm/supabase.server");
-        const { linkTracking, pushfyConfig, resendConfig } =
+        const { linkTracking, pushfyConfig, resendConfig, whatsappConfig } =
           await import("@/server/crm/pipeline.server");
+        const { whatsappNumber } = await import("@/server/crm/whatsapp");
         const { pushfyBalance } = await import("@/server/crm/pushfy");
         const session = await getSession(request);
         if (!session) return json({ error: "unauthenticated" }, 401);
@@ -30,8 +32,37 @@ export const Route = createFileRoute("/api/crm/channels")({
             balanceError = (e as Error).message;
           }
         }
+        const wa = whatsappConfig();
+        let waNumber: Record<string, unknown> | null = null;
+        let waError: string | null = null;
+        if (wa) {
+          try {
+            const n = await whatsappNumber(wa);
+            if (n.ok) waNumber = n.number;
+            else waError = n.error;
+          } catch (e) {
+            waError = (e as Error).message;
+          }
+        }
         return json(
           {
+            whatsapp: wa
+              ? {
+                  configured: true,
+                  live: wa.live,
+                  templates: !!wa.wabaId,
+                  webhook: !!env("WHATSAPP_APP_SECRET") && !!env("WHATSAPP_VERIFY_TOKEN"),
+                  number: waNumber
+                    ? {
+                        display: waNumber["display_phone_number"] ?? null,
+                        name: waNumber["verified_name"] ?? null,
+                        quality: waNumber["quality_rating"] ?? null,
+                        tier: waNumber["messaging_limit_tier"] ?? null,
+                      }
+                    : null,
+                  error: waError,
+                }
+              : { configured: false },
             pushfy: cfg
               ? {
                   configured: true,

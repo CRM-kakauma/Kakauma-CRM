@@ -34,17 +34,35 @@ export interface SmsContent {
   text: string;
 }
 export interface WhatsappButton {
-  type: "quick_reply" | "url" | "phone";
+  type: "quick_reply" | "url" | "phone" | "copy_code";
   text: string;
   url?: string;
   phone?: string;
 }
+/**
+ * Link to a template approved in the Meta panel (WhatsApp Cloud API). Outside the 24 h
+ * conversation window only approved templates are delivered. The texts of the message
+ * are the template's, with {{1}}/{{name}} placeholders; each placeholder gets a value
+ * here, which may use the CRM variables ({{first_name}}, {{order_number}}…).
+ */
+export interface WhatsappMeta {
+  name: string;
+  language: string;
+  format: "positional" | "named";
+  /** values of the body placeholders, by placeholder ("1", "2"… or the name) */
+  params?: Record<string, string>;
+  /** values of the text header placeholders */
+  header_params?: Record<string, string>;
+  /** dynamic part of a link button / the code of a copy-code button, by button index */
+  button_params?: Record<string, string>;
+}
 export interface WhatsappContent {
   category: "marketing" | "utility";
-  header?: { type: "none" | "text" | "image"; text?: string; url?: string };
+  header?: { type: "none" | "text" | "image" | "video" | "document"; text?: string; url?: string };
   body: string;
   footer?: string;
   buttons?: WhatsappButton[];
+  meta?: WhatsappMeta | null;
 }
 export interface RcsCard {
   title: string;
@@ -351,6 +369,7 @@ export function renderMessage(channel: Channel, content: Content, vars: Record<s
     }
     case "whatsapp": {
       const c = content as WhatsappContent;
+      if (c.meta?.name) return renderWhatsappMeta(c, c.meta, r);
       return {
         category: c.category,
         header:
@@ -367,6 +386,7 @@ export function renderMessage(channel: Channel, content: Content, vars: Record<s
           ...(b.type === "url" ? { url: safeUrl(r(b.url)) } : {}),
           ...(b.type === "phone" ? { phone: b.phone } : {}),
         })),
+        meta: null,
       };
     }
     case "rcs": {
@@ -393,6 +413,82 @@ export function renderMessage(channel: Channel, content: Content, vars: Record<s
       };
     }
   }
+}
+
+/** {{1}} / {{name}} placeholders of an approved WhatsApp template. */
+export const WA_PLACEHOLDER = /\{\{\s*(\w+)\s*\}\}/g;
+export function waPlaceholders(text: string | null | undefined): string[] {
+  return [...new Set([...(text ?? "").matchAll(WA_PLACEHOLDER)].map((m) => m[1]!))];
+}
+
+/** Meta refuses empty parameters, line breaks, tabs and more than 4 spaces in a row. */
+export function waParam(v: string) {
+  const t = v
+    .replace(/[\r\n\t]+/g, " ")
+    .replace(/ {4,}/g, "   ")
+    .trim();
+  return t || "-";
+}
+
+/**
+ * An approved template: the template's texts with each placeholder filled (its value may use
+ * CRM variables). `meta` holds the same values as the API wants them; the worker builds the
+ * request from it (link buttons: only the dynamic part after the template's fixed address).
+ */
+function renderWhatsappMeta(
+  c: WhatsappContent,
+  m: WhatsappMeta,
+  r: (t: string | undefined) => string,
+) {
+  const value = (values: Record<string, string> | undefined, k: string) =>
+    waParam(r(values?.[k] ?? (m.format === "named" ? `{{${k}}}` : "")));
+  const fill = (text: string | undefined, values: Record<string, string> | undefined) =>
+    (text ?? "").replace(WA_PLACEHOLDER, (_, k: string) => value(values, k));
+  const h = c.header ?? { type: "none" };
+  const media = h.type === "image" || h.type === "video" || h.type === "document";
+  const buttons = (c.buttons ?? []).map((b, i) => {
+    if (b.type === "url") {
+      const tpl = b.url ?? "";
+      const at = tpl.search(WA_PLACEHOLDER);
+      if (at < 0) return { type: "url", text: b.text, url: safeUrl(tpl), fixed: true };
+      const suffix = r(m.button_params?.[String(i)] ?? "").trim();
+      return {
+        type: "url",
+        text: b.text,
+        url: safeUrl(tpl.slice(0, at) + suffix),
+        base: tpl.slice(0, at),
+      };
+    }
+    if (b.type === "copy_code")
+      return {
+        type: "copy_code",
+        text: b.text,
+        code: waParam(r(m.button_params?.[String(i)] ?? "")),
+      };
+    return { type: b.type, text: b.text, ...(b.type === "phone" ? { phone: b.phone } : {}) };
+  });
+  return {
+    category: c.category,
+    header:
+      h.type === "text"
+        ? { type: "text", text: fill(h.text, m.header_params) }
+        : media
+          ? { type: h.type, url: safeUrl(r(h.url)) }
+          : null,
+    body: fill(c.body, m.params),
+    footer: c.footer || null,
+    buttons,
+    meta: {
+      name: m.name,
+      language: m.language,
+      format: m.format,
+      header_params:
+        h.type === "text"
+          ? waPlaceholders(h.text).map((k) => ({ key: k, value: value(m.header_params, k) }))
+          : [],
+      params: waPlaceholders(c.body).map((k) => ({ key: k, value: value(m.params, k) })),
+    },
+  };
 }
 
 /** Short one-line summary for lists and flow nodes. */

@@ -157,14 +157,16 @@ function Results() {
             <Stat
               label="Entregues"
               value={count(t.delivered)}
-              hint={`${share(t.delivered, t.sent)} das mensagens · confirmadas por Resend e Pushfy`}
+              hint={`${share(t.delivered, t.sent)} das mensagens · confirmadas por Resend, Pushfy e WhatsApp`}
             />
             <Stat
-              label="Aberturas (e-mail)"
+              label="Aberturas (e-mail e WhatsApp)"
               value={count(t.opens)}
               hint={(() => {
-                const mails = data.by_channel.find((c) => c.channel === "email")?.sent ?? 0;
-                return `${share(t.opens, mails)} dos e-mails enviados · avisadas pelo Resend`;
+                const sent = data.by_channel
+                  .filter((c) => c.channel === "email" || c.channel === "whatsapp")
+                  .reduce((a, c) => a + (c.sent ?? 0), 0);
+                return `${share(t.opens, sent)} dos e-mails e WhatsApps enviados · Resend e leitura no WhatsApp`;
               })()}
             />
             <Stat

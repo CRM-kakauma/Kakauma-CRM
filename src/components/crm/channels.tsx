@@ -7,9 +7,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
-/** Connected sending channels (Pushfy) and their balance; manual opt-out sync. */
+/** Connected sending channels (Pushfy, Resend, WhatsApp) and their state; manual opt-out sync. */
 
 interface Channels {
+  whatsapp?: {
+    configured: boolean;
+    live?: boolean;
+    /** WHATSAPP_WABA_ID set: the approved templates can be listed */
+    templates?: boolean;
+    /** WHATSAPP_APP_SECRET + WHATSAPP_VERIFY_TOKEN set */
+    webhook?: boolean;
+    number?: { display?: string; name?: string; quality?: string; tier?: string } | null;
+    error?: string | null;
+  };
   pushfy: {
     configured: boolean;
     live?: boolean;
@@ -165,12 +175,7 @@ export function ChannelsSection({ isAdmin }: { isAdmin: boolean }) {
             status={pushStatus}
             detail="Texto pelo RCS Basic; cartão com imagem e um botão de link pelo RCS Single; carrossel vai como o primeiro cartão."
           />
-          <Row
-            name="WhatsApp"
-            ok={false}
-            status="simulação"
-            detail="Aguardando a documentação de WhatsApp da Pushfy."
-          />
+          <WhatsappRow wa={data?.whatsapp} />
           <Row
             name="E-mail · Resend"
             ok={!!data?.email?.configured && !!data.email.live}
@@ -203,7 +208,53 @@ export function ChannelsSection({ isAdmin }: { isAdmin: boolean }) {
   );
 }
 
-/** Editor: send this saved SMS / RCS template to one number now. */
+const QUALITY: Record<string, string> = {
+  GREEN: "qualidade alta",
+  YELLOW: "qualidade média",
+  RED: "qualidade baixa",
+};
+
+function WhatsappRow({ wa }: { wa: Channels["whatsapp"] }) {
+  if (!wa?.configured)
+    return (
+      <Row
+        name="WhatsApp · API oficial (Meta)"
+        ok={false}
+        status="não conectado"
+        detail="Coloque WHATSAPP_TOKEN, WHATSAPP_PHONE_NUMBER_ID e WHATSAPP_WABA_ID na Vercel (passo a passo na Central de ajuda). Depois de testar, ligue o envio real com WHATSAPP_LIVE=true."
+      />
+    );
+  const n = wa.number;
+  const missing = [
+    !wa.templates && "WHATSAPP_WABA_ID (para listar os modelos)",
+    !wa.webhook && "WHATSAPP_APP_SECRET e WHATSAPP_VERIFY_TOKEN (status de entrega e PARAR)",
+  ].filter(Boolean);
+  return (
+    <Row
+      name="WhatsApp · API oficial (Meta)"
+      ok={!wa.error && !!wa.live}
+      status={
+        wa.error
+          ? "erro na conexão"
+          : wa.live
+            ? "conectado · envio real LIGADO"
+            : "conectado · envio real desligado (só testes)"
+      }
+      detail={[
+        wa.error ??
+          (n
+            ? `Número ${n.display ?? "?"}${n.name ? ` (${n.name})` : ""}${n.quality ? ` · ${QUALITY[n.quality] ?? n.quality}` : ""}.`
+            : ""),
+        missing.length ? `Falta: ${missing.join("; ")}.` : "",
+        "Fora da janela de 24h só saem modelos aprovados na Meta: vincule o modelo na mensagem.",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    />
+  );
+}
+
+/** Editor: send this saved SMS / RCS / e-mail / WhatsApp template to one contact now. */
 export function TestSend({
   templateKey,
   disabledReason,
@@ -211,10 +262,11 @@ export function TestSend({
 }: {
   templateKey: string;
   disabledReason?: string | undefined;
-  channel?: "sms" | "rcs" | "email";
+  channel?: "sms" | "rcs" | "email" | "whatsapp";
 }) {
   const { data } = useChannels();
   const isEmail = channel === "email";
+  const isWa = channel === "whatsapp";
   const [to, setTo] = useState("");
   const send = useMutation({
     mutationFn: () =>
@@ -224,16 +276,26 @@ export function TestSend({
         body: JSON.stringify({ template_key: templateKey, to }),
       }),
     onSuccess: (r) =>
-      toast.success(isEmail ? "Enviado pelo Resend" : "Enviado pela Pushfy", {
-        description: isEmail
-          ? `Para ${r.to}. Confira a caixa de entrada (e o spam).`
-          : r.sent_as === "sms_fallback"
-            ? `O RCS falhou (${r.rcs_error ?? "recusado"}); foi o SMS alternativo para ${r.to}.`
-            : `Para ${r.to}. Confira no celular.`,
-      }),
+      toast.success(
+        isEmail ? "Enviado pelo Resend" : isWa ? "Enviado pelo WhatsApp" : "Enviado pela Pushfy",
+        {
+          description: isEmail
+            ? `Para ${r.to}. Confira a caixa de entrada (e o spam).`
+            : r.sent_as === "sms_fallback"
+              ? `O RCS falhou (${r.rcs_error ?? "recusado"}); foi o SMS alternativo para ${r.to}.`
+              : `Para ${r.to}. Confira no celular.`,
+        },
+      ),
     onError: (e) => toast.error("Não enviou", { description: (e as Error).message }),
   });
-  if (isEmail ? !data?.email?.configured : !data?.pushfy.configured) return null;
+  if (
+    isEmail
+      ? !data?.email?.configured
+      : isWa
+        ? !data?.whatsapp?.configured
+        : !data?.pushfy.configured
+  )
+    return null;
   return (
     <div className="surface space-y-2 p-3">
       <p className="flex items-center gap-1.5 text-sm font-medium">
@@ -242,7 +304,9 @@ export function TestSend({
       <p className="text-[11px] text-muted-foreground">
         {isEmail
           ? "Manda este e-mail salvo, com os dados de exemplo, para um endereço — pelo Resend (o assunto vai com [TESTE]). Fica registrado na auditoria."
-          : "Manda esta mensagem salva, com os dados de exemplo, para um celular — pela Pushfy (gasta saldo). Fica registrado na auditoria."}
+          : isWa
+            ? "Manda esta mensagem salva, com os dados de exemplo, para um WhatsApp — pela API oficial (a Meta cobra a conversa). Fora da janela de 24h só chega se estiver vinculada a um modelo aprovado. Fica registrado na auditoria."
+            : "Manda esta mensagem salva, com os dados de exemplo, para um celular — pela Pushfy (gasta saldo). Fica registrado na auditoria."}
       </p>
       <div className="flex gap-2">
         <Input

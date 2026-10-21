@@ -5,6 +5,7 @@ import {
   ChevronLeft,
   ExternalLink,
   Monitor,
+  Copy,
   Phone as PhoneIcon,
   Reply,
   ShieldCheck,
@@ -281,6 +282,11 @@ function WhatsappSimulator({ content, vars }: { content: WhatsappContent; vars: 
         </p>
         <div className="max-w-[88%]">
           <div className="rounded-lg rounded-tl-none bg-white p-1 shadow-sm">
+            {(r.header?.type === "video" || r.header?.type === "document") && (
+              <div className="mb-1 flex h-28 items-center justify-center rounded-md bg-neutral-200 text-xs text-neutral-500">
+                {r.header.type === "video" ? "vídeo" : "documento"}
+              </div>
+            )}
             {r.header?.type === "image" &&
               (r.header.url ? (
                 <img
@@ -315,6 +321,8 @@ function WhatsappSimulator({ content, vars }: { content: WhatsappContent; vars: 
                 <ExternalLink className="size-3.5" />
               ) : b.type === "phone" ? (
                 <PhoneIcon className="size-3.5" />
+              ) : b.type === "copy_code" ? (
+                <Copy className="size-3.5" />
               ) : (
                 <Reply className="size-3.5" />
               )}

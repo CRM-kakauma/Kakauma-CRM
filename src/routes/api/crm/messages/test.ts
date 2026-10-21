@@ -4,7 +4,8 @@ import { createFileRoute } from "@tanstack/react-router";
  * Test send of one saved template (operator or admin), audited:
  *   SMS / RCS → a phone, through Pushfy (RCS card with image via /apircs; a refused RCS
  *               goes as its "SMS alternativo");
- *   e-mail    → an address, through Resend.
+ *   e-mail    → an address, through Resend;
+ *   WhatsApp  → a phone, through the Cloud API (Meta): the approved template linked to it.
  * Works before PUSHFY_LIVE / EMAIL_LIVE, so a channel can be checked without
  * messaging customers. Body: { template_key, to, customer_id? } — customer_id fills the variables.
  */
@@ -14,7 +15,8 @@ export const Route = createFileRoute("/api/crm/messages/test")({
       POST: async ({ request }) => {
         const { atLeast, getSession, json } = await import("@/server/crm/auth.server");
         const { crmRpc } = await import("@/server/crm/supabase.server");
-        const { pushfyConfig, resendConfig } = await import("@/server/crm/pipeline.server");
+        const { pushfyConfig, resendConfig, whatsappConfig } =
+          await import("@/server/crm/pipeline.server");
         const { isEmail, resendSend } = await import("@/server/crm/resend");
         const { pushfyPlan, pushfySend, toPushfyNumber } = await import("@/server/crm/pushfy");
         const { renderMessage, SAMPLE_CUSTOMER } = await import("@/lib/crm-messages");
@@ -103,12 +105,35 @@ export const Route = createFileRoute("/api/crm/messages/test")({
             );
           }
 
-          if (tpl.channel !== "sms" && tpl.channel !== "rcs")
-            return fail(
-              400,
-              "unsupported",
-              "Envio real disponível para SMS, RCS e e-mail (WhatsApp ainda não).",
+          if (tpl.channel === "whatsapp") {
+            const { whatsappSend } = await import("@/server/crm/whatsapp");
+            const cfg = whatsappConfig();
+            if (!cfg)
+              return fail(
+                400,
+                "not_configured",
+                "Configure WHATSAPP_TOKEN e WHATSAPP_PHONE_NUMBER_ID na Vercel para enviar.",
+              );
+            const to = toPushfyNumber(rawTo);
+            if (!to) return fail(400, "invalid_request", "Informe um celular com DDD.");
+            const rendered = tagRendered(
+              "whatsapp",
+              renderMessage("whatsapp", tpl.content as never, vars),
+              utm,
             );
+            const sent = await whatsappSend(cfg, to, rendered);
+            await audit(to, sent.ok, sent.ok ? null : (sent.error ?? null));
+            return json(
+              sent.ok
+                ? { ok: true, to, provider: "whatsapp", response: sent.body }
+                : { ok: false, error: "send_failed", message: sent.error, response: sent.body },
+              sent.ok ? 200 : 502,
+              session.setCookies,
+            );
+          }
+
+          if (tpl.channel !== "sms" && tpl.channel !== "rcs")
+            return fail(400, "unsupported", "Canal sem envio de teste.");
           const cfg = pushfyConfig();
           if (!cfg)
             return fail(400, "not_configured", "Configure PUSHFY_API_TOKEN na Vercel para enviar.");

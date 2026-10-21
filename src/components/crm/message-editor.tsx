@@ -13,6 +13,7 @@ import {
   MousePointerClick,
   MoveVertical,
   Plus,
+  RefreshCw,
   Trash2,
   Type,
 } from "lucide-react";
@@ -30,6 +31,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { SmsMeter } from "@/components/crm/simulators";
 import { mapText, ownDomain, tagText, tagUrl, type UtmContext } from "@/lib/crm-utm";
 import { useChannels } from "@/components/crm/channels";
+import { useQuery } from "@tanstack/react-query";
+import { contentFromTemplate, usableTemplates, type MetaTemplate } from "@/lib/crm-whatsapp";
 import { toast } from "sonner";
 import { crmCall, useCrm } from "@/lib/crm-api";
 import {
@@ -38,6 +41,7 @@ import {
   VARIABLES,
   blocksToHtml,
   smsInfo,
+  waPlaceholders,
   type Channel,
   type Content,
   type EmailBlock,
@@ -756,14 +760,208 @@ function SmsEditor({
 
 // ------------------------------------------------------------------ WhatsApp
 
+function useWaTemplates(enabled: boolean) {
+  return useQuery({
+    queryKey: ["crm-wa-templates"],
+    enabled,
+    staleTime: 5 * 60_000,
+    retry: false,
+    queryFn: async () => {
+      const res = await fetch("/api/crm/whatsapp/templates", { credentials: "same-origin" });
+      const body = (await res.json().catch(() => ({}))) as {
+        templates?: MetaTemplate[];
+        message?: string;
+        error?: string;
+      };
+      if (!res.ok) throw new Error(body.message ?? body.error ?? `HTTP ${res.status}`);
+      return body.templates ?? [];
+    },
+  });
+}
+
+/** Link to a template approved in the Meta panel: its texts come from there. */
+function WaTemplateLink({ c, set }: { c: WhatsappContent; set: (c: WhatsappContent) => void }) {
+  const { data: ch } = useChannels();
+  const wa = ch?.whatsapp;
+  const q = useWaTemplates(!!wa?.configured && !!wa.templates);
+  const all = q.data ?? [];
+  const usable = usableTemplates(all);
+  const id = (t: { name: string; language: string }) => `${t.name}|${t.language}`;
+  const current = c.meta ? id(c.meta) : "";
+  const pending = all.filter((t) => t.status.toUpperCase() !== "APPROVED").length;
+  return (
+    <div className="space-y-2 rounded-lg border border-border p-3">
+      <div className="flex items-center justify-between gap-2">
+        <Label>Modelo aprovado na Meta</Label>
+        {wa?.configured && wa.templates && (
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            className="h-7"
+            onClick={() => void q.refetch()}
+            disabled={q.isFetching}
+          >
+            <RefreshCw className={cn("size-3.5", q.isFetching && "animate-spin")} /> Atualizar
+          </Button>
+        )}
+      </div>
+      {!wa?.configured ? (
+        <p className="text-xs text-muted-foreground">
+          Conecte a API oficial do WhatsApp (WHATSAPP_TOKEN e WHATSAPP_PHONE_NUMBER_ID na Vercel)
+          para escolher um modelo aprovado. Sem modelo, a mensagem só chega dentro da janela de 24h
+          depois que o cliente escreveu.
+        </p>
+      ) : !wa.templates ? (
+        <p className="text-xs text-muted-foreground">
+          Coloque WHATSAPP_WABA_ID na Vercel para listar os modelos da conta.
+        </p>
+      ) : q.error ? (
+        <p className="text-xs text-danger">{(q.error as Error).message}</p>
+      ) : (
+        <>
+          <Select
+            value={current}
+            onValueChange={(v) => {
+              const t = usable.find((x) => id(x) === v);
+              if (t) set(contentFromTemplate(t, c));
+            }}
+          >
+            <SelectTrigger className="h-9">
+              <SelectValue placeholder={q.isLoading ? "Carregando…" : "Escolha um modelo"} />
+            </SelectTrigger>
+            <SelectContent>
+              {usable.map((t) => (
+                <SelectItem key={id(t)} value={id(t)}>
+                  {t.name} · {t.language} · {t.category.toLowerCase()}
+                </SelectItem>
+              ))}
+              {c.meta && !usable.some((t) => id(t) === current) && (
+                <SelectItem value={current}>
+                  {c.meta.name} · {c.meta.language} (não aprovado agora)
+                </SelectItem>
+              )}
+            </SelectContent>
+          </Select>
+          <p className="text-[11px] text-muted-foreground">
+            {usable.length} aprovado(s)
+            {pending ? ` · ${pending} em análise, recusado(s) ou pausado(s) não aparecem` : ""}. Os
+            modelos são criados e aprovados no WhatsApp Manager da Meta.
+          </p>
+        </>
+      )}
+      {c.meta && (
+        <div className="flex items-center justify-between gap-2 rounded-md bg-primary-soft px-2 py-1.5 text-xs text-primary">
+          <span>
+            Vinculada a <b>{c.meta.name}</b> ({c.meta.language}): os textos são os aprovados na
+            Meta; aqui você preenche as variáveis.
+          </span>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            className="h-7 shrink-0"
+            onClick={() => set({ ...c, meta: null })}
+          >
+            Desvincular
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Values of the approved template's variables ({{1}}, {{nome}}…), which may use CRM variables. */
+function WaTemplateParams({ c, set }: { c: WhatsappContent; set: (c: WhatsappContent) => void }) {
+  const m = c.meta!;
+  const header = c.header ?? { type: "none" };
+  const upd = (key: "params" | "header_params" | "button_params", k: string, v: string) =>
+    set({ ...c, meta: { ...m, [key]: { ...(m[key] ?? {}), [k]: v } } });
+  const media = header.type === "image" || header.type === "video" || header.type === "document";
+  const hint =
+    m.format === "named"
+      ? "Vazio = a variável do CRM com o mesmo nome."
+      : "Use texto fixo e/ou variáveis do CRM (ex.: {{first_name}}).";
+  const bodyKeys = waPlaceholders(c.body);
+  const headerKeys = header.type === "text" ? waPlaceholders(header.text) : [];
+  return (
+    <div className="space-y-4">
+      <div className="rounded-lg bg-muted/50 p-3 text-xs">
+        {header.type === "text" && header.text && <p className="font-semibold">{header.text}</p>}
+        <p className="whitespace-pre-wrap">{c.body}</p>
+        {c.footer && <p className="mt-1 text-muted-foreground">{c.footer}</p>}
+      </div>
+      {media && (
+        <Field
+          label={`Link ${header.type === "image" ? "da imagem" : header.type === "video" ? "do vídeo" : "do documento"} do cabeçalho`}
+          hint="Obrigatório: o modelo tem cabeçalho de mídia. Endereço público (https)."
+        >
+          <TextIn
+            value={header.url ?? ""}
+            onChange={(v) => set({ ...c, header: { ...header, url: v } })}
+            placeholder="https://"
+          />
+        </Field>
+      )}
+      {headerKeys.map((k) => (
+        <Field key={`h${k}`} label={`Cabeçalho {{${k}}}`} hint={hint}>
+          <TextIn value={m.header_params?.[k] ?? ""} onChange={(v) => upd("header_params", k, v)} />
+        </Field>
+      ))}
+      {bodyKeys.length === 0 && (
+        <p className="text-xs text-muted-foreground">Este modelo não tem variáveis no texto.</p>
+      )}
+      {bodyKeys.map((k) => (
+        <Field key={`b${k}`} label={`Mensagem {{${k}}}`} hint={hint}>
+          <TextIn
+            value={m.params?.[k] ?? ""}
+            onChange={(v) => upd("params", k, v)}
+            placeholder={m.format === "named" ? `{{${k}}}` : "ex.: {{first_name}}"}
+          />
+        </Field>
+      ))}
+      {(c.buttons ?? []).map((b, i) =>
+        b.type === "url" && waPlaceholders(b.url).length ? (
+          <Field
+            key={`u${i}`}
+            label={`Botão “${b.text}” — final do link`}
+            hint={`O link é ${b.url}: escreva o que entra no lugar da variável (ex.: produtos/sleep-drink). Links da loja recebem os UTMs.`}
+          >
+            <TextIn
+              value={m.button_params?.[String(i)] ?? ""}
+              onChange={(v) => upd("button_params", String(i), v)}
+            />
+          </Field>
+        ) : b.type === "copy_code" ? (
+          <Field key={`c${i}`} label={`Botão “${b.text}” — código do cupom`}>
+            <TextIn
+              value={m.button_params?.[String(i)] ?? ""}
+              onChange={(v) => upd("button_params", String(i), v)}
+              placeholder="ex.: VOLTA10"
+            />
+          </Field>
+        ) : null,
+      )}
+    </div>
+  );
+}
+
 function WhatsappEditor({ c, set }: { c: WhatsappContent; set: (c: WhatsappContent) => void }) {
   const upd = (patch: Partial<WhatsappContent>) => set({ ...c, ...patch });
   const header = c.header ?? { type: "none" };
   const buttons = c.buttons ?? [];
   const nUrl = buttons.filter((b) => b.type === "url").length;
   const nPhone = buttons.filter((b) => b.type === "phone").length;
+  if (c.meta?.name)
+    return (
+      <div className="space-y-4">
+        <WaTemplateLink c={c} set={set} />
+        <WaTemplateParams c={c} set={set} />
+      </div>
+    );
   return (
     <div className="space-y-4">
+      <WaTemplateLink c={c} set={set} />
       <Field
         label="Categoria"
         hint={
@@ -901,7 +1099,8 @@ function WhatsappEditor({ c, set }: { c: WhatsappContent; set: (c: WhatsappConte
       </div>
       <p className="rounded-lg bg-warning-soft px-3 py-2 text-xs text-warning-foreground">
         Fora da janela de 24h de conversa, o WhatsApp só entrega mensagens de modelos aprovados pela
-        Meta. Ao conectar o canal, este modelo precisa ser enviado para aprovação com o mesmo texto.
+        Meta. Crie o modelo no WhatsApp Manager com este texto e, depois de aprovado, vincule-o
+        acima. Sem modelo, esta mensagem vai como texto e só chega a quem escreveu nas últimas 24h.
       </p>
     </div>
   );

@@ -9,6 +9,7 @@ import {
   type PushfyConfig,
 } from "./pushfy.ts";
 import { isEmail, resendSend, type ResendConfig } from "./resend.ts";
+import { whatsappSend, type WhatsappConfig } from "./whatsapp.ts";
 import { mapRenderedLinks, storeLinks, tagRendered, utmSlug } from "../../lib/crm-utm.ts";
 
 /**
@@ -24,6 +25,9 @@ import { mapRenderedLinks, storeLinks, tagRendered, utmSlug } from "../../lib/cr
  *     except test launches, which go out so the channel can be checked);
  *   - e-mail goes through Resend when RESEND_API_KEY + EMAIL_FROM are set and EMAIL_LIVE=true
  *     (test launches go out even before that);
+ *   - WhatsApp goes through the official Cloud API (Meta) when WHATSAPP_TOKEN +
+ *     WHATSAPP_PHONE_NUMBER_ID are set and WHATSAPP_LIVE=true (tests before that): an
+ *     approved template, or free text, which Meta only delivers inside the 24 h window;
  *   - other channels go to CRM_AUTOMATION_WEBHOOK_URL (HMAC-signed) when set;
  *   - otherwise DRY_RUN: the rendered content is stored and visible in the CRM.
  */
@@ -45,6 +49,7 @@ export interface MessageOptions {
   limit?: number;
   pushfy?: (PushfyConfig & { live: boolean }) | undefined;
   resend?: (ResendConfig & { live: boolean }) | undefined;
+  whatsapp?: (WhatsappConfig & { live: boolean }) | undefined;
   webhookUrl?: string | undefined;
   webhookSecret?: string | undefined;
   /** click tracking: links become <base>/l/<code>; e-mail only with a domain of the brand */
@@ -204,9 +209,11 @@ export async function runMessages(rpc: Rpc, opts: MessageOptions = {}) {
     const goesOut =
       m.channel === "email"
         ? !!opts.resend && (opts.resend.live || !!m.is_test)
-        : (m.channel === "sms" || m.channel === "rcs") &&
-          !!opts.pushfy &&
-          (opts.pushfy.live || !!m.is_test);
+        : m.channel === "whatsapp"
+          ? !!opts.whatsapp && (opts.whatsapp.live || !!m.is_test)
+          : (m.channel === "sms" || m.channel === "rcs") &&
+            !!opts.pushfy &&
+            (opts.pushfy.live || !!m.is_test);
     if (goesOut && opts.links && (m.channel !== "email" || opts.links.email))
       rendered = await trackLinks(rpc, m.message_id, m.channel, rendered, opts.links.base);
     const recipient =
@@ -214,7 +221,11 @@ export async function runMessages(rpc: Rpc, opts: MessageOptions = {}) {
         ? "equipe"
         : m.channel === "email"
           ? ((m.customer["email"] as string | null) ?? null)
-          : ((m.customer["phone"] as string | null) ?? null);
+          : m.channel === "whatsapp"
+            ? ((m.customer["whatsapp"] as string | null) ??
+              (m.customer["phone"] as string | null) ??
+              null)
+            : ((m.customer["phone"] as string | null) ?? null);
     const complete = async (
       status: string,
       result: unknown,
@@ -324,6 +335,29 @@ export async function runMessages(rpc: Rpc, opts: MessageOptions = {}) {
       const result = {
         provider: "resend",
         to: recipient,
+        http_status: sent.httpStatus,
+        response: sent.body,
+      };
+      if (sent.ok) await complete("SENT", result);
+      else await complete("FAILED", result, sent.error ?? "falha no envio", !sent.permanent);
+      continue;
+    }
+
+    if (opts.whatsapp && m.channel === "whatsapp") {
+      if (!opts.whatsapp.live && !m.is_test) {
+        await complete("DRY_RUN", { reason: "whatsapp_not_live" });
+        continue;
+      }
+      const to = toPushfyNumber(recipient);
+      if (!to) {
+        await complete("SKIPPED", null, "invalid_phone");
+        continue;
+      }
+      const sent = await whatsappSend(opts.whatsapp, to, rendered, m.message_id);
+      const result = {
+        provider: "whatsapp",
+        to,
+        ...(sent.id ? { wamid: sent.id } : {}),
         http_status: sent.httpStatus,
         response: sent.body,
       };

@@ -55,11 +55,29 @@ export function resendConfig() {
     live: env("EMAIL_LIVE") === "true",
   };
 }
+/**
+ * WhatsApp Cloud API (Meta) when WHATSAPP_TOKEN + WHATSAPP_PHONE_NUMBER_ID are set; real sends
+ * only with WHATSAPP_LIVE=true. WHATSAPP_WABA_ID lists the approved templates.
+ */
+export function whatsappConfig() {
+  const token = env("WHATSAPP_TOKEN");
+  const phoneNumberId = env("WHATSAPP_PHONE_NUMBER_ID");
+  if (!token || !phoneNumberId) return undefined;
+  return {
+    token,
+    phoneNumberId,
+    wabaId: env("WHATSAPP_WABA_ID"),
+    apiVersion: env("WHATSAPP_API_VERSION"),
+    baseUrl: env("WHATSAPP_BASE_URL"),
+    live: env("WHATSAPP_LIVE") === "true",
+  };
+}
 export const runFlows = (limit = 100) =>
   runFlowsCore(rpc, {
     limit,
     pushfy: pushfyConfig(),
     resend: resendConfig(),
+    whatsapp: whatsappConfig(),
     links: linkTracking(),
     webhookUrl: env("CRM_AUTOMATION_WEBHOOK_URL"),
     webhookSecret: env("CRM_AUTOMATION_WEBHOOK_SECRET"),

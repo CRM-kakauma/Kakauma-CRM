@@ -262,7 +262,7 @@ export const HELP: HelpArticle[] = [
               "**E-mail**: assunto com até ~50 caracteres; use o pré-cabeçalho; um botão principal; rodapé dizendo quem envia e como sair da lista.",
               "**E-mail em HTML próprio**: no editor, troque “Montar com blocos” por “HTML próprio” para colar o HTML de um editor de e-mail ou de uma agência, importar um arquivo .html ou gerar o HTML a partir dos blocos. As variáveis {{first_name}} funcionam; imagens precisam estar publicadas (https://); scripts, formulários e iframes não são aceitos; até 100 mil caracteres (o Gmail corta e-mails maiores). A versão em texto é gerada sozinha.",
               "**SMS**: comece com “Kakauma:”; evite acentos para caber em 1 parte; o medidor mostra partes e codificação.",
-              "**WhatsApp**: categoria “Utilidade” para pagamento/entrega (mais barata), “Marketing” para ofertas; até 3 botões; *negrito* e _itálico_ funcionam.",
+              "**WhatsApp**: categoria “Utilidade” para pagamento/entrega (mais barata), “Marketing” para ofertas; *negrito* e _itálico_ funcionam. Para mandar a quem não escreveu nas últimas 24h, crie o modelo no WhatsApp Manager da Meta e, depois de aprovado, escolha-o em **Modelo aprovado na Meta**: os textos passam a ser os aprovados e você preenche cada variável ({{1}}, {{2}}…) com texto ou variáveis do CRM.",
               "**Rastreamento (UTM) automático**: todo link para kakauma.com.br no e-mail (HTML ou blocos), SMS e RCS sai com utm_source = canal, utm_medium = crm, utm_campaign = nome do fluxo e utm_content = nome da mensagem, escritos como no link (ex.: “Compra aprovada” vira compra_aprovada). Na pré-visualização da mensagem o fluxo aparece como nome_do_fluxo, porque a mesma mensagem pode estar em vários fluxos; no envio entra o nome certo. Se o link já tiver esses quatro UTMs escritos à mão, eles são substituídos pelos certos (outros parâmetros ficam). A pré-visualização já mostra o link final. Para montar um link manual (ex.: para encurtar), use {{canal}}, {{nome_fluxo}} e {{chave}}. Links de outros sites (Instagram, WhatsApp, checkout da B4you) não mudam.",
               "**Dados do pedido** no e-mail/SMS: {{order_number}}, {{product_name}}, {{offer_name}}, {{quantity}}, {{payment_method}}, {{order_total}}, {{order_date}}, {{coupon_code}}, Pix/boleto ({{pix_code}}, {{boleto_url}}), {{checkout_url}} (carrinho abandonado), rastreio ({{tracking_code}}, {{tracking_url}}) e assinatura ({{plan_name}}, {{next_charge_date}}). Vêm do evento da B4you que colocou o cliente no fluxo; se o fluxo não começou por um pedido, do último pedido. Use sempre duas chaves: {{order_number}}.",
               "**RCS**: escolha texto, cartão ou carrossel; até 4 sugestões; sempre escreva o SMS alternativo. Na Pushfy o cartão leva um botão (o primeiro “Abrir link”).",
@@ -273,7 +273,72 @@ export const HELP: HelpArticle[] = [
       {
         heading: "Envio de verdade",
         blocks: [
-          "**SMS e RCS** saem pela Pushfy quando ela está conectada e o envio real está ligado (veja em Operação → Canais de envio); RCS em cartão vai com imagem e o primeiro botão de link (sem botão de link, vai só o texto); carrossel vai como o primeiro cartão. Com o webhook da Pushfy cadastrado, o CRM mostra se cada mensagem foi entregue ou clicada. **E-mail** sai pelo Resend quando RESEND_API_KEY e EMAIL_FROM estão na Vercel e o envio real (EMAIL_LIVE) está ligado. Antes disso, e para WhatsApp, os envios aparecem como **Simulação** (com o conteúdo final) no fluxo e no Cliente 360. Em cada SMS, RCS ou e-mail salvo há **Enviar teste de verdade**, para conferir no seu celular. Falhas temporárias são tentadas de novo automaticamente; número inválido ou mensagem recusada não são repetidos.",
+          "**SMS e RCS** saem pela Pushfy quando ela está conectada e o envio real está ligado (veja em Operação → Canais de envio); RCS em cartão vai com imagem e o primeiro botão de link (sem botão de link, vai só o texto); carrossel vai como o primeiro cartão. Com o webhook da Pushfy cadastrado, o CRM mostra se cada mensagem foi entregue ou clicada. **E-mail** sai pelo Resend quando RESEND_API_KEY e EMAIL_FROM estão na Vercel e o envio real (EMAIL_LIVE) está ligado. **WhatsApp** sai pela API oficial da Meta quando WHATSAPP_TOKEN e WHATSAPP_PHONE_NUMBER_ID estão na Vercel e WHATSAPP_LIVE está ligado (veja o artigo “WhatsApp oficial”). Antes disso, os envios aparecem como **Simulação** (com o conteúdo final) no fluxo e no Cliente 360. Em cada mensagem salva há **Enviar teste de verdade**, para conferir no seu celular. Falhas temporárias são tentadas de novo automaticamente; número inválido ou mensagem recusada não são repetidos.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "whatsapp",
+    title: "WhatsApp oficial (API da Meta)",
+    summary:
+      "Como conectar o número oficial do WhatsApp ao CRM, usar modelos aprovados e receber entregas, leituras e PARAR.",
+    category: "Administração",
+    screen: { to: "/operations", label: "Abrir Operação" },
+    sections: [
+      {
+        blocks: [
+          "O CRM envia WhatsApp pela **Cloud API oficial da Meta**: sem aparelho ligado e sem risco de bloqueio por automação. A Meta cobra por conversa (marketing é mais caro que utilidade).",
+          {
+            warn: "Fora da janela de 24h (contada a partir da última mensagem do cliente), a Meta só entrega **modelos aprovados**. Mensagem sem modelo vinculado vai como texto e só chega a quem escreveu recentemente.",
+          },
+        ],
+      },
+      {
+        heading:
+          "1. Dados da Meta (developers.facebook.com → seu app → WhatsApp → Configuração da API)",
+        blocks: [
+          {
+            list: [
+              "**Identificação do número de telefone** (Phone number ID) → WHATSAPP_PHONE_NUMBER_ID.",
+              "**Identificação da conta do WhatsApp Business** (WABA ID) → WHATSAPP_WABA_ID (para listar os modelos).",
+              "**Token permanente**: no Business Manager → Configurações do negócio → Usuários do sistema → crie um usuário (Administrador), adicione o app e a conta do WhatsApp, e gere um token com as permissões whatsapp_business_messaging e whatsapp_business_management, validade “Nunca” → WHATSAPP_TOKEN. O token temporário da tela de teste expira em 24h.",
+              "**Chave secreta do app**: Configurações do app → Básico → Chave secreta → WHATSAPP_APP_SECRET (confere a assinatura dos webhooks).",
+              "**Verificar token**: invente uma senha longa → WHATSAPP_VERIFY_TOKEN.",
+            ],
+          },
+          {
+            tip: "Coloque esses valores direto na Vercel (Settings → Environment Variables, Production) e faça Redeploy. Nunca mande tokens por chat ou e-mail.",
+          },
+        ],
+      },
+      {
+        heading: "2. Webhook (entregas, leituras e PARAR)",
+        blocks: [
+          {
+            steps: [
+              "No app da Meta: WhatsApp → Configuração → Webhooks → Editar.",
+              "URL de callback: https://SEU-CRM/api/webhooks/whatsapp (o endereço do CRM na Vercel).",
+              "Verificar token: o mesmo valor de WHATSAPP_VERIFY_TOKEN → Verificar e salvar.",
+              "Em Campos do webhook, assine **messages**.",
+              "Publique o app (modo Ao vivo): em desenvolvimento a Meta só manda webhooks de teste.",
+            ],
+          },
+          "Com o webhook, cada mensagem mostra **entregue**, **lida** ou **não entregue** (com o motivo da Meta). Lida conta como abertura em Resultados. Quem responder PARAR, SAIR ou tocar em “Parar promoções” deixa de receber marketing pelo WhatsApp.",
+        ],
+      },
+      {
+        heading: "3. Testar e ligar",
+        blocks: [
+          {
+            steps: [
+              "Operação → Canais de envio: o WhatsApp deve mostrar o número conectado e a qualidade.",
+              "Crie e aprove os modelos no WhatsApp Manager (Gerenciador do WhatsApp → Modelos de mensagem).",
+              "Mensagens → uma mensagem de WhatsApp → **Modelo aprovado na Meta** → escolha o modelo e preencha as variáveis → Salvar.",
+              "**Enviar teste de verdade** para o seu WhatsApp.",
+              "Funcionou? WHATSAPP_LIVE = true na Vercel e Redeploy: os fluxos publicados passam a enviar.",
+            ],
+          },
         ],
       },
     ],

@@ -317,7 +317,7 @@ function Editor({ me, initial, isNew }: { me: Me; initial: Draft; isNew: boolean
               chave: utmSlug(d.name) || "nome_da_mensagem",
             }}
           />
-          {!isNew && canEdit && d.channel !== "whatsapp" && (
+          {!isNew && canEdit && (
             <TestSend
               templateKey={d.key}
               channel={d.channel}

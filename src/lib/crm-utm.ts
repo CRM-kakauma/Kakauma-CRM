@@ -124,8 +124,32 @@ export function mapRenderedLinks<T>(channel: string, rendered: T, fn: (url: stri
         suggestions: withUrl(r["suggestions"]),
         fallback_sms: text(r["fallback_sms"]),
       } as T;
-    case "whatsapp":
-      return { ...r, body: text(r["body"]), buttons: withUrl(r["buttons"]) } as T;
+    case "whatsapp": {
+      const meta = r["meta"] as Obj | null | undefined;
+      if (!meta) return { ...r, body: text(r["body"]), buttons: withUrl(r["buttons"]) } as T;
+      // approved template: links inside the values; a button's fixed address cannot change,
+      // only what comes after it (so a link button keeps its address and gets the UTMs)
+      const values = (list: unknown) =>
+        Array.isArray(list) ? list.map((p: Obj) => ({ ...p, value: text(p["value"]) })) : list;
+      const buttons = Array.isArray(r["buttons"])
+        ? (r["buttons"] as Obj[]).map((b) => {
+            if (b["type"] !== "url" || b["fixed"] || typeof b["url"] !== "string") return b;
+            const base = String(b["base"] ?? "");
+            const to = fn(b["url"]);
+            return to.startsWith(base) ? { ...b, url: to } : b;
+          })
+        : r["buttons"];
+      return {
+        ...r,
+        body: text(r["body"]),
+        buttons,
+        meta: {
+          ...meta,
+          params: values(meta["params"]),
+          header_params: values(meta["header_params"]),
+        },
+      } as T;
+    }
     default:
       return rendered;
   }

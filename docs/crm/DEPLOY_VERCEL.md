@@ -146,6 +146,25 @@ e respostas SAIR/PARAR viram descadastro na hora. Precisa da migração 0021.
    **Disparar teste** num fluxo. Funcionou? `EMAIL_LIVE` = `true` e Redeploy: os fluxos publicados passam a
    mandar e-mails de verdade.
 
+## 6c. WhatsApp oficial (Cloud API da Meta)
+
+1. Em <https://developers.facebook.com> → seu app → **WhatsApp → Configuração da API**: copie a
+   *Identificação do número de telefone* (`WHATSAPP_PHONE_NUMBER_ID`) e a *Identificação da conta do WhatsApp
+   Business* (`WHATSAPP_WABA_ID`).
+2. Token permanente: Business Manager → **Configurações do negócio → Usuários do sistema** → novo usuário
+   (Administrador) → adicionar o app e a conta do WhatsApp → **Gerar token** com
+   `whatsapp_business_messaging` e `whatsapp_business_management`, validade *Nunca* → `WHATSAPP_TOKEN`.
+3. **Configurações do app → Básico → Chave secreta do app** → `WHATSAPP_APP_SECRET`. Invente uma senha longa
+   para `WHATSAPP_VERIFY_TOKEN`.
+4. Coloque tudo na Vercel (Production) e faça Redeploy. Operação → Canais de envio mostra o número conectado.
+5. Webhook: app da Meta → **WhatsApp → Configuração → Webhooks** → URL `https://<crm>/api/webhooks/whatsapp`,
+   *Verificar token* = `WHATSAPP_VERIFY_TOKEN` → Verificar e salvar → assine o campo **messages**. Publique o app
+   (modo Ao vivo) para receber os eventos reais.
+6. Crie e aprove os modelos no WhatsApp Manager; em Mensagens, vincule cada mensagem ao modelo aprovado e
+   preencha as variáveis. **Enviar teste de verdade** → funcionou? `WHATSAPP_LIVE` = `true` e Redeploy.
+
+Precisa da migração 0036.
+
 ## 7. Atualizações do banco
 
 Cada versão nova do CRM pode trazer uma migração (`drizzle/migrations/00NN_*.sql`). Sem acesso direto

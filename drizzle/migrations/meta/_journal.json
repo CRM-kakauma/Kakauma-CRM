@@ -239,6 +239,13 @@
       "when": 1792853068474,
       "tag": "0033_crm_short_link_flow",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1792939468474,
+      "tag": "0034_crm_customer_raw_events",
+      "breakpoints": true
     }
   ]
 }

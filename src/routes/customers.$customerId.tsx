@@ -377,6 +377,8 @@ function Customer360({ me }: { me: Me }) {
               ))}
             </ol>
           </Section>
+
+          {me.role !== "x1" && <RawEvents customerId={customerId} />}
         </div>
 
         <div>
@@ -728,4 +730,116 @@ function TimelineDetail({ e }: { e: C360 }) {
   return parts.length ? (
     <span className="text-muted-foreground"> · {parts.join(" · ")}</span>
   ) : null;
+}
+
+// ------------------------------------------------------------------ raw webhooks
+
+interface RawEvent {
+  id: string;
+  source: string;
+  event_name: string | null;
+  event_type: string | null;
+  received_at: string;
+  occurred_at: string | null;
+  processing_status: string;
+  processing_error: string | null;
+  payload: unknown;
+}
+
+const PROCESSING: Record<
+  string,
+  { label: string; tone: "success" | "danger" | "warning" | "muted" }
+> = {
+  PROCESSED: { label: "processado", tone: "success" },
+  IGNORED: { label: "ignorado", tone: "muted" },
+  FAILED: { label: "erro", tone: "danger" },
+  DEAD_LETTER: { label: "erro", tone: "danger" },
+  RECEIVED: { label: "na fila", tone: "warning" },
+  PROCESSING: { label: "processando", tone: "warning" },
+};
+
+/** Every webhook received for this customer, with its JSON as it arrived. Loaded on demand. */
+function RawEvents({ customerId }: { customerId: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Section
+      title="Eventos recebidos"
+      description="Cada webhook que chegou para este cliente (B4you…), com o JSON original — dados de cartão já removidos"
+    >
+      {open ? (
+        <RawEventList customerId={customerId} />
+      ) : (
+        <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
+          Mostrar eventos e JSONs
+        </Button>
+      )}
+    </Section>
+  );
+}
+
+function RawEventList({ customerId }: { customerId: string }) {
+  const { data, isLoading, error } = useCrm<RawEvent[]>("crm_customer_raw_events", {
+    p_customer_id: customerId,
+  });
+  const [shown, setShown] = useState<string | null>(null);
+  if (isLoading) return <Loading rows={3} />;
+  if (error) return <ApiErrorBox error={error} />;
+  if (!data?.length) return <Empty>Nenhum evento recebido para este cliente.</Empty>;
+  return (
+    <div className="surface divide-y divide-border">
+      {data.map((e) => {
+        const st = PROCESSING[e.processing_status] ?? {
+          label: e.processing_status,
+          tone: "muted" as const,
+        };
+        const isOpen = shown === e.id;
+        return (
+          <div key={e.id} className="p-3 text-sm">
+            <button
+              type="button"
+              onClick={() => setShown(isOpen ? null : e.id)}
+              aria-expanded={isOpen}
+              className="flex w-full flex-wrap items-center gap-x-3 gap-y-1 text-left"
+            >
+              <span className="w-32 shrink-0 text-xs text-muted-foreground">
+                {dateTime(e.received_at)}
+              </span>
+              <span className="font-medium">{e.event_name ?? e.event_type ?? "evento"}</span>
+              <span className="text-xs text-muted-foreground">
+                {e.source}
+                {e.event_type ? ` · ${e.event_type}` : ""}
+              </span>
+              <Pill tone={st.tone}>{st.label}</Pill>
+              <span className="ml-auto text-xs text-primary">
+                {isOpen ? "Esconder JSON" : "Ver JSON"}
+              </span>
+            </button>
+            {e.processing_error && <p className="mt-1 text-xs text-danger">{e.processing_error}</p>}
+            {isOpen && (
+              <div className="mt-2">
+                <div className="mb-1 flex items-center gap-2 text-[11px] text-muted-foreground">
+                  {e.occurred_at && <span>aconteceu em {dateTime(e.occurred_at)}</span>}
+                  <button
+                    type="button"
+                    className="text-primary hover:underline"
+                    onClick={() =>
+                      void navigator.clipboard
+                        .writeText(JSON.stringify(e.payload, null, 2))
+                        .then(() => toast.success("JSON copiado"))
+                        .catch(() => toast.error("Não foi possível copiar"))
+                    }
+                  >
+                    Copiar JSON
+                  </button>
+                </div>
+                <pre className="max-h-[420px] overflow-auto rounded-lg bg-muted p-3 text-[11px] leading-relaxed">
+                  {JSON.stringify(e.payload, null, 2)}
+                </pre>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
 }

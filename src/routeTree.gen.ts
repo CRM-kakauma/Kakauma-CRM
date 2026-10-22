@@ -41,6 +41,7 @@ import { Route as ApiCrmRpcRouteImport } from './routes/api/crm/rpc'
 import { Route as ApiCronCrmProcessRouteImport } from './routes/api/cron/crm-process'
 import { Route as ApiPublicEventsRouteImport } from './routes/api/public/events'
 import { Route as ApiWebhooksB4youRouteImport } from './routes/api/webhooks/b4you'
+import { Route as ApiWebhooksEvolutionRouteImport } from './routes/api/webhooks/evolution'
 import { Route as ApiWebhooksPushfyRouteImport } from './routes/api/webhooks/pushfy'
 import { Route as ApiWebhooksResendRouteImport } from './routes/api/webhooks/resend'
 import { Route as ApiWebhooksWhatsappRouteImport } from './routes/api/webhooks/whatsapp'
@@ -55,6 +56,7 @@ import { Route as ApiCrmFlowsTestLaunchRouteImport } from './routes/api/crm/flow
 import { Route as ApiCrmMessagesExpandLinksRouteImport } from './routes/api/crm/messages/expand-links'
 import { Route as ApiCrmMessagesProviderStatusRouteImport } from './routes/api/crm/messages/provider-status'
 import { Route as ApiCrmMessagesTestRouteImport } from './routes/api/crm/messages/test'
+import { Route as ApiCrmWhatsappEvolutionRouteImport } from './routes/api/crm/whatsapp/evolution'
 import { Route as ApiCrmWhatsappTemplatesRouteImport } from './routes/api/crm/whatsapp/templates'
 
 const IndexRoute = IndexRouteImport.update({
@@ -217,6 +219,11 @@ const ApiWebhooksB4youRoute = ApiWebhooksB4youRouteImport.update({
   path: '/api/webhooks/b4you',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiWebhooksEvolutionRoute = ApiWebhooksEvolutionRouteImport.update({
+  id: '/api/webhooks/evolution',
+  path: '/api/webhooks/evolution',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiWebhooksPushfyRoute = ApiWebhooksPushfyRouteImport.update({
   id: '/api/webhooks/pushfy',
   path: '/api/webhooks/pushfy',
@@ -289,6 +296,11 @@ const ApiCrmMessagesTestRoute = ApiCrmMessagesTestRouteImport.update({
   path: '/api/crm/messages/test',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCrmWhatsappEvolutionRoute = ApiCrmWhatsappEvolutionRouteImport.update({
+  id: '/api/crm/whatsapp/evolution',
+  path: '/api/crm/whatsapp/evolution',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiCrmWhatsappTemplatesRoute = ApiCrmWhatsappTemplatesRouteImport.update({
   id: '/api/crm/whatsapp/templates',
   path: '/api/crm/whatsapp/templates',
@@ -328,6 +340,7 @@ export interface FileRoutesByFullPath {
   '/api/cron/crm-process': typeof ApiCronCrmProcessRoute
   '/api/public/events': typeof ApiPublicEventsRoute
   '/api/webhooks/b4you': typeof ApiWebhooksB4youRoute
+  '/api/webhooks/evolution': typeof ApiWebhooksEvolutionRoute
   '/api/webhooks/pushfy': typeof ApiWebhooksPushfyRoute
   '/api/webhooks/resend': typeof ApiWebhooksResendRoute
   '/api/webhooks/whatsapp': typeof ApiWebhooksWhatsappRoute
@@ -342,6 +355,7 @@ export interface FileRoutesByFullPath {
   '/api/crm/messages/expand-links': typeof ApiCrmMessagesExpandLinksRoute
   '/api/crm/messages/provider-status': typeof ApiCrmMessagesProviderStatusRoute
   '/api/crm/messages/test': typeof ApiCrmMessagesTestRoute
+  '/api/crm/whatsapp/evolution': typeof ApiCrmWhatsappEvolutionRoute
   '/api/crm/whatsapp/templates': typeof ApiCrmWhatsappTemplatesRoute
 }
 export interface FileRoutesByTo {
@@ -377,6 +391,7 @@ export interface FileRoutesByTo {
   '/api/cron/crm-process': typeof ApiCronCrmProcessRoute
   '/api/public/events': typeof ApiPublicEventsRoute
   '/api/webhooks/b4you': typeof ApiWebhooksB4youRoute
+  '/api/webhooks/evolution': typeof ApiWebhooksEvolutionRoute
   '/api/webhooks/pushfy': typeof ApiWebhooksPushfyRoute
   '/api/webhooks/resend': typeof ApiWebhooksResendRoute
   '/api/webhooks/whatsapp': typeof ApiWebhooksWhatsappRoute
@@ -391,6 +406,7 @@ export interface FileRoutesByTo {
   '/api/crm/messages/expand-links': typeof ApiCrmMessagesExpandLinksRoute
   '/api/crm/messages/provider-status': typeof ApiCrmMessagesProviderStatusRoute
   '/api/crm/messages/test': typeof ApiCrmMessagesTestRoute
+  '/api/crm/whatsapp/evolution': typeof ApiCrmWhatsappEvolutionRoute
   '/api/crm/whatsapp/templates': typeof ApiCrmWhatsappTemplatesRoute
 }
 export interface FileRoutesById {
@@ -427,6 +443,7 @@ export interface FileRoutesById {
   '/api/cron/crm-process': typeof ApiCronCrmProcessRoute
   '/api/public/events': typeof ApiPublicEventsRoute
   '/api/webhooks/b4you': typeof ApiWebhooksB4youRoute
+  '/api/webhooks/evolution': typeof ApiWebhooksEvolutionRoute
   '/api/webhooks/pushfy': typeof ApiWebhooksPushfyRoute
   '/api/webhooks/resend': typeof ApiWebhooksResendRoute
   '/api/webhooks/whatsapp': typeof ApiWebhooksWhatsappRoute
@@ -441,6 +458,7 @@ export interface FileRoutesById {
   '/api/crm/messages/expand-links': typeof ApiCrmMessagesExpandLinksRoute
   '/api/crm/messages/provider-status': typeof ApiCrmMessagesProviderStatusRoute
   '/api/crm/messages/test': typeof ApiCrmMessagesTestRoute
+  '/api/crm/whatsapp/evolution': typeof ApiCrmWhatsappEvolutionRoute
   '/api/crm/whatsapp/templates': typeof ApiCrmWhatsappTemplatesRoute
 }
 export interface FileRouteTypes {
@@ -478,6 +496,7 @@ export interface FileRouteTypes {
     | '/api/cron/crm-process'
     | '/api/public/events'
     | '/api/webhooks/b4you'
+    | '/api/webhooks/evolution'
     | '/api/webhooks/pushfy'
     | '/api/webhooks/resend'
     | '/api/webhooks/whatsapp'
@@ -492,6 +511,7 @@ export interface FileRouteTypes {
     | '/api/crm/messages/expand-links'
     | '/api/crm/messages/provider-status'
     | '/api/crm/messages/test'
+    | '/api/crm/whatsapp/evolution'
     | '/api/crm/whatsapp/templates'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -527,6 +547,7 @@ export interface FileRouteTypes {
     | '/api/cron/crm-process'
     | '/api/public/events'
     | '/api/webhooks/b4you'
+    | '/api/webhooks/evolution'
     | '/api/webhooks/pushfy'
     | '/api/webhooks/resend'
     | '/api/webhooks/whatsapp'
@@ -541,6 +562,7 @@ export interface FileRouteTypes {
     | '/api/crm/messages/expand-links'
     | '/api/crm/messages/provider-status'
     | '/api/crm/messages/test'
+    | '/api/crm/whatsapp/evolution'
     | '/api/crm/whatsapp/templates'
   id:
     | '__root__'
@@ -576,6 +598,7 @@ export interface FileRouteTypes {
     | '/api/cron/crm-process'
     | '/api/public/events'
     | '/api/webhooks/b4you'
+    | '/api/webhooks/evolution'
     | '/api/webhooks/pushfy'
     | '/api/webhooks/resend'
     | '/api/webhooks/whatsapp'
@@ -590,6 +613,7 @@ export interface FileRouteTypes {
     | '/api/crm/messages/expand-links'
     | '/api/crm/messages/provider-status'
     | '/api/crm/messages/test'
+    | '/api/crm/whatsapp/evolution'
     | '/api/crm/whatsapp/templates'
   fileRoutesById: FileRoutesById
 }
@@ -626,6 +650,7 @@ export interface RootRouteChildren {
   ApiCronCrmProcessRoute: typeof ApiCronCrmProcessRoute
   ApiPublicEventsRoute: typeof ApiPublicEventsRoute
   ApiWebhooksB4youRoute: typeof ApiWebhooksB4youRoute
+  ApiWebhooksEvolutionRoute: typeof ApiWebhooksEvolutionRoute
   ApiWebhooksPushfyRoute: typeof ApiWebhooksPushfyRoute
   ApiWebhooksResendRoute: typeof ApiWebhooksResendRoute
   ApiWebhooksWhatsappRoute: typeof ApiWebhooksWhatsappRoute
@@ -640,6 +665,7 @@ export interface RootRouteChildren {
   ApiCrmMessagesExpandLinksRoute: typeof ApiCrmMessagesExpandLinksRoute
   ApiCrmMessagesProviderStatusRoute: typeof ApiCrmMessagesProviderStatusRoute
   ApiCrmMessagesTestRoute: typeof ApiCrmMessagesTestRoute
+  ApiCrmWhatsappEvolutionRoute: typeof ApiCrmWhatsappEvolutionRoute
   ApiCrmWhatsappTemplatesRoute: typeof ApiCrmWhatsappTemplatesRoute
 }
 
@@ -869,6 +895,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiWebhooksB4youRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/webhooks/evolution': {
+      id: '/api/webhooks/evolution'
+      path: '/api/webhooks/evolution'
+      fullPath: '/api/webhooks/evolution'
+      preLoaderRoute: typeof ApiWebhooksEvolutionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/webhooks/pushfy': {
       id: '/api/webhooks/pushfy'
       path: '/api/webhooks/pushfy'
@@ -967,6 +1000,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCrmMessagesTestRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/crm/whatsapp/evolution': {
+      id: '/api/crm/whatsapp/evolution'
+      path: '/api/crm/whatsapp/evolution'
+      fullPath: '/api/crm/whatsapp/evolution'
+      preLoaderRoute: typeof ApiCrmWhatsappEvolutionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/crm/whatsapp/templates': {
       id: '/api/crm/whatsapp/templates'
       path: '/api/crm/whatsapp/templates'
@@ -1010,6 +1050,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCronCrmProcessRoute: ApiCronCrmProcessRoute,
   ApiPublicEventsRoute: ApiPublicEventsRoute,
   ApiWebhooksB4youRoute: ApiWebhooksB4youRoute,
+  ApiWebhooksEvolutionRoute: ApiWebhooksEvolutionRoute,
   ApiWebhooksPushfyRoute: ApiWebhooksPushfyRoute,
   ApiWebhooksResendRoute: ApiWebhooksResendRoute,
   ApiWebhooksWhatsappRoute: ApiWebhooksWhatsappRoute,
@@ -1024,6 +1065,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCrmMessagesExpandLinksRoute: ApiCrmMessagesExpandLinksRoute,
   ApiCrmMessagesProviderStatusRoute: ApiCrmMessagesProviderStatusRoute,
   ApiCrmMessagesTestRoute: ApiCrmMessagesTestRoute,
+  ApiCrmWhatsappEvolutionRoute: ApiCrmWhatsappEvolutionRoute,
   ApiCrmWhatsappTemplatesRoute: ApiCrmWhatsappTemplatesRoute,
 }
 export const routeTree = rootRouteImport

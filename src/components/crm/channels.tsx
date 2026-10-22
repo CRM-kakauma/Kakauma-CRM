@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { CircleCheck, CircleDashed, RefreshCw, Send } from "lucide-react";
+import { CircleCheck, CircleDashed, QrCode, RefreshCw, Send, Webhook } from "lucide-react";
 import { Section } from "@/components/crm/ui";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,11 @@ import { cn } from "@/lib/utils";
 interface Channels {
   whatsapp?: {
     configured: boolean;
+    /** evolution: unofficial (Evolution API); meta: official Cloud API */
+    provider?: "evolution" | "meta";
+    /** Evolution: instance name and its connection (open / close / connecting) */
+    instance?: string;
+    state?: string | null;
     live?: boolean;
     /** WHATSAPP_WABA_ID set: the approved templates can be listed */
     templates?: boolean;
@@ -175,7 +180,7 @@ export function ChannelsSection({ isAdmin }: { isAdmin: boolean }) {
             status={pushStatus}
             detail="Texto pelo RCS Basic; cartão com imagem e um botão de link pelo RCS Single; carrossel vai como o primeiro cartão."
           />
-          <WhatsappRow wa={data?.whatsapp} />
+          <WhatsappRow wa={data?.whatsapp} isAdmin={isAdmin} />
           <Row
             name="E-mail · Resend"
             ok={!!data?.email?.configured && !!data.email.live}
@@ -214,14 +219,152 @@ const QUALITY: Record<string, string> = {
   RED: "qualidade baixa",
 };
 
-function WhatsappRow({ wa }: { wa: Channels["whatsapp"] }) {
+const EVO_STATE: Record<string, string> = {
+  open: "conectado",
+  connecting: "conectando…",
+  close: "desconectado",
+};
+
+/** WhatsApp through Evolution API: state, QR code to connect the phone, webhook registration. */
+function EvolutionRow({
+  wa,
+  isAdmin,
+}: {
+  wa: NonNullable<Channels["whatsapp"]>;
+  isAdmin: boolean;
+}) {
+  const qc = useQueryClient();
+  const [qr, setQr] = useState<{ qr: string | null; pairingCode: string | null } | null>(null);
+  const connected = wa.state === "open";
+  const connect = useMutation({
+    mutationFn: () =>
+      getJson<{
+        status: { ok: boolean; state?: string; error?: string };
+        connect: {
+          ok: boolean;
+          qr?: string | null;
+          pairingCode?: string | null;
+          error?: string;
+        } | null;
+      }>("/api/crm/whatsapp/evolution?qr=1"),
+    onSuccess: (r) => {
+      if (r.status.ok && r.status.state === "open") {
+        setQr(null);
+        toast.success("WhatsApp já está conectado");
+        void qc.invalidateQueries({ queryKey: ["crm-channels"] });
+      } else if (r.connect?.ok)
+        setQr({ qr: r.connect.qr ?? null, pairingCode: r.connect.pairingCode ?? null });
+      else toast.error(r.connect?.error ?? r.status.error ?? "Não foi possível gerar o QR code");
+    },
+    onError: (e) => toast.error((e as Error).message),
+  });
+  const hook = useMutation({
+    mutationFn: () => getJson<{ url: string }>("/api/crm/whatsapp/evolution", { method: "POST" }),
+    onSuccess: (r) =>
+      toast.success("Webhook cadastrado na Evolution", {
+        description: `${r.url} — status de entrega, leitura e PARAR chegam ao CRM.`,
+      }),
+    onError: (e) => toast.error("Não cadastrou", { description: (e as Error).message }),
+  });
+  const n = wa.number;
+  return (
+    <div>
+      <Row
+        name="WhatsApp · Evolution API"
+        ok={!wa.error && connected && !!wa.live}
+        status={
+          wa.error
+            ? "erro na conexão"
+            : !connected
+              ? `instância ${EVO_STATE[wa.state ?? ""] ?? wa.state ?? "?"}`
+              : wa.live
+                ? "conectado · envio real LIGADO"
+                : "conectado · envio real desligado (só testes)"
+        }
+        detail={[
+          wa.error ??
+            (connected && n?.display
+              ? `Número ${n.display}${n.name ? ` (${n.name})` : ""} · instância ${wa.instance}.`
+              : `Instância ${wa.instance}: leia o QR code com o celular (WhatsApp → Aparelhos conectados).`),
+          !wa.webhook ? "Falta EVOLUTION_WEBHOOK_TOKEN (status de entrega e PARAR)." : "",
+          "Conexão não oficial: envios em massa de marketing podem bloquear o número. Prefira mensagens transacionais e volumes moderados.",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+      />
+      {isAdmin && (
+        <div className="flex flex-wrap gap-2 px-3 pb-3 pl-10">
+          {!connected && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => connect.mutate()}
+              disabled={connect.isPending}
+            >
+              <QrCode className="size-4" /> {connect.isPending ? "Gerando…" : "Conectar (QR code)"}
+            </Button>
+          )}
+          {wa.webhook && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => hook.mutate()}
+              disabled={hook.isPending}
+            >
+              <Webhook className="size-4" />{" "}
+              {hook.isPending ? "Cadastrando…" : "Cadastrar webhook na Evolution"}
+            </Button>
+          )}
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => {
+              setQr(null);
+              void qc.invalidateQueries({ queryKey: ["crm-channels"] });
+            }}
+          >
+            <RefreshCw className="size-4" /> Atualizar
+          </Button>
+        </div>
+      )}
+      {qr && (
+        <div className="flex flex-wrap items-center gap-4 px-3 pb-3 pl-10">
+          {qr.qr ? (
+            <img
+              src={qr.qr}
+              alt="QR code do WhatsApp"
+              className="size-56 rounded-md border bg-white p-2"
+            />
+          ) : null}
+          <div className="max-w-sm space-y-1 text-xs text-muted-foreground">
+            <p>
+              No celular: WhatsApp → <b>Aparelhos conectados</b> → <b>Conectar aparelho</b> e aponte
+              para o QR code. Ele expira em cerca de 40 segundos; se expirar, gere de novo.
+            </p>
+            {qr.pairingCode && (
+              <p>
+                Ou conecte com o código:{" "}
+                <span className="font-mono font-medium">{qr.pairingCode}</span>
+              </p>
+            )}
+            <p>Depois de conectar, clique em Atualizar.</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function WhatsappRow({ wa, isAdmin }: { wa: Channels["whatsapp"]; isAdmin: boolean }) {
+  if (wa?.configured && wa.provider === "evolution")
+    return <EvolutionRow wa={wa} isAdmin={isAdmin} />;
   if (!wa?.configured)
     return (
       <Row
-        name="WhatsApp · API oficial (Meta)"
+        name="WhatsApp"
         ok={false}
         status="não conectado"
-        detail="Coloque WHATSAPP_TOKEN, WHATSAPP_PHONE_NUMBER_ID e WHATSAPP_WABA_ID na Vercel (passo a passo na Central de ajuda). Depois de testar, ligue o envio real com WHATSAPP_LIVE=true."
+        detail="Evolution API: coloque EVOLUTION_API_URL, EVOLUTION_API_KEY, EVOLUTION_INSTANCE e EVOLUTION_WEBHOOK_TOKEN na Vercel (passo a passo na Central de ajuda). Depois de testar, ligue o envio real com WHATSAPP_LIVE=true."
       />
     );
   const n = wa.number;
@@ -305,7 +448,9 @@ export function TestSend({
         {isEmail
           ? "Manda este e-mail salvo, com os dados de exemplo, para um endereço — pelo Resend (o assunto vai com [TESTE]). Fica registrado na auditoria."
           : isWa
-            ? "Manda esta mensagem salva, com os dados de exemplo, para um WhatsApp — pela API oficial (a Meta cobra a conversa). Fora da janela de 24h só chega se estiver vinculada a um modelo aprovado. Fica registrado na auditoria."
+            ? data?.whatsapp?.provider === "evolution"
+              ? "Manda esta mensagem salva, com os dados de exemplo, para um WhatsApp — pela Evolution API, do número conectado. Fica registrado na auditoria."
+              : "Manda esta mensagem salva, com os dados de exemplo, para um WhatsApp — pela API oficial (a Meta cobra a conversa). Fora da janela de 24h só chega se estiver vinculada a um modelo aprovado. Fica registrado na auditoria."
             : "Manda esta mensagem salva, com os dados de exemplo, para um celular — pela Pushfy (gasta saldo). Fica registrado na auditoria."}
       </p>
       <div className="flex gap-2">

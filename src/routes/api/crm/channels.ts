@@ -11,8 +11,9 @@ export const Route = createFileRoute("/api/crm/channels")({
       GET: async ({ request }) => {
         const { getSession, json } = await import("@/server/crm/auth.server");
         const { env } = await import("@/server/crm/supabase.server");
-        const { linkTracking, pushfyConfig, resendConfig, whatsappConfig } =
+        const { evolutionConfig, linkTracking, pushfyConfig, resendConfig, whatsappConfig } =
           await import("@/server/crm/pipeline.server");
+        const { evolutionStatus } = await import("@/server/crm/evolution");
         const { whatsappNumber } = await import("@/server/crm/whatsapp");
         const { pushfyBalance } = await import("@/server/crm/pushfy");
         const session = await getSession(request);
@@ -32,7 +33,16 @@ export const Route = createFileRoute("/api/crm/channels")({
             balanceError = (e as Error).message;
           }
         }
-        const wa = whatsappConfig();
+        const evo = evolutionConfig();
+        let evoStatus: Awaited<ReturnType<typeof evolutionStatus>> | null = null;
+        if (evo) {
+          try {
+            evoStatus = await evolutionStatus(evo);
+          } catch (e) {
+            evoStatus = { ok: false, error: (e as Error).message };
+          }
+        }
+        const wa = evo ? undefined : whatsappConfig();
         let waNumber: Record<string, unknown> | null = null;
         let waError: string | null = null;
         if (wa) {
@@ -46,23 +56,37 @@ export const Route = createFileRoute("/api/crm/channels")({
         }
         return json(
           {
-            whatsapp: wa
+            whatsapp: evo
               ? {
                   configured: true,
-                  live: wa.live,
-                  templates: !!wa.wabaId,
-                  webhook: !!env("WHATSAPP_APP_SECRET") && !!env("WHATSAPP_VERIFY_TOKEN"),
-                  number: waNumber
-                    ? {
-                        display: waNumber["display_phone_number"] ?? null,
-                        name: waNumber["verified_name"] ?? null,
-                        quality: waNumber["quality_rating"] ?? null,
-                        tier: waNumber["messaging_limit_tier"] ?? null,
-                      }
+                  provider: "evolution",
+                  live: evo.live,
+                  instance: evo.instance,
+                  webhook: !!env("EVOLUTION_WEBHOOK_TOKEN"),
+                  state: evoStatus?.ok ? evoStatus.state : null,
+                  number: evoStatus?.ok
+                    ? { display: evoStatus.number, name: evoStatus.name }
                     : null,
-                  error: waError,
+                  error: evoStatus && !evoStatus.ok ? evoStatus.error : null,
                 }
-              : { configured: false },
+              : wa
+                ? {
+                    provider: "meta",
+                    configured: true,
+                    live: wa.live,
+                    templates: !!wa.wabaId,
+                    webhook: !!env("WHATSAPP_APP_SECRET") && !!env("WHATSAPP_VERIFY_TOKEN"),
+                    number: waNumber
+                      ? {
+                          display: waNumber["display_phone_number"] ?? null,
+                          name: waNumber["verified_name"] ?? null,
+                          quality: waNumber["quality_rating"] ?? null,
+                          tier: waNumber["messaging_limit_tier"] ?? null,
+                        }
+                      : null,
+                    error: waError,
+                  }
+                : { configured: false },
             pushfy: cfg
               ? {
                   configured: true,

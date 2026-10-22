@@ -146,7 +146,26 @@ e respostas SAIR/PARAR viram descadastro na hora. Precisa da migração 0021.
    **Disparar teste** num fluxo. Funcionou? `EMAIL_LIVE` = `true` e Redeploy: os fluxos publicados passam a
    mandar e-mails de verdade.
 
-## 6c. WhatsApp oficial (Cloud API da Meta)
+## 6c. WhatsApp pela Evolution API (não oficial)
+
+Quando as variáveis da Evolution estão na Vercel, o WhatsApp sai por ela (no lugar da API oficial).
+
+1. Tenha um servidor da Evolution API v2 no ar (VPS própria ou serviço que hospede) com HTTPS e crie uma
+   **instância** (ex.: `kakauma`).
+2. Na Vercel (Production): `EVOLUTION_API_URL` (ex.: `https://evo.seudominio.com.br`), `EVOLUTION_API_KEY` (a
+   apikey global do servidor, `AUTHENTICATION_API_KEY`), `EVOLUTION_INSTANCE` (o nome da instância),
+   `EVOLUTION_WEBHOOK_TOKEN` (uma senha longa que você inventa). Opcional: `EVOLUTION_DELAY_MS` (ex.: `1500`,
+   mostra "digitando…" antes de cada mensagem). Redeploy.
+3. CRM → **Operação → Canais de envio → WhatsApp · Evolution API** → **Conectar (QR code)** e leia com o celular
+   (WhatsApp → Aparelhos conectados). Depois **Cadastrar webhook na Evolution** (status de entrega/leitura e PARAR).
+4. Mensagens → uma mensagem de WhatsApp → **Enviar teste de verdade**. Funcionou? `WHATSAPP_LIVE` = `true` e Redeploy.
+
+Atenção: é uma conexão não oficial. Disparos de marketing em massa podem fazer o WhatsApp bloquear o número —
+prefira mensagens transacionais e volumes moderados. Precisa da migração 0036.
+
+## 6d. WhatsApp oficial (Cloud API da Meta)
+
+Usado só quando a Evolution não está configurada.
 
 1. Em <https://developers.facebook.com> → seu app → **WhatsApp → Configuração da API**: copie a
    *Identificação do número de telefone* (`WHATSAPP_PHONE_NUMBER_ID`) e a *Identificação da conta do WhatsApp

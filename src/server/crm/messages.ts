@@ -10,6 +10,7 @@ import {
 } from "./pushfy.ts";
 import { isEmail, resendSend, type ResendConfig } from "./resend.ts";
 import { whatsappSend, type WhatsappConfig } from "./whatsapp.ts";
+import { evolutionSend, type EvolutionConfig } from "./evolution.ts";
 import { mapRenderedLinks, storeLinks, tagRendered, utmSlug } from "../../lib/crm-utm.ts";
 
 /**
@@ -25,6 +26,8 @@ import { mapRenderedLinks, storeLinks, tagRendered, utmSlug } from "../../lib/cr
  *     except test launches, which go out so the channel can be checked);
  *   - e-mail goes through Resend when RESEND_API_KEY + EMAIL_FROM are set and EMAIL_LIVE=true
  *     (test launches go out even before that);
+ *   - WhatsApp goes through Evolution API (unofficial: plain text / media, any time) when
+ *     EVOLUTION_API_URL + EVOLUTION_API_KEY + EVOLUTION_INSTANCE are set; otherwise
  *   - WhatsApp goes through the official Cloud API (Meta) when WHATSAPP_TOKEN +
  *     WHATSAPP_PHONE_NUMBER_ID are set and WHATSAPP_LIVE=true (tests before that): an
  *     approved template, or free text, which Meta only delivers inside the 24 h window;
@@ -50,6 +53,8 @@ export interface MessageOptions {
   pushfy?: (PushfyConfig & { live: boolean }) | undefined;
   resend?: (ResendConfig & { live: boolean }) | undefined;
   whatsapp?: (WhatsappConfig & { live: boolean }) | undefined;
+  /** WhatsApp through Evolution API; takes the place of the official API when set */
+  evolution?: (EvolutionConfig & { live: boolean }) | undefined;
   webhookUrl?: string | undefined;
   webhookSecret?: string | undefined;
   /** click tracking: links become <base>/l/<code>; e-mail only with a domain of the brand */
@@ -210,7 +215,10 @@ export async function runMessages(rpc: Rpc, opts: MessageOptions = {}) {
       m.channel === "email"
         ? !!opts.resend && (opts.resend.live || !!m.is_test)
         : m.channel === "whatsapp"
-          ? !!opts.whatsapp && (opts.whatsapp.live || !!m.is_test)
+          ? (() => {
+              const wa = opts.evolution ?? opts.whatsapp;
+              return !!wa && (wa.live || !!m.is_test);
+            })()
           : (m.channel === "sms" || m.channel === "rcs") &&
             !!opts.pushfy &&
             (opts.pushfy.live || !!m.is_test);
@@ -335,6 +343,30 @@ export async function runMessages(rpc: Rpc, opts: MessageOptions = {}) {
       const result = {
         provider: "resend",
         to: recipient,
+        http_status: sent.httpStatus,
+        response: sent.body,
+      };
+      if (sent.ok) await complete("SENT", result);
+      else await complete("FAILED", result, sent.error ?? "falha no envio", !sent.permanent);
+      continue;
+    }
+
+    if (opts.evolution && m.channel === "whatsapp") {
+      if (!opts.evolution.live && !m.is_test) {
+        await complete("DRY_RUN", { reason: "whatsapp_not_live" });
+        continue;
+      }
+      const to = toPushfyNumber(recipient);
+      if (!to) {
+        await complete("SKIPPED", null, "invalid_phone");
+        continue;
+      }
+      const sent = await evolutionSend(opts.evolution, to, rendered);
+      const result = {
+        provider: "evolution",
+        to,
+        // same field as the official API: the webhook statuses find the message by it
+        ...(sent.id ? { wamid: sent.id } : {}),
         http_status: sent.httpStatus,
         response: sent.body,
       };

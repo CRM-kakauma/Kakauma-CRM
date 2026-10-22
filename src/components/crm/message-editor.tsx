@@ -783,12 +783,21 @@ function useWaTemplates(enabled: boolean) {
 function WaTemplateLink({ c, set }: { c: WhatsappContent; set: (c: WhatsappContent) => void }) {
   const { data: ch } = useChannels();
   const wa = ch?.whatsapp;
-  const q = useWaTemplates(!!wa?.configured && !!wa.templates);
+  const evolution = wa?.provider === "evolution";
+  const q = useWaTemplates(!evolution && !!wa?.configured && !!wa.templates);
   const all = q.data ?? [];
   const usable = usableTemplates(all);
   const id = (t: { name: string; language: string }) => `${t.name}|${t.language}`;
   const current = c.meta ? id(c.meta) : "";
   const pending = all.filter((t) => t.status.toUpperCase() !== "APPROVED").length;
+  if (evolution && !c.meta)
+    return (
+      <p className="rounded-lg bg-primary-soft px-3 py-2 text-xs text-primary">
+        WhatsApp conectado pela Evolution API: a mensagem sai como texto (com a imagem do cabeçalho,
+        se houver), a qualquer hora, sem modelo da Meta. Botões de link e de código entram no texto;
+        respostas rápidas não aparecem.
+      </p>
+    );
   return (
     <div className="space-y-2 rounded-lg border border-border p-3">
       <div className="flex items-center justify-between gap-2">
@@ -947,6 +956,8 @@ function WaTemplateParams({ c, set }: { c: WhatsappContent; set: (c: WhatsappCon
 }
 
 function WhatsappEditor({ c, set }: { c: WhatsappContent; set: (c: WhatsappContent) => void }) {
+  const { data: ch } = useChannels();
+  const evolution = ch?.whatsapp?.provider === "evolution";
   const upd = (patch: Partial<WhatsappContent>) => set({ ...c, ...patch });
   const header = c.header ?? { type: "none" };
   const buttons = c.buttons ?? [];
@@ -1097,11 +1108,14 @@ function WhatsappEditor({ c, set }: { c: WhatsappContent; set: (c: WhatsappConte
           </div>
         )}
       </div>
-      <p className="rounded-lg bg-warning-soft px-3 py-2 text-xs text-warning-foreground">
-        Fora da janela de 24h de conversa, o WhatsApp só entrega mensagens de modelos aprovados pela
-        Meta. Crie o modelo no WhatsApp Manager com este texto e, depois de aprovado, vincule-o
-        acima. Sem modelo, esta mensagem vai como texto e só chega a quem escreveu nas últimas 24h.
-      </p>
+      {!evolution && (
+        <p className="rounded-lg bg-warning-soft px-3 py-2 text-xs text-warning-foreground">
+          Fora da janela de 24h de conversa, o WhatsApp só entrega mensagens de modelos aprovados
+          pela Meta. Crie o modelo no WhatsApp Manager com este texto e, depois de aprovado,
+          vincule-o acima. Sem modelo, esta mensagem vai como texto e só chega a quem escreveu nas
+          últimas 24h.
+        </p>
+      )}
     </div>
   );
 }

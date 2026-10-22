@@ -72,12 +72,33 @@ export function whatsappConfig() {
     live: env("WHATSAPP_LIVE") === "true",
   };
 }
+/**
+ * WhatsApp through Evolution API (unofficial) when EVOLUTION_API_URL + EVOLUTION_API_KEY +
+ * EVOLUTION_INSTANCE are set — it takes the place of the official API. Real sends from flows
+ * only with WHATSAPP_LIVE=true (tests go out before). EVOLUTION_DELAY_MS: "digitando…" before
+ * each message.
+ */
+export function evolutionConfig() {
+  const baseUrl = env("EVOLUTION_API_URL");
+  const apiKey = env("EVOLUTION_API_KEY");
+  const instance = env("EVOLUTION_INSTANCE");
+  if (!baseUrl || !apiKey || !instance) return undefined;
+  const delay = Number(env("EVOLUTION_DELAY_MS") ?? "");
+  return {
+    baseUrl,
+    apiKey,
+    instance,
+    delayMs: Number.isFinite(delay) && delay > 0 ? Math.min(delay, 10_000) : undefined,
+    live: env("WHATSAPP_LIVE") === "true",
+  };
+}
 export const runFlows = (limit = 100) =>
   runFlowsCore(rpc, {
     limit,
     pushfy: pushfyConfig(),
     resend: resendConfig(),
     whatsapp: whatsappConfig(),
+    evolution: evolutionConfig(),
     links: linkTracking(),
     webhookUrl: env("CRM_AUTOMATION_WEBHOOK_URL"),
     webhookSecret: env("CRM_AUTOMATION_WEBHOOK_SECRET"),

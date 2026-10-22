@@ -5,7 +5,7 @@ import { createFileRoute } from "@tanstack/react-router";
  *   SMS / RCS → a phone, through Pushfy (RCS card with image via /apircs; a refused RCS
  *               goes as its "SMS alternativo");
  *   e-mail    → an address, through Resend;
- *   WhatsApp  → a phone, through the Cloud API (Meta): the approved template linked to it.
+ *   WhatsApp  → a phone, through Evolution API when connected, else the Cloud API (Meta).
  * Works before PUSHFY_LIVE / EMAIL_LIVE, so a channel can be checked without
  * messaging customers. Body: { template_key, to, customer_id? } — customer_id fills the variables.
  */
@@ -15,7 +15,7 @@ export const Route = createFileRoute("/api/crm/messages/test")({
       POST: async ({ request }) => {
         const { atLeast, getSession, json } = await import("@/server/crm/auth.server");
         const { crmRpc } = await import("@/server/crm/supabase.server");
-        const { pushfyConfig, resendConfig, whatsappConfig } =
+        const { evolutionConfig, pushfyConfig, resendConfig, whatsappConfig } =
           await import("@/server/crm/pipeline.server");
         const { isEmail, resendSend } = await import("@/server/crm/resend");
         const { pushfyPlan, pushfySend, toPushfyNumber } = await import("@/server/crm/pushfy");
@@ -99,6 +99,26 @@ export const Route = createFileRoute("/api/crm/messages/test")({
             return json(
               sent.ok
                 ? { ok: true, to: rawTo, provider: "resend", response: sent.body }
+                : { ok: false, error: "send_failed", message: sent.error, response: sent.body },
+              sent.ok ? 200 : 502,
+              session.setCookies,
+            );
+          }
+
+          if (tpl.channel === "whatsapp" && evolutionConfig()) {
+            const { evolutionSend } = await import("@/server/crm/evolution");
+            const to = toPushfyNumber(rawTo);
+            if (!to) return fail(400, "invalid_request", "Informe um celular com DDD.");
+            const rendered = tagRendered(
+              "whatsapp",
+              renderMessage("whatsapp", tpl.content as never, vars),
+              utm,
+            );
+            const sent = await evolutionSend(evolutionConfig()!, to, rendered);
+            await audit(to, sent.ok, sent.ok ? null : (sent.error ?? null));
+            return json(
+              sent.ok
+                ? { ok: true, to, provider: "evolution", response: sent.body }
                 : { ok: false, error: "send_failed", message: sent.error, response: sent.body },
               sent.ok ? 200 : 502,
               session.setCookies,

@@ -273,14 +273,64 @@ export const HELP: HelpArticle[] = [
       {
         heading: "Envio de verdade",
         blocks: [
-          "**SMS e RCS** saem pela Pushfy quando ela está conectada e o envio real está ligado (veja em Operação → Canais de envio); RCS em cartão vai com imagem e o primeiro botão de link (sem botão de link, vai só o texto); carrossel vai como o primeiro cartão. Com o webhook da Pushfy cadastrado, o CRM mostra se cada mensagem foi entregue ou clicada. **E-mail** sai pelo Resend quando RESEND_API_KEY e EMAIL_FROM estão na Vercel e o envio real (EMAIL_LIVE) está ligado. **WhatsApp** sai pela API oficial da Meta quando WHATSAPP_TOKEN e WHATSAPP_PHONE_NUMBER_ID estão na Vercel e WHATSAPP_LIVE está ligado (veja o artigo “WhatsApp oficial”). Antes disso, os envios aparecem como **Simulação** (com o conteúdo final) no fluxo e no Cliente 360. Em cada mensagem salva há **Enviar teste de verdade**, para conferir no seu celular. Falhas temporárias são tentadas de novo automaticamente; número inválido ou mensagem recusada não são repetidos.",
+          "**SMS e RCS** saem pela Pushfy quando ela está conectada e o envio real está ligado (veja em Operação → Canais de envio); RCS em cartão vai com imagem e o primeiro botão de link (sem botão de link, vai só o texto); carrossel vai como o primeiro cartão. Com o webhook da Pushfy cadastrado, o CRM mostra se cada mensagem foi entregue ou clicada. **E-mail** sai pelo Resend quando RESEND_API_KEY e EMAIL_FROM estão na Vercel e o envio real (EMAIL_LIVE) está ligado. **WhatsApp** sai pela Evolution API (ou, sem ela, pela API oficial da Meta) quando está conectado e WHATSAPP_LIVE está ligado (veja o artigo “WhatsApp pela Evolution API”). Antes disso, os envios aparecem como **Simulação** (com o conteúdo final) no fluxo e no Cliente 360. Em cada mensagem salva há **Enviar teste de verdade**, para conferir no seu celular. Falhas temporárias são tentadas de novo automaticamente; número inválido ou mensagem recusada não são repetidos.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "whatsapp-evolution",
+    title: "WhatsApp pela Evolution API",
+    summary:
+      "Como conectar o número do WhatsApp ao CRM pela Evolution API (QR code), receber entregas, leituras e PARAR.",
+    category: "Administração",
+    screen: { to: "/operations", label: "Abrir Operação" },
+    sections: [
+      {
+        blocks: [
+          "Com a **Evolution API**, o CRM manda WhatsApp do número conectado por QR code, como o WhatsApp Web: a qualquer hora, sem modelo aprovado pela Meta. A mensagem sai como texto (com a imagem do cabeçalho, se houver); botões de link e de código entram no texto.",
+          {
+            warn: "É uma conexão **não oficial**. O WhatsApp pode bloquear números que mandam muitas mensagens de marketing para quem não tem o número salvo. Prefira mensagens transacionais (pedido, pagamento, entrega), volumes moderados e um número só para isso.",
+          },
+        ],
+      },
+      {
+        heading: "1. Variáveis na Vercel (Production)",
+        blocks: [
+          {
+            list: [
+              "**EVOLUTION_API_URL**: endereço do seu servidor da Evolution (https://…).",
+              "**EVOLUTION_API_KEY**: a apikey global do servidor (AUTHENTICATION_API_KEY).",
+              "**EVOLUTION_INSTANCE**: o nome da instância criada na Evolution (ex.: kakauma).",
+              "**EVOLUTION_WEBHOOK_TOKEN**: uma senha longa que você inventa (protege o webhook).",
+              "Opcional **EVOLUTION_DELAY_MS**: milissegundos de “digitando…” antes de cada mensagem (ex.: 1500).",
+            ],
+          },
+          {
+            tip: "Coloque os valores direto na Vercel e faça Redeploy. Nunca mande chaves por chat ou e-mail.",
+          },
+        ],
+      },
+      {
+        heading: "2. Conectar e testar",
+        blocks: [
+          {
+            steps: [
+              "Operação → Canais de envio → WhatsApp · Evolution API → **Conectar (QR code)**.",
+              "No celular: WhatsApp → Aparelhos conectados → Conectar aparelho → leia o QR code. Depois, Atualizar.",
+              "**Cadastrar webhook na Evolution**: o CRM passa a receber entregue, lida, erro e PARAR.",
+              "Mensagens → uma mensagem de WhatsApp → **Enviar teste de verdade** para o seu número.",
+              "Funcionou? WHATSAPP_LIVE = true na Vercel e Redeploy: os fluxos publicados passam a enviar.",
+            ],
+          },
+          "Lida conta como abertura em Resultados. Quem responder PARAR ou SAIR deixa de receber marketing pelo WhatsApp. Outras conversas dos clientes não são guardadas no CRM.",
         ],
       },
     ],
   },
   {
     slug: "whatsapp",
-    title: "WhatsApp oficial (API da Meta)",
+    title: "WhatsApp oficial (API da Meta) — alternativa",
     summary:
       "Como conectar o número oficial do WhatsApp ao CRM, usar modelos aprovados e receber entregas, leituras e PARAR.",
     category: "Administração",

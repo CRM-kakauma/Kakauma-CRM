@@ -302,7 +302,7 @@ export function ChannelEditor({
     case "sms":
       return <SmsEditor c={content as SmsContent} set={onChange} utm={utm} />;
     case "whatsapp":
-      return <WhatsappEditor c={content as WhatsappContent} set={onChange} />;
+      return <WhatsappEditor c={content as WhatsappContent} set={onChange} utm={utm} />;
     case "rcs":
       return <RcsEditor c={content as RcsContent} set={onChange} utm={utm} />;
   }
@@ -955,7 +955,39 @@ function WaTemplateParams({ c, set }: { c: WhatsappContent; set: (c: WhatsappCon
   );
 }
 
-function WhatsappEditor({ c, set }: { c: WhatsappContent; set: (c: WhatsappContent) => void }) {
+/** Store links in a WhatsApp message: in the send they become CRM short links that count clicks. */
+function WaLinkNote({ texts }: { texts: (string | undefined)[] }) {
+  const { data: ch } = useChannels();
+  const tracking = ch?.link_tracking?.base;
+  let has = false;
+  for (const t of texts)
+    mapText(t ?? "", (u) => {
+      try {
+        if (ownDomain(new URL(u).hostname.toLowerCase())) has = true;
+      } catch {
+        /* not a link */
+      }
+      return u;
+    });
+  if (!has) return null;
+  return (
+    <p className="text-[11px] text-muted-foreground">
+      {tracking
+        ? `No envio, cada link do site vira um link curto do CRM (${tracking}/l/…) que conta o clique por cliente e leva à página com os UTMs.`
+        : "No envio, os links do site recebem os UTMs (canal, nome do fluxo e da mensagem)."}
+    </p>
+  );
+}
+
+function WhatsappEditor({
+  c,
+  set,
+  utm,
+}: {
+  c: WhatsappContent;
+  set: (c: WhatsappContent) => void;
+  utm?: UtmContext | undefined;
+}) {
   const { data: ch } = useChannels();
   const evolution = ch?.whatsapp?.provider === "evolution";
   const upd = (patch: Partial<WhatsappContent>) => set({ ...c, ...patch });
@@ -968,6 +1000,7 @@ function WhatsappEditor({ c, set }: { c: WhatsappContent; set: (c: WhatsappConte
       <div className="space-y-4">
         <WaTemplateLink c={c} set={set} />
         <WaTemplateParams c={c} set={set} />
+        <UtmLinkBuilder utm={utm} />
       </div>
     );
   return (
@@ -1027,6 +1060,7 @@ function WhatsappEditor({ c, set }: { c: WhatsappContent; set: (c: WhatsappConte
       >
         <TextArea value={c.body} onChange={(v) => upd({ body: v })} rows={6} />
       </Field>
+      <WaLinkNote texts={[c.body, ...buttons.map((b) => b.url)]} />
       <Field label="Rodapé (opcional)" count={[(c.footer ?? "").length, 60]}>
         <TextIn value={c.footer ?? ""} onChange={(v) => upd({ footer: v })} />
       </Field>
@@ -1108,6 +1142,7 @@ function WhatsappEditor({ c, set }: { c: WhatsappContent; set: (c: WhatsappConte
           </div>
         )}
       </div>
+      <UtmLinkBuilder utm={utm} />
       {!evolution && (
         <p className="rounded-lg bg-warning-soft px-3 py-2 text-xs text-warning-foreground">
           Fora da janela de 24h de conversa, o WhatsApp só entrega mensagens de modelos aprovados

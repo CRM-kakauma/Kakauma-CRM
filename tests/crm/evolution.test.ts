@@ -208,7 +208,7 @@ describe("Evolution in the CRM", { skip: !sql && "CRM_TEST_DATABASE_URL not set"
       p_content: {
         category: "utility",
         header: { type: "none" },
-        body: "Oi {{first_name}}, pedido aprovado!",
+        body: "Oi {{first_name}}, pedido aprovado! Acompanhe: https://kakauma.com.br/conta",
         footer: "",
         buttons: [],
       },
@@ -251,6 +251,7 @@ describe("Evolution in the CRM", { skip: !sql && "CRM_TEST_DATABASE_URL not set"
     // both providers set: Evolution takes the place of the official API
     await runFlows(rpc, {
       evolution: { ...cfg(f.impl), live: true },
+      links: { base: "https://crm.test", email: false },
       whatsapp: { token: "x", phoneNumberId: "y", live: true, fetchImpl: f.impl },
     });
     const [m] =
@@ -259,7 +260,22 @@ describe("Evolution in the CRM", { skip: !sql && "CRM_TEST_DATABASE_URL not set"
     assert.equal((m!["result"] as any).provider, "evolution");
     assert.equal((m!["result"] as any).wamid, "EVO1");
     assert.equal(f.calls.length, 1);
-    assert.equal(f.calls[0]!.body.text, "Oi Eva, pedido aprovado!");
+    // the store link became a CRM short link (counts the click, then opens the page with UTMs)
+    const sent = String(f.calls[0]!.body.text);
+    assert.match(
+      sent,
+      /^Oi Eva, pedido aprovado! Acompanhe: https:\/\/crm\.test\/l\/[A-Za-z0-9]{7}$/,
+    );
+    const code = sent.split("/l/")[1]!;
+    const [link] = await sql!`select url from crm.message_links where code = ${code}`;
+    assert.equal(
+      link!["url"],
+      "https://kakauma.com.br/conta?utm_source=whatsapp&utm_medium=crm&utm_campaign=compra_aprovada&utm_content=compra_aprovada_wa",
+    );
+    await call("crm_open_short_link", { p_code: code });
+    const [clicked] =
+      await sql!`select clicked_at from crm.messages where message_id = ${m!["message_id"]}`;
+    assert.ok(clicked!["clicked_at"], "click counted on the message");
 
     const save = async (body: unknown) => {
       for (const [kind, payload] of evolutionItems(body))

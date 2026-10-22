@@ -116,7 +116,7 @@ function Results() {
       <PageHeader
         title="Resultados do CRM"
         help="resultados"
-        description={`${label} · o que os fluxos (e-mail, SMS e RCS) trouxeram: envios, cliques e vendas.`}
+        description={`${label} · o que os fluxos (e-mail, SMS, RCS e WhatsApp) trouxeram: envios, cliques e vendas.`}
       >
         <div
           className="flex items-center gap-1 rounded-lg border border-border bg-card p-0.5"

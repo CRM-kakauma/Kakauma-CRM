@@ -20,12 +20,32 @@ export const Route = createFileRoute("/api/crm/messages/test")({
         const { isEmail, resendSend } = await import("@/server/crm/resend");
         const { pushfyPlan, pushfySend, toPushfyNumber } = await import("@/server/crm/pushfy");
         const { renderMessage, SAMPLE_CUSTOMER } = await import("@/lib/crm-messages");
-        const { tagRendered, utmSlug } = await import("@/lib/crm-utm");
+        const { mapRenderedLinks, storeLinks, tagRendered, utmSlug } =
+          await import("@/lib/crm-utm");
+        const { linkTracking } = await import("@/server/crm/pipeline.server");
+        /**
+         * SMS, RCS and WhatsApp tests go out as a customer would get them: store links become
+         * CRM short links (manual short links, campaign "teste"). Without tracking: as they are.
+         */
+        let actor: string | null = null;
+        const shorten = async <T>(channel: string, rendered: T): Promise<T> => {
+          const links = linkTracking();
+          if (!links || channel === "email") return rendered;
+          const codes: Record<string, string> = {};
+          for (const url of storeLinks(channel, rendered)) {
+            const r = await crmRpc("crm_create_short_link", { p_url: url, p_actor: actor });
+            if (!r.error && r.data) codes[url] = (r.data as { code: string }).code;
+          }
+          return mapRenderedLinks(channel, rendered, (u) =>
+            codes[u] ? `${links.base}/l/${codes[u]}` : u,
+          );
+        };
         try {
           const session = await getSession(request);
           if (!session) return json({ error: "unauthenticated" }, 401);
           if (!atLeast(session.role, "operator"))
             return json({ error: "forbidden" }, 403, session.setCookies);
+          actor = session.email;
           const fail = (status: number, error: string, message: string) =>
             json({ error, message }, status, session.setCookies);
 
@@ -109,10 +129,9 @@ export const Route = createFileRoute("/api/crm/messages/test")({
             const { evolutionSend } = await import("@/server/crm/evolution");
             const to = toPushfyNumber(rawTo);
             if (!to) return fail(400, "invalid_request", "Informe um celular com DDD.");
-            const rendered = tagRendered(
+            const rendered = await shorten(
               "whatsapp",
-              renderMessage("whatsapp", tpl.content as never, vars),
-              utm,
+              tagRendered("whatsapp", renderMessage("whatsapp", tpl.content as never, vars), utm),
             );
             const sent = await evolutionSend(evolutionConfig()!, to, rendered);
             await audit(to, sent.ok, sent.ok ? null : (sent.error ?? null));
@@ -136,10 +155,9 @@ export const Route = createFileRoute("/api/crm/messages/test")({
               );
             const to = toPushfyNumber(rawTo);
             if (!to) return fail(400, "invalid_request", "Informe um celular com DDD.");
-            const rendered = tagRendered(
+            const rendered = await shorten(
               "whatsapp",
-              renderMessage("whatsapp", tpl.content as never, vars),
-              utm,
+              tagRendered("whatsapp", renderMessage("whatsapp", tpl.content as never, vars), utm),
             );
             const sent = await whatsappSend(cfg, to, rendered);
             await audit(to, sent.ok, sent.ok ? null : (sent.error ?? null));
@@ -159,10 +177,9 @@ export const Route = createFileRoute("/api/crm/messages/test")({
             return fail(400, "not_configured", "Configure PUSHFY_API_TOKEN na Vercel para enviar.");
           const to = toPushfyNumber(rawTo);
           if (!to) return fail(400, "invalid_request", "Informe um celular com DDD.");
-          const rendered = tagRendered(
+          const rendered = await shorten(
             tpl.channel,
-            renderMessage(tpl.channel, tpl.content as never, vars),
-            utm,
+            tagRendered(tpl.channel, renderMessage(tpl.channel, tpl.content as never, vars), utm),
           );
           const plan = pushfyPlan(tpl.channel, rendered);
           const sent = await pushfySend(cfg, plan.kind, {

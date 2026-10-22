@@ -232,8 +232,22 @@ export function SmsMeter({ info }: { info: ReturnType<typeof smsInfo> }) {
 
 /** WhatsApp formatting: *bold* _italic_ ~strike~ ```mono``` */
 function waFormat(text: string): ReactNode[] {
+  // links are shown as they are (WhatsApp does not format inside them; UTMs have "_")
+  return text.split(/(https?:\/\/\S+)/g).flatMap((chunk, j): ReactNode[] =>
+    /^https?:\/\//.test(chunk)
+      ? [
+          <span key={`l${j}`} className="break-all text-[#027eb5] underline">
+            {chunk}
+          </span>,
+        ]
+      : waStyle(chunk, `t${j}`),
+  );
+}
+
+function waStyle(text: string, prefix: string): ReactNode[] {
   const parts = text.split(/(\*[^*\n]+\*|_[^_\n]+_|~[^~\n]+~|```[^`]+```)/g);
-  return parts.map((p, i) => {
+  return parts.map((p, n) => {
+    const i = `${prefix}-${n}`;
     if (/^\*[^*]+\*$/.test(p)) return <strong key={i}>{p.slice(1, -1)}</strong>;
     if (/^_[^_]+_$/.test(p)) return <em key={i}>{p.slice(1, -1)}</em>;
     if (/^~[^~]+~$/.test(p)) return <s key={i}>{p.slice(1, -1)}</s>;

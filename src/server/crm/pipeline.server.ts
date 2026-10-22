@@ -4,6 +4,16 @@ import { runFlows as runFlowsCore, syncPushfyOptouts as syncOptoutsCore } from "
 import { crmRpc as rpc, env } from "./supabase.server.ts";
 import { syncResendStatus as syncResendCore } from "./resend-sync.ts";
 
+/** On/off switches (…_LIVE): "true", "True", " true ", "\"true\"", "1", "sim" all turn it on. */
+export const isOn = (name: string) =>
+  ["true", "1", "sim", "yes", "on"].includes(
+    (env(name) ?? "")
+      .trim()
+      .replace(/^(['"])(.*)\1$/, "$2")
+      .trim()
+      .toLowerCase(),
+  );
+
 // Everything runs against the CRM's own Supabase project (CRM_SUPABASE_* in .env).
 export const ingestWebhook = (source: string, rawBody: string) =>
   core.ingestWebhook(rpc, source, rawBody);
@@ -25,7 +35,7 @@ export function pushfyConfig() {
     token,
     baseUrl: env("PUSHFY_BASE_URL"),
     smsFrom: env("PUSHFY_SMS_FROM"),
-    live: env("PUSHFY_LIVE") === "true",
+    live: isOn("PUSHFY_LIVE"),
   };
 }
 /**
@@ -52,7 +62,7 @@ export function resendConfig() {
     apiKey,
     from,
     replyTo: env("EMAIL_REPLY_TO"),
-    live: env("EMAIL_LIVE") === "true",
+    live: isOn("EMAIL_LIVE"),
   };
 }
 /**
@@ -69,7 +79,7 @@ export function whatsappConfig() {
     wabaId: env("WHATSAPP_WABA_ID"),
     apiVersion: env("WHATSAPP_API_VERSION"),
     baseUrl: env("WHATSAPP_BASE_URL"),
-    live: env("WHATSAPP_LIVE") === "true",
+    live: isOn("WHATSAPP_LIVE"),
   };
 }
 /**
@@ -89,7 +99,7 @@ export function evolutionConfig() {
     apiKey,
     instance,
     delayMs: Number.isFinite(delay) && delay > 0 ? Math.min(delay, 10_000) : undefined,
-    live: env("WHATSAPP_LIVE") === "true",
+    live: isOn("WHATSAPP_LIVE"),
   };
 }
 export const runFlows = (limit = 100) =>

@@ -2,7 +2,7 @@
 import { after, before, describe, test } from "node:test";
 import assert from "node:assert/strict";
 import postgres from "postgres";
-import { ingestWebhook, type Rpc } from "../../src/server/crm/pipeline.ts";
+import { ingestWebhook, processPending, type Rpc } from "../../src/server/crm/pipeline.ts";
 import { importBackfill, parseBackfillLine } from "../../src/server/crm/backfill.ts";
 import { b4 } from "./fixtures.ts";
 import { makeRpc, resetCrm, TEST_DB_URL } from "./db.ts";
@@ -96,6 +96,26 @@ describe("History import", { skip: !sql && "CRM_TEST_DATABASE_URL not set" }, ()
     const [runs] = await sql!`select (select count(*)::int from crm.automation_runs) as runs,
                                      (select count(*)::int from crm.messages) as msgs`;
     assert.deepEqual([runs!["runs"], runs!["msgs"]], [0, 0]);
+  });
+
+  test("an import interrupted mid-event: the worker finishes it, still without flows", async () => {
+    // stored by the import, then the call died before processing (platform time limit)
+    await call("crm_ingest_backfill", {
+      p_source: "b4you",
+      p_event_name: "approved-payment",
+      p_source_event_id: null,
+      p_payload: old("BF9", "2026-08-12T12:00:00Z"),
+      p_redacted: [],
+      p_received_at: "2026-08-12T12:00:01Z",
+    });
+    const [ev] = await sql!`select backfill, processing_status from crm.events where sale_id is null
+                             and payload->>'sale_id' = 'BF9'`;
+    assert.deepEqual([ev!["backfill"], ev!["processing_status"]], [true, "RECEIVED"]);
+    await processPending(rpc, { limit: 10 }); // the automatic worker (no import transaction)
+    const [done] =
+      await sql!`select processing_status from crm.events where payload->>'sale_id' = 'BF9'`;
+    assert.equal(done!["processing_status"], "PROCESSED");
+    assert.equal(await enrolled(), 0);
   });
 
   test("importing again changes nothing", async () => {

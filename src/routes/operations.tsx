@@ -203,7 +203,8 @@ function Operations({ me }: { me: Me }) {
   );
 }
 
-const FILE_BATCH = 50;
+const FILE_BATCH = 25;
+const RETRIES = 4;
 
 /**
  * Webhooks from before the CRM, from a .jsonl file (one payload per line, or
@@ -238,25 +239,48 @@ function ImportFile({ onDone }: { onDone: () => void }) {
       while (start < lines.length) {
         const part = lines.slice(start, start + FILE_BATCH);
         if (part.some((l) => l.trim())) {
-          const res = await fetch("/api/crm/admin/import-file", {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            credentials: "same-origin",
-            body: JSON.stringify({ source: "b4you", first_line: start + 1, lines: part }),
-          });
-          const body = (await res.json().catch(() => ({}))) as {
+          // a dropped connection (platform time limit, network) is tried again: importing is idempotent
+          let body: {
+            processed?: number;
             counts?: Record<string, number>;
             errors?: { line: number; error: string }[];
             message?: string;
             error?: string;
-          };
-          if (!res.ok)
-            throw new Error(
-              `${body.message ?? body.error ?? `HTTP ${res.status}`} — continue da linha ${start + 1}`,
-            );
+          } = {};
+          for (let attempt = 0; ; attempt++) {
+            let res: Response | null = null;
+            try {
+              res = await fetch("/api/crm/admin/import-file", {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                credentials: "same-origin",
+                body: JSON.stringify({ source: "b4you", first_line: start + 1, lines: part }),
+              });
+              body = (await res.json().catch(() => ({}))) as typeof body;
+            } catch (e) {
+              if (attempt >= RETRIES)
+                throw new Error(`${(e as Error).message} — continue da linha ${start + 1}`);
+            }
+            if (res?.ok) break;
+            // permission, invalid file…: trying again does not help
+            if (res && res.status < 500)
+              throw new Error(body.message ?? body.error ?? `HTTP ${res.status}`);
+            if (res && attempt >= RETRIES)
+              throw new Error(
+                `${body.message ?? body.error ?? `HTTP ${res.status}`} — continue da linha ${start + 1}`,
+              );
+            await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
+          }
           for (const [k, v] of Object.entries(body.counts ?? {}))
             total.counts[k] = (total.counts[k] ?? 0) + v;
           total.errors.push(...(body.errors ?? []));
+          // the server may stop early (time limit): go on from where it got
+          const got = Math.max(1, Math.min(part.length, body.processed ?? part.length));
+          start += got;
+          total.done = start;
+          setFrom(String(start + 1));
+          setProgress({ ...total, counts: { ...total.counts }, errors: [...total.errors] });
+          continue;
         }
         start += part.length;
         total.done = start;

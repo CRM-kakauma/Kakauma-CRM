@@ -2,9 +2,13 @@ import { createFileRoute } from "@tanstack/react-router";
 
 /**
  * History import from a file (admin): POST { source: "b4you", first_line, lines: [...] } with up
- * to 100 JSONL lines per call (the screen sends the file in parts). See server/crm/backfill.ts.
+ * to 100 JSONL lines per call (the screen sends the file in parts). Each call works for a few
+ * seconds and answers how many lines it got through (`processed`); the screen goes on from there.
+ * See server/crm/backfill.ts.
  */
 const MAX_LINES = 100;
+/** Work per call (Vercel ends a function after ~10 s on the basic plan). */
+const BUDGET_MS = 6_000;
 
 export const Route = createFileRoute("/api/crm/admin/import-file")({
   server: {
@@ -56,13 +60,24 @@ export const Route = createFileRoute("/api/crm/admin/import-file")({
           const counts: Record<string, number> = {};
           const errors = [...bad];
           if (bad.length) counts["inválido"] = bad.length;
-          // one at a time, in file order (the order the webhooks arrived)
+          // one at a time, in file order (the order the webhooks arrived), within a time budget:
+          // the platform ends long requests, so the screen sends the rest in the next call
+          const started = Date.now();
+          let processed = body.lines.length;
           for (const { item, line } of items) {
+            if (Date.now() - started > BUDGET_MS) {
+              processed = line - first;
+              break;
+            }
             const r = await importBackfill(crmRpc, "b4you", [item], line);
             for (const [k, v] of Object.entries(r.counts)) counts[k] = (counts[k] ?? 0) + v;
             errors.push(...r.errors);
           }
-          return json({ received: body.lines.length, counts, errors }, 200, session.setCookies);
+          return json(
+            { received: body.lines.length, processed, counts, errors },
+            200,
+            session.setCookies,
+          );
         } catch (e) {
           return json({ error: "server_error", message: (e as Error).message }, 500);
         }

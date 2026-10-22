@@ -112,7 +112,7 @@ export async function importBackfill(
       }[]
     )[0];
     if (!ev) {
-      bump("em processamento");
+      bump("termina sozinho"); // being processed by an interrupted call: the worker finishes it (marked)
       continue;
     }
     const n = normalize(

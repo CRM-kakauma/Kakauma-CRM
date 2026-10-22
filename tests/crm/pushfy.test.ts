@@ -37,6 +37,12 @@ function fakeFetch(responses: { status: number; body: unknown }[] = []) {
   }) as unknown as typeof fetch;
   return { calls, impl };
 }
+/** fetch double that always answers the same (the order of the calls does not matter). */
+const always = (status: number, body: unknown) =>
+  (async () =>
+    new Response(typeof body === "string" ? body : JSON.stringify(body), {
+      status,
+    })) as unknown as typeof fetch;
 const cfg = (impl: typeof fetch) => ({ token: "tok-test", smsFrom: "Kakauma", fetchImpl: impl });
 
 describe("Pushfy adapter", () => {
@@ -306,12 +312,12 @@ describe("Sending through Pushfy", { skip: !sql && "CRM_TEST_DATABASE_URL not se
     await buy("P1", "(11) 97777-0001", "SP1");
     await runFlows(rpc, { pushfy: { ...cfg(f.impl), live: true } });
     assert.equal(f.calls.length, 2);
-    assert.deepEqual(
-      [f.calls[1]!.url, f.calls[1]!.body.messages[0].text],
-      ["https://portal.pushfy.com/apircsbasic", "Oi"],
-    );
-    assert.equal(f.calls[0]!.body.messages[0].destinations[0].to, "5511977770001");
-    assert.equal(f.calls[0]!.body.messages[0].text, "Kakauma: oi Cliente");
+    // both messages are created in the same instant: the order between them is not fixed
+    const rcs = f.calls.find((c) => c.url.endsWith("/apircsbasic"));
+    const sms = f.calls.find((c) => c.url.endsWith("/webapi"));
+    assert.equal(rcs?.body.messages[0].text, "Oi");
+    assert.equal(sms!.body.messages[0].destinations[0].to, "5511977770001");
+    assert.equal(sms!.body.messages[0].text, "Kakauma: oi Cliente");
     const rows =
       await sql!`select m.channel, m.status, m.skip_reason, m.result->>'provider' as provider, m.result->'response' as response,
                             m.result->>'sent_as' as sent_as
@@ -330,7 +336,7 @@ describe("Sending through Pushfy", { skip: !sql && "CRM_TEST_DATABASE_URL not se
   test("rejected (400) is final; overloaded (503) retries later", async () => {
     await buy("P2", "11977770002", "SP2");
     await runFlows(rpc, {
-      pushfy: { ...cfg(fakeFetch([{ status: 400, body: { error: "bad" } }]).impl), live: true },
+      pushfy: { ...cfg(always(400, { error: "bad" })), live: true },
     });
     const m2 = await sql!`select status from crm.messages m join crm.customers c using (customer_id)
                           where c.external_customer_id = 'cus_P2' and m.channel = 'sms'`;
@@ -338,7 +344,7 @@ describe("Sending through Pushfy", { skip: !sql && "CRM_TEST_DATABASE_URL not se
 
     await buy("P3", "11977770003", "SP3");
     await runFlows(rpc, {
-      pushfy: { ...cfg(fakeFetch([{ status: 503, body: "busy" }]).impl), live: true },
+      pushfy: { ...cfg(always(503, "busy")), live: true },
     });
     const m3 =
       await sql!`select status, scheduled_for > now() as later from crm.messages m join crm.customers c using (customer_id)

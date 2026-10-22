@@ -567,6 +567,7 @@ export const HELP: HelpArticle[] = [
             list: [
               "**Eventos por status**: se algo está parado em “Com erro”, o sistema tenta de novo sozinho; depois de 5 falhas vai para a **fila de erros**.",
               "**Fila de erros**: o evento original está guardado. Corrija a causa e use **Reprocessar**.",
+              "**Importar arquivo de webhooks (histórico)**: para vendas de antes do CRM. Um arquivo .jsonl com um webhook da B4you por linha (ou {received_at, payload}, para guardar a hora em que chegou). Cada evento passa pelo mesmo processamento de um webhook ao vivo, mas **não dispara fluxos nem automações** — ninguém recebe mensagem. Importar de novo não duplica nada; se parar no meio, continue da linha indicada.",
               "**Custos e impostos**: custo por produto/oferta e alíquota — necessários para o lucro por cliente.",
               "**Investimento em mídia**: importe CSV para ter CAC e LTV/CAC.",
               "**Regras e limites**: janelas de churn, limite diário de mensagens, horário de envio, pesos dos scores. Toda alteração vai para a auditoria.",

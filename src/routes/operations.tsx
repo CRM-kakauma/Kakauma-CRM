@@ -122,7 +122,12 @@ function Operations({ me }: { me: Me }) {
           </p>
         </Section>
       ) : (
-        isAdmin && <ImportLegacy onDone={refresh} />
+        isAdmin && (
+          <>
+            <ImportFile onDone={refresh} />
+            <ImportLegacy onDone={refresh} />
+          </>
+        )
       )}
 
       <Section
@@ -195,6 +200,162 @@ function Operations({ me }: { me: Me }) {
       {isAdmin && <SpendImport rows={d["totals"]["marketing_spend_rows"]} onDone={refresh} />}
       <Settings isAdmin={isAdmin} />
     </>
+  );
+}
+
+const FILE_BATCH = 50;
+
+/**
+ * Webhooks from before the CRM, from a .jsonl file (one payload per line, or
+ * { received_at, payload }). Sent in parts; customers get no message (backfill).
+ */
+function ImportFile({ onDone }: { onDone: () => void }) {
+  const [file, setFile] = useState<File | null>(null);
+  const [from, setFrom] = useState("1");
+  const [running, setRunning] = useState(false);
+  const [progress, setProgress] = useState<{
+    done: number;
+    total: number;
+    counts: Record<string, number>;
+    errors: { line: number; error: string }[];
+  } | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function run() {
+    if (!file) return;
+    setRunning(true);
+    setErr(null);
+    const lines = (await file.text()).split(/\r?\n/);
+    const total = {
+      done: 0,
+      total: lines.length,
+      counts: {} as Record<string, number>,
+      errors: [] as { line: number; error: string }[],
+    };
+    let start = Math.max(1, Number(from) || 1) - 1;
+    total.done = start;
+    try {
+      while (start < lines.length) {
+        const part = lines.slice(start, start + FILE_BATCH);
+        if (part.some((l) => l.trim())) {
+          const res = await fetch("/api/crm/admin/import-file", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            credentials: "same-origin",
+            body: JSON.stringify({ source: "b4you", first_line: start + 1, lines: part }),
+          });
+          const body = (await res.json().catch(() => ({}))) as {
+            counts?: Record<string, number>;
+            errors?: { line: number; error: string }[];
+            message?: string;
+            error?: string;
+          };
+          if (!res.ok)
+            throw new Error(
+              `${body.message ?? body.error ?? `HTTP ${res.status}`} — continue da linha ${start + 1}`,
+            );
+          for (const [k, v] of Object.entries(body.counts ?? {}))
+            total.counts[k] = (total.counts[k] ?? 0) + v;
+          total.errors.push(...(body.errors ?? []));
+        }
+        start += part.length;
+        total.done = start;
+        setFrom(String(start + 1));
+        setProgress({ ...total, counts: { ...total.counts }, errors: [...total.errors] });
+      }
+      setFrom("1");
+      toast.success("Arquivo importado", {
+        description: `${count(total.counts["importado"] ?? 0)} eventos novos, ${count(total.counts["já existia"] ?? 0)} já existiam.`,
+      });
+      onDone();
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setRunning(false);
+    }
+  }
+
+  return (
+    <Section
+      title="Importar arquivo de webhooks (histórico)"
+      description="Para vendas de antes do CRM: um arquivo .jsonl com um webhook da B4you por linha. Cada evento passa pelo mesmo processamento de um webhook ao vivo, mas não dispara fluxos nem automações (ninguém recebe mensagem). Pode importar de novo: o que já existe não é duplicado."
+      action={
+        <Button size="sm" onClick={run} disabled={running || !file}>
+          <Upload className="size-4" /> {running ? "Importando…" : "Importar"}
+        </Button>
+      }
+    >
+      <div className="surface flex flex-wrap items-center gap-3 p-3">
+        <Input
+          type="file"
+          accept=".jsonl,.json,.txt"
+          className="h-9 max-w-xs"
+          disabled={running}
+          onChange={(e) => {
+            setFile(e.target.files?.[0] ?? null);
+            setFrom("1");
+            setProgress(null);
+            setErr(null);
+          }}
+        />
+        <label className="flex items-center gap-2 text-xs text-muted-foreground">
+          começar da linha
+          <Input
+            value={from}
+            onChange={(e) => setFrom(e.target.value.replace(/\D/g, ""))}
+            className="h-8 w-20"
+            inputMode="numeric"
+            disabled={running}
+          />
+        </label>
+      </div>
+      {progress && (
+        <div className="surface mt-2 space-y-2 p-3 text-sm">
+          <div className="h-2 overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full bg-primary transition-all"
+              style={{
+                width: `${Math.min(100, (progress.done / Math.max(progress.total, 1)) * 100)}%`,
+              }}
+            />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <span>
+              {count(progress.done)} de {count(progress.total)} linhas
+            </span>
+            {Object.entries(progress.counts).map(([k, v]) => (
+              <Pill
+                key={k}
+                tone={
+                  k === "importado"
+                    ? "success"
+                    : k === "erro" || k === "inválido" || k === "não reconhecido"
+                      ? "danger"
+                      : "muted"
+                }
+              >
+                {k}: {count(v)}
+              </Pill>
+            ))}
+          </div>
+          {progress.errors.length > 0 && (
+            <details className="text-xs">
+              <summary className="cursor-pointer text-muted-foreground">
+                {progress.errors.length} linha(s) com problema (ficam na Fila de erros)
+              </summary>
+              <ul className="mt-1 space-y-0.5">
+                {progress.errors.slice(0, 50).map((e) => (
+                  <li key={`${e.line}-${e.error}`}>
+                    linha {e.line}: {e.error}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
+        </div>
+      )}
+      {err && <p className="mt-2 rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{err}</p>}
+    </Section>
   );
 }
 

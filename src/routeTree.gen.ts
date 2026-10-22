@@ -45,6 +45,7 @@ import { Route as ApiWebhooksEvolutionRouteImport } from './routes/api/webhooks/
 import { Route as ApiWebhooksPushfyRouteImport } from './routes/api/webhooks/pushfy'
 import { Route as ApiWebhooksResendRouteImport } from './routes/api/webhooks/resend'
 import { Route as ApiWebhooksWhatsappRouteImport } from './routes/api/webhooks/whatsapp'
+import { Route as ApiCrmAdminImportFileRouteImport } from './routes/api/crm/admin/import-file'
 import { Route as ApiCrmAdminImportLegacyRouteImport } from './routes/api/crm/admin/import-legacy'
 import { Route as ApiCrmAdminUsersRouteImport } from './routes/api/crm/admin/users'
 import { Route as ApiCrmAuthLoginRouteImport } from './routes/api/crm/auth/login'
@@ -239,6 +240,11 @@ const ApiWebhooksWhatsappRoute = ApiWebhooksWhatsappRouteImport.update({
   path: '/api/webhooks/whatsapp',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCrmAdminImportFileRoute = ApiCrmAdminImportFileRouteImport.update({
+  id: '/api/crm/admin/import-file',
+  path: '/api/crm/admin/import-file',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiCrmAdminImportLegacyRoute = ApiCrmAdminImportLegacyRouteImport.update({
   id: '/api/crm/admin/import-legacy',
   path: '/api/crm/admin/import-legacy',
@@ -344,6 +350,7 @@ export interface FileRoutesByFullPath {
   '/api/webhooks/pushfy': typeof ApiWebhooksPushfyRoute
   '/api/webhooks/resend': typeof ApiWebhooksResendRoute
   '/api/webhooks/whatsapp': typeof ApiWebhooksWhatsappRoute
+  '/api/crm/admin/import-file': typeof ApiCrmAdminImportFileRoute
   '/api/crm/admin/import-legacy': typeof ApiCrmAdminImportLegacyRoute
   '/api/crm/admin/users': typeof ApiCrmAdminUsersRoute
   '/api/crm/auth/login': typeof ApiCrmAuthLoginRoute
@@ -395,6 +402,7 @@ export interface FileRoutesByTo {
   '/api/webhooks/pushfy': typeof ApiWebhooksPushfyRoute
   '/api/webhooks/resend': typeof ApiWebhooksResendRoute
   '/api/webhooks/whatsapp': typeof ApiWebhooksWhatsappRoute
+  '/api/crm/admin/import-file': typeof ApiCrmAdminImportFileRoute
   '/api/crm/admin/import-legacy': typeof ApiCrmAdminImportLegacyRoute
   '/api/crm/admin/users': typeof ApiCrmAdminUsersRoute
   '/api/crm/auth/login': typeof ApiCrmAuthLoginRoute
@@ -447,6 +455,7 @@ export interface FileRoutesById {
   '/api/webhooks/pushfy': typeof ApiWebhooksPushfyRoute
   '/api/webhooks/resend': typeof ApiWebhooksResendRoute
   '/api/webhooks/whatsapp': typeof ApiWebhooksWhatsappRoute
+  '/api/crm/admin/import-file': typeof ApiCrmAdminImportFileRoute
   '/api/crm/admin/import-legacy': typeof ApiCrmAdminImportLegacyRoute
   '/api/crm/admin/users': typeof ApiCrmAdminUsersRoute
   '/api/crm/auth/login': typeof ApiCrmAuthLoginRoute
@@ -500,6 +509,7 @@ export interface FileRouteTypes {
     | '/api/webhooks/pushfy'
     | '/api/webhooks/resend'
     | '/api/webhooks/whatsapp'
+    | '/api/crm/admin/import-file'
     | '/api/crm/admin/import-legacy'
     | '/api/crm/admin/users'
     | '/api/crm/auth/login'
@@ -551,6 +561,7 @@ export interface FileRouteTypes {
     | '/api/webhooks/pushfy'
     | '/api/webhooks/resend'
     | '/api/webhooks/whatsapp'
+    | '/api/crm/admin/import-file'
     | '/api/crm/admin/import-legacy'
     | '/api/crm/admin/users'
     | '/api/crm/auth/login'
@@ -602,6 +613,7 @@ export interface FileRouteTypes {
     | '/api/webhooks/pushfy'
     | '/api/webhooks/resend'
     | '/api/webhooks/whatsapp'
+    | '/api/crm/admin/import-file'
     | '/api/crm/admin/import-legacy'
     | '/api/crm/admin/users'
     | '/api/crm/auth/login'
@@ -654,6 +666,7 @@ export interface RootRouteChildren {
   ApiWebhooksPushfyRoute: typeof ApiWebhooksPushfyRoute
   ApiWebhooksResendRoute: typeof ApiWebhooksResendRoute
   ApiWebhooksWhatsappRoute: typeof ApiWebhooksWhatsappRoute
+  ApiCrmAdminImportFileRoute: typeof ApiCrmAdminImportFileRoute
   ApiCrmAdminImportLegacyRoute: typeof ApiCrmAdminImportLegacyRoute
   ApiCrmAdminUsersRoute: typeof ApiCrmAdminUsersRoute
   ApiCrmAuthLoginRoute: typeof ApiCrmAuthLoginRoute
@@ -923,6 +936,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiWebhooksWhatsappRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/crm/admin/import-file': {
+      id: '/api/crm/admin/import-file'
+      path: '/api/crm/admin/import-file'
+      fullPath: '/api/crm/admin/import-file'
+      preLoaderRoute: typeof ApiCrmAdminImportFileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/crm/admin/import-legacy': {
       id: '/api/crm/admin/import-legacy'
       path: '/api/crm/admin/import-legacy'
@@ -1054,6 +1074,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiWebhooksPushfyRoute: ApiWebhooksPushfyRoute,
   ApiWebhooksResendRoute: ApiWebhooksResendRoute,
   ApiWebhooksWhatsappRoute: ApiWebhooksWhatsappRoute,
+  ApiCrmAdminImportFileRoute: ApiCrmAdminImportFileRoute,
   ApiCrmAdminImportLegacyRoute: ApiCrmAdminImportLegacyRoute,
   ApiCrmAdminUsersRoute: ApiCrmAdminUsersRoute,
   ApiCrmAuthLoginRoute: ApiCrmAuthLoginRoute,

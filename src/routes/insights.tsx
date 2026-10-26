@@ -14,7 +14,8 @@ import { PageHeader } from "@/components/page-header";
 import { usePeriod } from "@/components/period-context";
 import { FilterSelect } from "@/components/crm/filter-select";
 import { ApiErrorBox, Empty, Loading, Pill, RequireAuth, Stat } from "@/components/crm/ui";
-import { count, money, pct, ratio } from "@/lib/crm-format";
+import { count, date, money, pct, ratio } from "@/lib/crm-format";
+import { Switch } from "@/components/ui/switch";
 import {
   Table,
   TableBody,
@@ -35,6 +36,7 @@ export const Route = createFileRoute("/insights")({
 type Row = Record<string, any>;
 
 const DIM_LABEL: Record<string, string> = {
+  total: "Todos os clientes",
   first_purchase_month: "Mês da 1ª compra",
   first_subscription_month: "Mês da 1ª assinatura",
   source: "Origem",
@@ -64,6 +66,7 @@ function Insights() {
         <TabsList className="flex-wrap">
           <TabsTrigger value="funnel">Funil</TabsTrigger>
           <TabsTrigger value="campaigns">Campanhas</TabsTrigger>
+          <TabsTrigger value="repurchase">Recompra</TabsTrigger>
           <TabsTrigger value="cohorts">Cohorts</TabsTrigger>
           <TabsTrigger value="retention">Retenção</TabsTrigger>
           <TabsTrigger value="ltv">Curva de LTV</TabsTrigger>
@@ -74,6 +77,9 @@ function Insights() {
         </TabsContent>
         <TabsContent value="campaigns" className="mt-6">
           <Campaigns range={range} />
+        </TabsContent>
+        <TabsContent value="repurchase" className="mt-6">
+          <Repurchase range={range} />
         </TabsContent>
         <TabsContent value="cohorts" className="mt-6">
           <Cohorts range={range} />
@@ -260,6 +266,175 @@ function Campaigns({ range }: { range: Range }) {
         CAC e LTV/CAC só aparecem para linhas com gasto importado (Operação → Investimento em
         mídia).
       </p>
+    </>
+  );
+}
+
+// ------------------------------------------------------------------ repurchase
+
+/** "—" when the window is not over for anyone yet; otherwise the rate and its base. */
+const days = (v: unknown) =>
+  v === null || v === undefined
+    ? "—"
+    : `${Number(v).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} dias`;
+const windowRate = (r: Row, n: 30 | 60 | 90) =>
+  r[`repeat_${n}`] == null ? "—" : pct(r[`repeat_${n}`]);
+
+function Repurchase({ range }: { range: Range }) {
+  const [dim, setDim] = useState("total");
+  const [renewals, setRenewals] = useState(false);
+  const { data, isLoading, error } = useCrm<Row>("crm_repurchase", {
+    ...range,
+    p_dimension: dim,
+    p_include_renewals: renewals,
+  });
+  const rows: Row[] = data?.["rows"] ?? [];
+  // the tiles always show everyone; the table opens by the chosen dimension
+  const { data: all } = useCrm<Row>("crm_repurchase", {
+    ...range,
+    p_dimension: "total",
+    p_include_renewals: renewals,
+  });
+  const t: Row | undefined = all?.["rows"]?.[0];
+  return (
+    <>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <label className="flex items-center gap-2 text-sm">
+          <Switch checked={renewals} onCheckedChange={setRenewals} />
+          Contar renovação de assinatura como recompra
+        </label>
+        <FilterSelect
+          value={dim}
+          onChange={setDim}
+          all=""
+          hideAll
+          options={dims([
+            "total",
+            "first_purchase_month",
+            "product",
+            "offer",
+            "source",
+            "campaign",
+            "creative",
+            "funnel",
+            "payment_method",
+            "state",
+          ])}
+        />
+      </div>
+      <ApiErrorBox error={error} />
+      {t && (
+        <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+          <Stat
+            label="Recompra (2ª compra)"
+            value={pct(t["repeat_rate"])}
+            hint={`${count(t["repeat_customers"])} de ${count(t["customers"])} clientes compraram de novo`}
+          />
+          <Stat
+            label="Recompra em 30 dias"
+            value={windowRate(t, 30)}
+            hint={`base: ${count(t["base_30"])} clientes com 1ª compra há 30+ dias`}
+          />
+          <Stat
+            label="Recompra em 60 dias"
+            value={windowRate(t, 60)}
+            hint={`base: ${count(t["base_60"])} clientes com 1ª compra há 60+ dias`}
+          />
+          <Stat
+            label="Recompra em 90 dias"
+            value={windowRate(t, 90)}
+            hint={`base: ${count(t["base_90"])} clientes com 1ª compra há 90+ dias`}
+          />
+          <Stat
+            label="LTV médio (líquido)"
+            value={money(t["avg_ltv"])}
+            hint={`total ${money(t["total_ltv"])} · ${Number(t["avg_purchases"] ?? 0).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} compras por cliente`}
+          />
+          <Stat
+            label="LTV de quem recomprou"
+            value={money(t["avg_ltv_repeat"])}
+            hint={`quem comprou 1 vez: ${money(t["avg_ltv_one_time"])}`}
+          />
+          <Stat
+            label="Dias até a 2ª compra"
+            value={days(t["median_days_to_second"])}
+            hint={`mediana · média ${days(t["avg_days_to_second"])}`}
+          />
+          <Stat
+            label="Ticket 1ª → 2ª compra"
+            value={money(t["avg_first_amount"])}
+            hint={`2ª compra: ${money(t["avg_second_amount"])}`}
+          />
+        </div>
+      )}
+      {isLoading ? (
+        <Loading />
+      ) : !rows.length ? (
+        <Empty>Nenhum cliente com primeira compra no período.</Empty>
+      ) : (
+        dim !== "total" && (
+          <div className="surface overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{DIM_LABEL[dim]}</TableHead>
+                  <TableHead className="text-right">Clientes</TableHead>
+                  <TableHead className="text-right">Recompra</TableHead>
+                  <TableHead className="text-right">30 dias</TableHead>
+                  <TableHead className="text-right">60 dias</TableHead>
+                  <TableHead className="text-right">90 dias</TableHead>
+                  <TableHead className="text-right">Dias até a 2ª</TableHead>
+                  <TableHead className="text-right">LTV médio</TableHead>
+                  <TableHead className="text-right">LTV recompra</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.map((r) => (
+                  <TableRow key={String(r["cohort"])}>
+                    <TableCell className="max-w-[280px] truncate font-medium" title={r["cohort"]}>
+                      {r["cohort"]}
+                    </TableCell>
+                    <TableCell className="text-right num">{count(r["customers"])}</TableCell>
+                    <TableCell className="text-right num">
+                      {pct(r["repeat_rate"])}{" "}
+                      <span className="text-muted-foreground">
+                        ({count(r["repeat_customers"])})
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right num">{windowRate(r, 30)}</TableCell>
+                    <TableCell className="text-right num">{windowRate(r, 60)}</TableCell>
+                    <TableCell className="text-right num">{windowRate(r, 90)}</TableCell>
+                    <TableCell className="text-right num">
+                      {days(r["median_days_to_second"])}
+                    </TableCell>
+                    <TableCell className="text-right num">{money(r["avg_ltv"])}</TableCell>
+                    <TableCell className="text-right num">{money(r["avg_ltv_repeat"])}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )
+      )}
+      <div className="mt-2 space-y-1 text-[11px] text-muted-foreground">
+        <p>
+          Clientes com a <b>1ª compra no período</b>. Uma compra = um checkout pago (produto, upsell
+          e order-bump juntos contam uma vez); reembolso e chargeback não contam.
+          {renewals
+            ? " Renovações de assinatura contam como recompra."
+            : " Renovação de assinatura não é recompra (ligue a chave acima para contar)."}{" "}
+          “Em 30/60/90 dias” só considera quem comprou pela 1ª vez há pelo menos esse tempo; “—” =
+          ninguém ainda.
+        </p>
+        {data?.["history_since"] && (
+          <p>
+            O CRM conhece compras desde {date(data["history_since"])}: quem comprou antes pode
+            aparecer como 1ª compra.
+            {Number(data["left_out"]) > 0 &&
+              ` ${count(data["left_out"])} assinante(s) cujo histórico começa numa renovação ficam de fora.`}
+          </p>
+        )}
+      </div>
     </>
   );
 }

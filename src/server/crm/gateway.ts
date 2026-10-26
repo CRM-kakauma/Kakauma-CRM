@@ -9,6 +9,7 @@ export const RPC_PERMISSIONS: Record<string, { role: Role; actor?: true }> = {
   crm_dashboard: { role: "viewer" },
   crm_funnel: { role: "viewer" },
   crm_cohorts: { role: "viewer" },
+  crm_repurchase: { role: "viewer" },
   crm_retention: { role: "viewer" },
   crm_refund_metrics: { role: "viewer" },
   crm_campaign_quality: { role: "viewer" },

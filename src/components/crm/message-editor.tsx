@@ -1277,13 +1277,11 @@ function RcsEditor({
       )}
       <div className="space-y-2">
         <Label>Sugestões / botões ({sugg.length}/4)</Label>
-        {c.kind !== "text" && (
-          <p className="text-[11px] text-muted-foreground">
-            Pela Pushfy o cartão leva <strong>um</strong> botão: o primeiro do tipo “Abrir link”.
-            Sem botão de link o cartão vai só com o texto (sem a imagem). Carrossel vai como o
-            primeiro cartão.
-          </p>
-        )}
+        <p className="text-[11px] text-muted-foreground">
+          {c.kind === "text"
+            ? "Pela Pushfy o RCS de texto vai como cartão (RCS Single): o texto é o título e o 1º link do texto vira o botão; sem link, vai com o botão “Ver mais” para a loja."
+            : "Pela Pushfy o cartão leva um botão: o primeiro do tipo “Abrir link”. Sem botão de link, vai com o botão “Ver mais” para a loja. Carrossel vai como o primeiro cartão."}
+        </p>
         {sugg.map((s, i) => (
           <div
             key={i}

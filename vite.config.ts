@@ -6,10 +6,14 @@
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig, type LovableViteTanstackOptions } from "@lovable.dev/vite-tanstack-config";
 
-// Cloudflare Workers Builds only (it sets WORKERS_CI): the Worker's name comes from CF_WORKER_NAME
-// (a build variable), so the address can be short, e.g. https://kakauma.<account>.workers.dev.
-// Without it Nitro names the Worker after the repository. Lovable and Vercel builds are untouched.
-const workerName = process.env["WORKERS_CI"] ? process.env["CF_WORKER_NAME"]?.trim() : undefined;
+// Cloudflare Workers Builds only (it sets WORKERS_CI):
+//   - keep_vars: a deploy keeps the variables set in the dashboard (without it, `wrangler deploy`
+//     deletes every plain-text variable that is not in this config; only secrets survived);
+//   - the Worker's name comes from CF_WORKER_NAME (a build variable), so the address can be short,
+//     e.g. https://kakauma.<account>.workers.dev. Without it Nitro names the Worker after the repo.
+// Lovable and Vercel builds are untouched.
+const workersCi = !!process.env["WORKERS_CI"];
+const workerName = workersCi ? process.env["CF_WORKER_NAME"]?.trim() : undefined;
 
 export default defineConfig({
   tanstackStart: {
@@ -18,10 +22,12 @@ export default defineConfig({
     server: { entry: "server" },
   },
   // the Lovable wrapper forwards these to Nitro; its types only list a few keys
-  ...(workerName
+  ...(workersCi
     ? {
         nitro: {
-          cloudflare: { wrangler: { name: workerName } },
+          cloudflare: {
+            wrangler: { keep_vars: true, ...(workerName ? { name: workerName } : {}) },
+          },
         } as unknown as NonNullable<LovableViteTanstackOptions["nitro"]>,
       }
     : {}),

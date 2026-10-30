@@ -32,8 +32,9 @@ usar, `VITE_SHORT_LINK_BASE`. Recomendado também `NODE_VERSION` = `22`.
 
 ## 2. Variáveis do servidor
 
-Worker → **Settings → Variables and Secrets** → copie as da Vercel, todas como **Secret** (o `wrangler deploy`
-apaga variáveis de texto que não estão no arquivo de configuração; segredos ficam).
+Worker → **Settings → Variables and Secrets** → copie as da Vercel, como **Secret** (chaves e senhas não ficam
+à mostra no painel). O build da Cloudflare gera a configuração com `keep_vars`, então um deploy não apaga mais
+as do tipo "Variável" — antes disso, cada deploy automático apagava todas elas.
 
 - Supabase do CRM: `CRM_SUPABASE_URL`, `CRM_SUPABASE_ANON_KEY`, `CRM_SUPABASE_SERVICE_ROLE_KEY`,
   `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`

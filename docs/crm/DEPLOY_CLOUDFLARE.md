@@ -19,10 +19,13 @@ Cloudflare → **Workers & Pages → Create → Import a repository** → GitHub
 | Campo | Valor |
 |---|---|
 | Project name | `crm-kakauma-kakauma-crm` (tem que ser este: é o nome que o build gera) |
-| Production branch | a branch que você publica hoje na Vercel |
+| Production branch | `claude/amazing-johnson-l94x8l` — a `main` do GitHub só tem o commit inicial do Lovable |
 | Build command | `npm run build` |
 | Deploy command | `npx wrangler deploy` |
 | Root directory | `/` |
+
+Se o campo "Comando da build" ficar vazio na criação, a Cloudflare põe `npx wrangler deploy` nele e o build
+falha: corrija em **Configurações → Compilações**. A branch de produção também se troca ali.
 
 **Build variables** (o navegador recebe no build): `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` e, se
 usar, `VITE_SHORT_LINK_BASE`. Recomendado também `NODE_VERSION` = `22`.

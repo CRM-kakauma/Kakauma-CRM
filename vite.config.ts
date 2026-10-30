@@ -4,7 +4,12 @@
 //     nitro (build-only using cloudflare as a default target), VITE_* env injection, @ path alias,
 //     React/TanStack dedupe, error logger plugins, and sandbox detection (port/host/strictPort).
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
-import { defineConfig } from "@lovable.dev/vite-tanstack-config";
+import { defineConfig, type LovableViteTanstackOptions } from "@lovable.dev/vite-tanstack-config";
+
+// Cloudflare Workers Builds only (it sets WORKERS_CI): the Worker's name comes from CF_WORKER_NAME
+// (a build variable), so the address can be short, e.g. https://kakauma.<account>.workers.dev.
+// Without it Nitro names the Worker after the repository. Lovable and Vercel builds are untouched.
+const workerName = process.env["WORKERS_CI"] ? process.env["CF_WORKER_NAME"]?.trim() : undefined;
 
 export default defineConfig({
   tanstackStart: {
@@ -12,4 +17,12 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  // the Lovable wrapper forwards these to Nitro; its types only list a few keys
+  ...(workerName
+    ? {
+        nitro: {
+          cloudflare: { wrangler: { name: workerName } },
+        } as unknown as NonNullable<LovableViteTanstackOptions["nitro"]>,
+      }
+    : {}),
 });

@@ -76,6 +76,18 @@ Worker → **Settings → Domains & Routes → Add → Custom domain** (ex.: `cr
 `kakauma.com.br` na Cloudflare. Com domínio próprio, uma mudança futura de hospedagem não exige trocar
 nenhuma integração. Troque `CRM_APP_URL` para ele.
 
+## 7. Endereço curto sem domínio próprio
+
+O endereço `…workers.dev` é `<nome do Worker>.<subdomínio da conta>.workers.dev`. Para encurtar:
+
+1. **Subdomínio da conta**: Workers & Pages → subdomínio (lado direito) → **Alterar** (ex.: `andorinha`).
+   Vale para todos os Workers da conta.
+2. **Nome do Worker**: Worker → **Configurações → Geral → Nome** → ex.: `kakauma`. Ao mesmo tempo, em
+   **Configurações → Compilações → Variáveis de build**, crie `CF_WORKER_NAME` = o mesmo nome (o build da
+   Cloudflare passa a gerar o Worker com ele; sem a variável, o nome vem do repositório).
+3. **Implantações → Tentar compilar novamente**. Endereço novo: `https://kakauma.andorinha.workers.dev`.
+4. Troque `CRM_APP_URL`, o Supabase (Site URL e Redirect URLs) e as URLs das integrações.
+
 ## Conferência
 
 | O quê | Como |

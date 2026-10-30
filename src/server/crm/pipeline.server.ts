@@ -40,17 +40,19 @@ export function pushfyConfig() {
 }
 /**
  * Click tracking base. CRM_LINK_BASE (a domain of the brand, e.g. https://k.kakauma.com.br,
- * pointing to this project) turns it on for every channel; without it, the project's own
- * Vercel address is used for SMS/RCS only (an unknown domain in e-mails hurts delivery).
+ * pointing to this project) turns it on for every channel; without it, the CRM's own address
+ * (CRM_APP_URL, or the Vercel production URL) is used for SMS/RCS/WhatsApp only (an unknown
+ * domain in e-mails hurts delivery).
  * CRM_LINK_TRACKING=false turns it off.
  */
 export function linkTracking() {
   if (env("CRM_LINK_TRACKING") === "false") return undefined;
   const own = env("CRM_LINK_BASE")?.replace(/\/+$/, "");
   if (own) return { base: own, email: true };
-  const vercel = env("VERCEL_PROJECT_PRODUCTION_URL");
-  return vercel
-    ? { base: `https://${vercel.replace(/^https?:\/\//, "")}`, email: false }
+  // the CRM's own address: CRM_APP_URL (any host, e.g. Cloudflare), or Vercel's production URL
+  const app = env("CRM_APP_URL") ?? env("VERCEL_PROJECT_PRODUCTION_URL");
+  return app
+    ? { base: `https://${app.replace(/^https?:\/\//, "").replace(/\/+$/, "")}`, email: false }
     : undefined;
 }
 

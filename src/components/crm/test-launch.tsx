@@ -353,13 +353,14 @@ export function TestLaunchDialog({
           <ul className="space-y-1 rounded-lg bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
             <li>
               <strong className="text-foreground">SMS e RCS</strong> saem de verdade pela Pushfy
-              (mesmo antes de ligar o envio real). RCS em cartão vai com imagem e botão; carrossel
-              vai como o primeiro cartão.
+              (mesmo antes de ligar o envio real). Todo RCS vai como cartão (RCS Single): com imagem
+              e botão; texto vira o título e o link vira o botão; carrossel vai como o primeiro
+              cartão.
             </li>
             <li>
               <strong className="text-foreground">E-mail</strong> sai pelo Resend quando ele está
-              configurado. <strong className="text-foreground">WhatsApp</strong> fica em simulação
-              até o canal ser conectado: dá para ver o texto final na aba Testes.
+              configurado. <strong className="text-foreground">WhatsApp</strong> sai pela Evolution
+              quando ela está conectada; senão, fica em simulação (texto final na aba Testes).
             </li>
             <li>
               Horário de envio e limite diário não valem no teste; descadastro (opt-out) vale.
@@ -540,6 +541,8 @@ export const PROVIDER_STATUS: Record<string, { label: string; tone: Tone }> = {
 export const SENT_AS: Record<string, string> = {
   rcs_single_first_card: "carrossel enviado como 1º cartão",
   rcs_basic_no_button: "cartão sem botão de link: foi como texto",
+  rcs_single_from_text: "texto enviado como cartão (o link virou o botão)",
+  rcs_single_default_button: "sem link: foi com o botão “Ver mais” para a loja",
   sms_fallback: "enviado como SMS alternativo",
 };
 

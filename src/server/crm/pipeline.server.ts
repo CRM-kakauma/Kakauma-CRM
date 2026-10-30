@@ -35,6 +35,9 @@ export function pushfyConfig() {
     token,
     baseUrl: env("PUSHFY_BASE_URL"),
     smsFrom: env("PUSHFY_SMS_FROM"),
+    // RCS Basic only with credits for it (PUSHFY_RCS_BASIC=true); otherwise all RCS as Single
+    rcsBasic: isOn("PUSHFY_RCS_BASIC"),
+    rcsDefaultUrl: env("PUSHFY_RCS_DEFAULT_URL"),
     live: isOn("PUSHFY_LIVE"),
   };
 }

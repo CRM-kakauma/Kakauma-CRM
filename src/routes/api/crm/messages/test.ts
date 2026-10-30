@@ -181,7 +181,10 @@ export const Route = createFileRoute("/api/crm/messages/test")({
             tpl.channel,
             tagRendered(tpl.channel, renderMessage(tpl.channel, tpl.content as never, vars), utm),
           );
-          const plan = pushfyPlan(tpl.channel, rendered);
+          const plan = pushfyPlan(tpl.channel, rendered, {
+            basic: cfg.rcsBasic,
+            defaultUrl: cfg.rcsDefaultUrl,
+          });
           const sent = await pushfySend(cfg, plan.kind, {
             to,
             text: plan.text,

@@ -178,7 +178,7 @@ export function ChannelsSection({ isAdmin }: { isAdmin: boolean }) {
             name="RCS · Pushfy"
             ok={!!p?.configured && !!p.live}
             status={pushStatus}
-            detail="Texto pelo RCS Basic; cartão com imagem e um botão de link pelo RCS Single; carrossel vai como o primeiro cartão."
+            detail="Tudo pelo RCS Single (cartão): imagem e botão de link do cartão; texto vira o título e o 1º link vira o botão; sem link, botão “Ver mais” para a loja; carrossel vai como o primeiro cartão."
           />
           <WhatsappRow wa={data?.whatsapp} isAdmin={isAdmin} />
           <Row

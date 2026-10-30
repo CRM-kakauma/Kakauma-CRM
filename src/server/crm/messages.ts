@@ -19,7 +19,8 @@ import { mapRenderedLinks, storeLinks, tagRendered, utmSlug } from "../../lib/cr
  * The SQL side already skipped what must not go out (opt-out, no contact,
  * daily cap, outside the send window). Here each message is rendered with the
  * same code the editor's simulator uses, then:
- *   - SMS and RCS go through Pushfy: RCS text as Basic, a card as Single (image + button),
+ *   - SMS and RCS go through Pushfy: every RCS as Single (image + button; text as the title, its
+ *     link as the button; Basic only with PUSHFY_RCS_BASIC=true),
  *     a carousel as its first card; an RCS refused or reported as not delivered goes again
  *     as its "SMS alternativo". All this when PUSHFY_API_TOKEN is set and
  *     PUSHFY_LIVE=true (with the token but not live: DRY_RUN, nothing is sent —
@@ -268,7 +269,10 @@ export async function runMessages(rpc: Rpc, opts: MessageOptions = {}) {
         await complete("SKIPPED", null, "invalid_phone");
         continue;
       }
-      const plan = pushfyPlan(m.channel, rendered);
+      const plan = pushfyPlan(m.channel, rendered, {
+        basic: opts.pushfy.rcsBasic,
+        defaultUrl: opts.pushfy.rcsDefaultUrl,
+      });
       if (!plan.text.trim()) {
         await complete("SKIPPED", null, "empty_message");
         continue;

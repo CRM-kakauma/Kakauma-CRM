@@ -18,6 +18,10 @@ export interface PushfyConfig {
   token: string;
   baseUrl?: string | undefined;
   smsFrom?: string | undefined;
+  /** RCS text through RCS Basic (only when the account has Basic credits); default: everything as Single */
+  rcsBasic?: boolean | undefined;
+  /** button link for an RCS without one (Single always has a button); default: the store */
+  rcsDefaultUrl?: string | undefined;
   fetchImpl?: typeof fetch;
 }
 
@@ -72,7 +76,12 @@ export interface PushfyPlan {
   kind: PushfyKind;
   text: string;
   /** set when the message had to be adapted (shown in the CRM) */
-  sentAs?: "rcs_single_first_card" | "rcs_basic_no_button" | undefined;
+  sentAs?:
+    | "rcs_single_first_card"
+    | "rcs_basic_no_button"
+    | "rcs_single_from_text"
+    | "rcs_single_default_button"
+    | undefined;
 }
 
 const URL_RE = /https?:\/\/\S+/gi;
@@ -90,31 +99,70 @@ interface RenderedRcs {
   suggestions?: { type?: string; text?: string; url?: string | null }[];
 }
 
+/** The store's home page: the button of an RCS that has no link of its own. */
+export const RCS_DEFAULT_URL = "https://kakauma.com.br";
+const RCS_DEFAULT_CTA = "Ver mais";
+
 /**
- * RCS text → Basic. Card → Single: "TITLE image BODY link BUTTON", the button being the first
- * link suggestion (Single has one action). A carousel goes as its first card. Without a link
- * button the image would be read as the button link, so the card goes as Basic text instead.
+ * Everything goes as RCS Single (the product the account uses), in the documented flat format
+ * "TITLE image BODY link BUTTON" — URLs are the separators; with a single URL there is no image and
+ * all the text before it is the title.
+ *   - card: its image and its first link suggestion as the button (Single has one action);
+ *     a carousel goes as its first card; a card without a link button gets one to the store;
+ *   - text: the text (without links) is the title, its first link is the button
+ *     (no link: the store).
+ * With `basic` (Basic credits in the account) text and button-less cards go as RCS Basic instead.
  */
-export function pushfyPlan(channel: "sms" | "rcs", rendered: unknown): PushfyPlan {
+export function pushfyPlan(
+  channel: "sms" | "rcs",
+  rendered: unknown,
+  opts: { basic?: boolean | undefined; defaultUrl?: string | undefined } = {},
+): PushfyPlan {
   const r = rendered as RenderedRcs & { text?: string | null };
   if (channel === "sms") return { kind: "sms", text: r.text ?? "" };
-  if (r.kind === "text") return { kind: "rcs_basic", text: r.text ?? "" };
+  const fallbackUrl = opts.defaultUrl?.trim() || RCS_DEFAULT_URL;
+  if (r.kind === "text") {
+    if (opts.basic) return { kind: "rcs_basic", text: r.text ?? "" };
+    const link = (r.text ?? "").match(URL_RE)?.[0];
+    const title = (r.text ?? "")
+      .replace(URL_RE, "")
+      .replace(/[ \t]+/g, " ")
+      .replace(/ *\n */g, "\n")
+      .trim();
+    return {
+      kind: "rcs_single",
+      text: [title, link ?? fallbackUrl, link ? "Abrir" : RCS_DEFAULT_CTA]
+        .filter(Boolean)
+        .join(" "),
+      sentAs: link ? "rcs_single_from_text" : "rcs_single_default_button",
+    };
+  }
   const card = r.cards?.[0] ?? {};
   const title = plain(card.title);
   const body = plain(card.description);
   const cta = (r.suggestions ?? []).find((x) => x.type === "url" && x.url);
-  const sentAs = r.kind === "carousel" ? ("rcs_single_first_card" as const) : undefined;
-  if (!cta?.url) {
+  const carousel = r.kind === "carousel" ? ("rcs_single_first_card" as const) : undefined;
+  if (!cta?.url && opts.basic) {
     return {
       kind: "rcs_basic",
       text: [title, body].filter(Boolean).join("\n"),
       sentAs: "rcs_basic_no_button",
     };
   }
-  const text = [title, card.media_url ?? "", body, cta.url, plain(cta.text) || "Abrir"]
+  const text = [
+    title,
+    card.media_url ?? "",
+    body,
+    cta?.url ?? fallbackUrl,
+    cta?.url ? plain(cta.text) || "Abrir" : RCS_DEFAULT_CTA,
+  ]
     .filter(Boolean)
     .join(" ");
-  return { kind: "rcs_single", text, sentAs };
+  return {
+    kind: "rcs_single",
+    text,
+    sentAs: carousel ?? (cta?.url ? undefined : "rcs_single_default_button"),
+  };
 }
 
 export async function pushfySend(

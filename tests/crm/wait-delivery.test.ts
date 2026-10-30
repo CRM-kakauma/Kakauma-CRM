@@ -118,7 +118,7 @@ describe(
       await runFlows(rpc, f.opts);
       assert.deepEqual(
         f.calls.map((c) => c.path),
-        ["/apircsbasic", "/webapi"],
+        ["/apircs", "/webapi"],
       );
       const rows = await state();
       assert.deepEqual(
@@ -138,7 +138,7 @@ describe(
       await runFlows(rpc, f.opts);
       assert.deepEqual(
         f.calls.map((c) => c.path),
-        ["/apircsbasic"],
+        ["/apircs"],
       );
       let rows = await state();
       assert.deepEqual(
@@ -161,7 +161,7 @@ describe(
       // the RCS's own SMS alternativo, then the "Não entregue" branch of this test flow
       assert.deepEqual(
         f.calls.map((c) => c.path),
-        ["/apircsbasic", "/webapi", "/webapi"],
+        ["/apircs", "/webapi", "/webapi"],
       );
       rows = await state();
       assert.deepEqual(
@@ -222,7 +222,7 @@ describe(
       await runFlows(rpc, f.opts);
       assert.deepEqual(
         f.calls.map((c) => c.path),
-        ["/apircsbasic"],
+        ["/apircs"],
       );
       const rows = await state();
       assert.equal(rows[0]!["status"], "EXITED"); // the "ok" exit step

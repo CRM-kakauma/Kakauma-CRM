@@ -89,8 +89,31 @@ describe("Pushfy adapter", () => {
     assert.deepEqual([none.ok, none.permanent], [false, true], "empty list = nothing accepted");
   });
 
-  test("RCS plan: text → Basic; card → Single in the flat format; carousel → first card", () => {
+  test("RCS plan: everything as Single; Basic only when asked", () => {
+    // text: the title is the text, its link is the button
+    assert.deepEqual(
+      pushfyPlan("rcs", {
+        kind: "text",
+        text: "Oi Ana, seu pote espera: https://k.link/l/AbC1234 ok",
+      }),
+      {
+        kind: "rcs_single",
+        text: "Oi Ana, seu pote espera: ok https://k.link/l/AbC1234 Abrir",
+        sentAs: "rcs_single_from_text",
+      },
+    );
+    // text without a link: a button to the store
     assert.deepEqual(pushfyPlan("rcs", { kind: "text", text: "Oi Ana" }), {
+      kind: "rcs_single",
+      text: "Oi Ana https://kakauma.com.br Ver mais",
+      sentAs: "rcs_single_default_button",
+    });
+    assert.equal(
+      pushfyPlan("rcs", { kind: "text", text: "Oi" }, { defaultUrl: "https://loja.x/" }).text,
+      "Oi https://loja.x/ Ver mais",
+    );
+    // Basic only with credits for it
+    assert.deepEqual(pushfyPlan("rcs", { kind: "text", text: "Oi Ana" }, { basic: true }), {
       kind: "rcs_basic",
       text: "Oi Ana",
     });
@@ -122,8 +145,14 @@ describe("Pushfy adapter", () => {
       cards: [card.cards[0], { title: "Segundo" }],
     });
     assert.deepEqual([carousel.kind, carousel.sentAs], ["rcs_single", "rcs_single_first_card"]);
-    // no link button: the image would be read as the button link, so it goes as text
+    // no link button: Single with a button to the store (the image stays the image)
     assert.deepEqual(pushfyPlan("rcs", { ...card, suggestions: [] }), {
+      kind: "rcs_single",
+      text: "Oferta exclusiva https://exemplo.com/banner.jpg Aproveite 20% off ate meia-noite. Veja https://kakauma.com.br Ver mais",
+      sentAs: "rcs_single_default_button",
+    });
+    // …or as text through Basic, when the account uses Basic
+    assert.deepEqual(pushfyPlan("rcs", { ...card, suggestions: [] }, { basic: true }), {
       kind: "rcs_basic",
       text: "Oferta exclusiva\nAproveite 20% off ate meia-noite. Veja",
       sentAs: "rcs_basic_no_button",
@@ -307,15 +336,15 @@ describe("Sending through Pushfy", { skip: !sql && "CRM_TEST_DATABASE_URL not se
     assert.deepEqual([m[0]!["status"], m[0]!["reason"]], ["DRY_RUN", "pushfy_not_live"]);
   });
 
-  test("live: SMS goes to Pushfy with the rendered text; an RCS card without a link button goes as text", async () => {
+  test("live: SMS goes to Pushfy with the rendered text; an RCS card without a link button goes as Single with a button to the store", async () => {
     const f = fakeFetch();
     await buy("P1", "(11) 97777-0001", "SP1");
     await runFlows(rpc, { pushfy: { ...cfg(f.impl), live: true } });
     assert.equal(f.calls.length, 2);
     // both messages are created in the same instant: the order between them is not fixed
-    const rcs = f.calls.find((c) => c.url.endsWith("/apircsbasic"));
+    const rcs = f.calls.find((c) => c.url.endsWith("/apircs"));
     const sms = f.calls.find((c) => c.url.endsWith("/webapi"));
-    assert.equal(rcs?.body.messages[0].text, "Oi");
+    assert.equal(rcs?.body.messages[0].text, "Oi https://kakauma.com.br Ver mais");
     assert.equal(sms!.body.messages[0].destinations[0].to, "5511977770001");
     assert.equal(sms!.body.messages[0].text, "Kakauma: oi Cliente");
     const rows =
@@ -327,7 +356,7 @@ describe("Sending through Pushfy", { skip: !sql && "CRM_TEST_DATABASE_URL not se
       rows.map((r) => [r["channel"], r["status"], r["skip_reason"] ?? r["provider"], r["sent_as"]]),
       [
         ["sms", "SENT", "pushfy", null],
-        ["rcs", "SENT", "pushfy", "rcs_basic_no_button"],
+        ["rcs", "SENT", "pushfy", "rcs_single_default_button"],
       ],
     );
     assert.deepEqual(rows[0]!["response"], { accepted: 1, queued: 1 });

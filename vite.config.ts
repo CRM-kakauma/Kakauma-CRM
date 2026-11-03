@@ -7,6 +7,7 @@
 import { defineConfig, type LovableViteTanstackOptions } from "@lovable.dev/vite-tanstack-config";
 
 // Cloudflare Workers Builds only (it sets WORKERS_CI):
+//   - observability: Workers Logs stay on (a deploy would otherwise reset the dashboard toggle);
 //   - keep_vars: a deploy keeps the variables set in the dashboard (without it, `wrangler deploy`
 //     deletes every plain-text variable that is not in this config; only secrets survived);
 //   - the Worker's name comes from CF_WORKER_NAME (a build variable), so the address can be short,
@@ -26,7 +27,12 @@ export default defineConfig({
     ? {
         nitro: {
           cloudflare: {
-            wrangler: { keep_vars: true, ...(workerName ? { name: workerName } : {}) },
+            wrangler: {
+              keep_vars: true,
+              // Workers Logs on: every request (webhooks, cron) shows in Observability
+              observability: { enabled: true },
+              ...(workerName ? { name: workerName } : {}),
+            },
           },
         } as unknown as NonNullable<LovableViteTanstackOptions["nitro"]>,
       }

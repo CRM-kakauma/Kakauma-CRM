@@ -281,6 +281,13 @@
       "when": 1793371468474,
       "tag": "0039_crm_repurchase",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1793457868474,
+      "tag": "0040_crm_pushfy_batch",
+      "breakpoints": true
     }
   ]
 }

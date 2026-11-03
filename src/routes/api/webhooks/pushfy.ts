@@ -60,19 +60,17 @@ export const Route = createFileRoute("/api/webhooks/pushfy")({
           (e): e is Record<string, unknown> => !!e && typeof e === "object" && !Array.isArray(e),
         );
         const { crmRpc } = await import("@/server/crm/supabase.server");
+        const { savePushfyEvents } = await import("@/server/crm/pushfy");
         try {
-          const results = [];
-          for (const e of events) {
-            const r = await crmRpc("crm_pushfy_event", { p_payload: e });
-            if (r.error) throw new Error(r.error.message);
-            results.push(r.data);
-          }
+          // a batch (thousands of reports after an outage) is saved in a few database calls
+          const r = await savePushfyEvents(crmRpc, events);
           // a delivery report may continue a flow waiting on it ("Aguardar entrega")
-          if (results.some((r) => (r as { message_matched?: boolean } | null)?.message_matched)) {
+          if (r.matched > 0) {
             const { runFlows } = await import("@/server/crm/pipeline.server");
-            await runFlows(100).catch((e) => console.error("[crm] flows after pushfy event", e));
+            // a few only: the answer must reach Pushfy within its ~30 s; the cron does the rest
+            await runFlows(20).catch((e) => console.error("[crm] flows after pushfy event", e));
           }
-          return Response.json({ ok: true, received: events.length, results });
+          return Response.json({ ok: true, received: events.length, ...r });
         } catch (e) {
           // 5xx: Pushfy delivers again later, nothing is lost
           console.error("[crm] pushfy webhook failed", e);

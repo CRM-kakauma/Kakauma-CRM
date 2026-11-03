@@ -258,3 +258,47 @@ export async function pushfyStatus(
   const r = await call(c, "GET", `/getstatus?${new URLSearchParams({ ext_id: extId })}`);
   return { ok: r.status === 200, status: r.status, body: r.body };
 }
+
+/** Reports per database call: a 1 MB batch (thousands of reports) is saved in a few calls. */
+const EVENTS_PER_CALL = 500;
+
+/**
+ * Saves a webhook delivery (one report or a batch) in the database. Pushfy waits ~30 s for the
+ * answer, so the batch goes in chunks to crm_pushfy_events (the database loops over them); before
+ * that update is applied, one call per report as before.
+ */
+export async function savePushfyEvents(
+  rpc: (
+    fn: string,
+    args: Record<string, unknown>,
+  ) => PromiseLike<{
+    data: unknown;
+    error: { message: string } | null;
+  }>,
+  events: Record<string, unknown>[],
+) {
+  let matched = 0;
+  let saved = 0;
+  for (let i = 0; i < events.length; i += EVENTS_PER_CALL) {
+    const chunk = events.slice(i, i + EVENTS_PER_CALL);
+    const r = await rpc("crm_pushfy_events", { p_payloads: chunk });
+    if (!r.error) {
+      const d = (r.data ?? {}) as { received?: number; matched?: number };
+      saved += d.received ?? chunk.length;
+      matched += d.matched ?? 0;
+      continue;
+    }
+    if (
+      !/crm_pushfy_events/.test(r.error.message) ||
+      !/does not exist|could not find/i.test(r.error.message)
+    )
+      throw new Error(r.error.message);
+    for (const e of chunk) {
+      const one = await rpc("crm_pushfy_event", { p_payload: e });
+      if (one.error) throw new Error(one.error.message);
+      saved += 1;
+      if ((one.data as { message_matched?: boolean } | null)?.message_matched) matched += 1;
+    }
+  }
+  return { saved, matched };
+}

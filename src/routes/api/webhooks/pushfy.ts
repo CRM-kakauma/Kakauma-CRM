@@ -50,6 +50,8 @@ export const Route = createFileRoute("/api/webhooks/pushfy")({
       POST: async ({ request }) => {
         const denied = await checkToken(request);
         if (denied) return denied;
+        // answer before Pushfy gives up (~30 s): Cloudflare stops a request the caller abandoned
+        const deadline = Date.now() + 20_000;
         let body: unknown;
         try {
           body = await request.json();
@@ -63,7 +65,12 @@ export const Route = createFileRoute("/api/webhooks/pushfy")({
         const { savePushfyEvents } = await import("@/server/crm/pushfy");
         try {
           // a batch (thousands of reports after an outage) is saved in a few database calls
-          const r = await savePushfyEvents(crmRpc, events);
+          const r = await savePushfyEvents(crmRpc, events, { deadline });
+          if (r.pending > 0) {
+            // part saved; Pushfy delivers the batch again and the saved part is skipped as duplicates
+            console.log("[crm] pushfy batch partly saved", { received: events.length, ...r });
+            return Response.json({ ok: false, received: events.length, ...r }, { status: 503 });
+          }
           // a delivery report may continue a flow waiting on it ("Aguardar entrega")
           if (r.matched > 0) {
             const { runFlows } = await import("@/server/crm/pipeline.server");

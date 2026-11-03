@@ -259,13 +259,16 @@ export async function pushfyStatus(
   return { ok: r.status === 200, status: r.status, body: r.body };
 }
 
-/** Reports per database call: a 1 MB batch (thousands of reports) is saved in a few calls. */
-const EVENTS_PER_CALL = 500;
+/** Reports per database call: small enough that each call ends well inside Pushfy's ~30 s. */
+const EVENTS_PER_CALL = 200;
 
 /**
  * Saves a webhook delivery (one report or a batch) in the database. Pushfy waits ~30 s for the
- * answer, so the batch goes in chunks to crm_pushfy_events (the database loops over them); before
- * that update is applied, one call per report as before.
+ * answer and, on Cloudflare, a request it gives up on is stopped midway. So the batch goes in
+ * chunks to crm_pushfy_events (the database loops over them) and, past `deadline` (ms since the
+ * epoch), stops between chunks: `pending` reports were not saved, the caller answers an error and
+ * Pushfy delivers the batch again (the saved ones come back as duplicates and are skipped).
+ * Before that database update is applied, one call per report as before.
  */
 export async function savePushfyEvents(
   rpc: (
@@ -276,10 +279,13 @@ export async function savePushfyEvents(
     error: { message: string } | null;
   }>,
   events: Record<string, unknown>[],
+  opts: { deadline?: number } = {},
 ) {
   let matched = 0;
   let saved = 0;
+  const late = () => opts.deadline !== undefined && Date.now() > opts.deadline;
   for (let i = 0; i < events.length; i += EVENTS_PER_CALL) {
+    if (late()) return { saved, matched, pending: events.length - saved };
     const chunk = events.slice(i, i + EVENTS_PER_CALL);
     const r = await rpc("crm_pushfy_events", { p_payloads: chunk });
     if (!r.error) {
@@ -294,11 +300,12 @@ export async function savePushfyEvents(
     )
       throw new Error(r.error.message);
     for (const e of chunk) {
+      if (late()) return { saved, matched, pending: events.length - saved };
       const one = await rpc("crm_pushfy_event", { p_payload: e });
       if (one.error) throw new Error(one.error.message);
       saved += 1;
       if ((one.data as { message_matched?: boolean } | null)?.message_matched) matched += 1;
     }
   }
-  return { saved, matched };
+  return { saved, matched, pending: 0 };
 }

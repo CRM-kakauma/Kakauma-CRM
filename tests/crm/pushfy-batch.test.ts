@@ -36,12 +36,12 @@ describe("Pushfy webhook batches", { skip: !sql && "CRM_TEST_DATABASE_URL not se
     await sql?.end();
   });
 
-  test("1,200 reports in 3 calls; the same batch again is all duplicates", async () => {
+  test("1,200 reports in 6 calls; the same batch again is all duplicates", async () => {
     const batch = Array.from({ length: 1200 }, (_, i) => report(i));
     const c = counting();
     const r = await savePushfyEvents(c.rpc, batch);
-    assert.deepEqual(r, { saved: 1200, matched: 0 });
-    assert.deepEqual(c.calls, { crm_pushfy_events: 3 });
+    assert.deepEqual(r, { saved: 1200, matched: 0, pending: 0 });
+    assert.deepEqual(c.calls, { crm_pushfy_events: 6 });
     const [n] =
       await sql!`select count(*)::int as n from crm.provider_events where provider = 'pushfy'`;
     assert.equal(n!["n"], 1200);
@@ -63,8 +63,34 @@ describe("Pushfy webhook batches", { skip: !sql && "CRM_TEST_DATABASE_URL not se
       return base(fn, args);
     };
     const r = await savePushfyEvents(old, [report(5000), report(5001)]);
-    assert.deepEqual(r, { saved: 2, matched: 0 });
+    assert.deepEqual(r, { saved: 2, matched: 0, pending: 0 });
     assert.deepEqual(calls, { crm_pushfy_events: 1, crm_pushfy_event: 2 });
+  });
+
+  test("past the deadline it stops between chunks and reports what is pending", async () => {
+    const batch = Array.from({ length: 450 }, (_, i) => report(7000 + i));
+    let calls = 0;
+    let now = 1_000;
+    const realNow = Date.now;
+    Date.now = () => now;
+    try {
+      const slow: Rpc = async (fn, args) => {
+        calls += 1;
+        now += 15_000; // each call takes 15 s
+        return base(fn, args);
+      };
+      const r = await savePushfyEvents(slow, batch, { deadline: 1_000 + 20_000 });
+      assert.deepEqual(r, { saved: 400, matched: 0, pending: 50 });
+      assert.equal(calls, 2);
+    } finally {
+      Date.now = realNow;
+    }
+    // Pushfy delivers the whole batch again: the saved part is skipped, the rest goes in
+    const again = await savePushfyEvents(base, batch);
+    assert.equal(again.pending, 0);
+    const [n] =
+      await sql!`select count(*)::int as n from crm.provider_events where provider = 'pushfy' and (payload->>'id')::int >= 907000`;
+    assert.equal(n!["n"], 450);
   });
 
   test("other database errors are not hidden (Pushfy retries later)", async () => {

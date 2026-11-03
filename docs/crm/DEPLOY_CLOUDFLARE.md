@@ -89,6 +89,12 @@ O endereço `…workers.dev` é `<nome do Worker>.<subdomínio da conta>.workers
 3. **Implantações → Tentar compilar novamente**. Endereço novo: `https://kakauma.andorinha.workers.dev`.
 4. Troque `CRM_APP_URL`, o Supabase (Site URL e Redirect URLs) e as URLs das integrações.
 
+## 8. Cron (processamento a cada 5 minutos)
+
+O build da Cloudflare cria um **Cron Trigger** no próprio Worker (`*/5 * * * *`, em Configurações → Gatilhos):
+ele roda o mesmo processamento de `/api/cron/crm-process` dentro do Worker. Não use mais o cron-job.org: ele
+desiste depois de 30 s e, na Cloudflare, uma chamada abandonada é interrompida no meio. Pause o job lá.
+
 ## Conferência
 
 | O quê | Como |

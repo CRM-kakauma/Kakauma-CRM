@@ -7,6 +7,7 @@
 import { defineConfig, type LovableViteTanstackOptions } from "@lovable.dev/vite-tanstack-config";
 
 // Cloudflare Workers Builds only (it sets WORKERS_CI):
+//   - a Cron Trigger runs the CRM worker every 5 minutes (no external cron needed);
 //   - observability: Workers Logs stay on (a deploy would otherwise reset the dashboard toggle);
 //   - keep_vars: a deploy keeps the variables set in the dashboard (without it, `wrangler deploy`
 //     deletes every plain-text variable that is not in this config; only secrets survived);
@@ -26,9 +27,12 @@ export default defineConfig({
   ...(workersCi
     ? {
         nitro: {
+          plugins: ["./src/server/cloudflare/scheduled.ts"],
           cloudflare: {
             wrangler: {
               keep_vars: true,
+              // the CRM worker every 5 minutes (src/server/cloudflare/scheduled.ts)
+              triggers: { crons: ["*/5 * * * *"] },
               // Workers Logs on: every request (webhooks, cron) shows in Observability
               observability: { enabled: true },
               ...(workerName ? { name: workerName } : {}),

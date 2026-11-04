@@ -948,6 +948,9 @@ function SentMessages({ flowKey }: { flowKey: string }) {
                 <span className="ml-1.5 inline-flex flex-wrap items-center gap-1.5 text-xs">
                   <ProviderStatus status={m.provider_status} sentAs={m.sent_as} />
                 </span>
+                {m.status === "FAILED" && m.error && (
+                  <div className="mt-1 max-w-xs text-xs text-danger">{String(m.error)}</div>
+                )}
               </TableCell>
               <TableCell className="max-w-md truncate text-xs text-muted-foreground">
                 {m.rendered?.subject ??

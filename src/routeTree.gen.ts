@@ -48,6 +48,7 @@ import { Route as ApiWebhooksResendRouteImport } from './routes/api/webhooks/res
 import { Route as ApiWebhooksWhatsappRouteImport } from './routes/api/webhooks/whatsapp'
 import { Route as ApiCrmAdminImportFileRouteImport } from './routes/api/crm/admin/import-file'
 import { Route as ApiCrmAdminImportLegacyRouteImport } from './routes/api/crm/admin/import-legacy'
+import { Route as ApiCrmAdminPaylogSyncRouteImport } from './routes/api/crm/admin/paylog-sync'
 import { Route as ApiCrmAdminUsersRouteImport } from './routes/api/crm/admin/users'
 import { Route as ApiCrmAuthLoginRouteImport } from './routes/api/crm/auth/login'
 import { Route as ApiCrmAuthLogoutRouteImport } from './routes/api/crm/auth/logout'
@@ -256,6 +257,11 @@ const ApiCrmAdminImportLegacyRoute = ApiCrmAdminImportLegacyRouteImport.update({
   path: '/api/crm/admin/import-legacy',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCrmAdminPaylogSyncRoute = ApiCrmAdminPaylogSyncRouteImport.update({
+  id: '/api/crm/admin/paylog-sync',
+  path: '/api/crm/admin/paylog-sync',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiCrmAdminUsersRoute = ApiCrmAdminUsersRouteImport.update({
   id: '/api/crm/admin/users',
   path: '/api/crm/admin/users',
@@ -359,6 +365,7 @@ export interface FileRoutesByFullPath {
   '/api/webhooks/whatsapp': typeof ApiWebhooksWhatsappRoute
   '/api/crm/admin/import-file': typeof ApiCrmAdminImportFileRoute
   '/api/crm/admin/import-legacy': typeof ApiCrmAdminImportLegacyRoute
+  '/api/crm/admin/paylog-sync': typeof ApiCrmAdminPaylogSyncRoute
   '/api/crm/admin/users': typeof ApiCrmAdminUsersRoute
   '/api/crm/auth/login': typeof ApiCrmAuthLoginRoute
   '/api/crm/auth/logout': typeof ApiCrmAuthLogoutRoute
@@ -412,6 +419,7 @@ export interface FileRoutesByTo {
   '/api/webhooks/whatsapp': typeof ApiWebhooksWhatsappRoute
   '/api/crm/admin/import-file': typeof ApiCrmAdminImportFileRoute
   '/api/crm/admin/import-legacy': typeof ApiCrmAdminImportLegacyRoute
+  '/api/crm/admin/paylog-sync': typeof ApiCrmAdminPaylogSyncRoute
   '/api/crm/admin/users': typeof ApiCrmAdminUsersRoute
   '/api/crm/auth/login': typeof ApiCrmAuthLoginRoute
   '/api/crm/auth/logout': typeof ApiCrmAuthLogoutRoute
@@ -466,6 +474,7 @@ export interface FileRoutesById {
   '/api/webhooks/whatsapp': typeof ApiWebhooksWhatsappRoute
   '/api/crm/admin/import-file': typeof ApiCrmAdminImportFileRoute
   '/api/crm/admin/import-legacy': typeof ApiCrmAdminImportLegacyRoute
+  '/api/crm/admin/paylog-sync': typeof ApiCrmAdminPaylogSyncRoute
   '/api/crm/admin/users': typeof ApiCrmAdminUsersRoute
   '/api/crm/auth/login': typeof ApiCrmAuthLoginRoute
   '/api/crm/auth/logout': typeof ApiCrmAuthLogoutRoute
@@ -521,6 +530,7 @@ export interface FileRouteTypes {
     | '/api/webhooks/whatsapp'
     | '/api/crm/admin/import-file'
     | '/api/crm/admin/import-legacy'
+    | '/api/crm/admin/paylog-sync'
     | '/api/crm/admin/users'
     | '/api/crm/auth/login'
     | '/api/crm/auth/logout'
@@ -574,6 +584,7 @@ export interface FileRouteTypes {
     | '/api/webhooks/whatsapp'
     | '/api/crm/admin/import-file'
     | '/api/crm/admin/import-legacy'
+    | '/api/crm/admin/paylog-sync'
     | '/api/crm/admin/users'
     | '/api/crm/auth/login'
     | '/api/crm/auth/logout'
@@ -627,6 +638,7 @@ export interface FileRouteTypes {
     | '/api/webhooks/whatsapp'
     | '/api/crm/admin/import-file'
     | '/api/crm/admin/import-legacy'
+    | '/api/crm/admin/paylog-sync'
     | '/api/crm/admin/users'
     | '/api/crm/auth/login'
     | '/api/crm/auth/logout'
@@ -681,6 +693,7 @@ export interface RootRouteChildren {
   ApiWebhooksWhatsappRoute: typeof ApiWebhooksWhatsappRoute
   ApiCrmAdminImportFileRoute: typeof ApiCrmAdminImportFileRoute
   ApiCrmAdminImportLegacyRoute: typeof ApiCrmAdminImportLegacyRoute
+  ApiCrmAdminPaylogSyncRoute: typeof ApiCrmAdminPaylogSyncRoute
   ApiCrmAdminUsersRoute: typeof ApiCrmAdminUsersRoute
   ApiCrmAuthLoginRoute: typeof ApiCrmAuthLoginRoute
   ApiCrmAuthLogoutRoute: typeof ApiCrmAuthLogoutRoute
@@ -970,6 +983,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCrmAdminImportLegacyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/crm/admin/paylog-sync': {
+      id: '/api/crm/admin/paylog-sync'
+      path: '/api/crm/admin/paylog-sync'
+      fullPath: '/api/crm/admin/paylog-sync'
+      preLoaderRoute: typeof ApiCrmAdminPaylogSyncRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/crm/admin/users': {
       id: '/api/crm/admin/users'
       path: '/api/crm/admin/users'
@@ -1097,6 +1117,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiWebhooksWhatsappRoute: ApiWebhooksWhatsappRoute,
   ApiCrmAdminImportFileRoute: ApiCrmAdminImportFileRoute,
   ApiCrmAdminImportLegacyRoute: ApiCrmAdminImportLegacyRoute,
+  ApiCrmAdminPaylogSyncRoute: ApiCrmAdminPaylogSyncRoute,
   ApiCrmAdminUsersRoute: ApiCrmAdminUsersRoute,
   ApiCrmAuthLoginRoute: ApiCrmAuthLoginRoute,
   ApiCrmAuthLogoutRoute: ApiCrmAuthLogoutRoute,

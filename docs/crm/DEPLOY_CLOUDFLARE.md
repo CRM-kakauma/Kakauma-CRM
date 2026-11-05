@@ -43,7 +43,8 @@ as do tipo "Variável" — antes disso, cada deploy automático apagava todas el
 - E-mail: `RESEND_API_KEY`, `EMAIL_FROM`, `EMAIL_REPLY_TO`, `EMAIL_LIVE`, `RESEND_WEBHOOK_SECRET`
 - WhatsApp (Evolution): `EVOLUTION_API_URL`, `EVOLUTION_API_KEY`, `EVOLUTION_INSTANCE`,
   `EVOLUTION_WEBHOOK_TOKEN`, `EVOLUTION_DELAY_MS`, `WHATSAPP_LIVE`
-- Paylog (entregas): `PAYLOG_WEBHOOK_SECRET` ou `PAYLOG_WEBHOOK_TOKEN`
+- Paylog (entregas): `PAYLOG_WEBHOOK_SECRET` ou `PAYLOG_WEBHOOK_TOKEN`; `PAYLOG_API_TOKEN` para
+  Operação → "Paylog: recuperar entregas"
 - Links: `CRM_LINK_BASE`, `CRM_LINK_TRACKING` (se usar)
 - **Novo:** `CRM_APP_URL` = o endereço do CRM na Cloudflare (ex.:
   `https://crm-kakauma-kakauma-crm.<sua-conta>.workers.dev`). Na Vercel ele vinha sozinho; sem ele os links

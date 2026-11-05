@@ -49,9 +49,11 @@ function guessReceivedAt(payload: unknown): string | null {
   return null;
 }
 
-function sourceEventId(payload: unknown): string | null {
+function sourceEventId(source: string, payload: unknown): string | null {
   if (!isObj(payload)) return null;
-  for (const k of ["event_id", "webhook_id", "notification_id"]) {
+  const keys =
+    source === "paylog" ? ["idempotency_key"] : ["event_id", "webhook_id", "notification_id"];
+  for (const k of keys) {
     const v = payload[k];
     if (typeof v === "string" && v.trim()) return v.trim();
     if (typeof v === "number") return String(v);
@@ -84,8 +86,11 @@ export async function importBackfill(
         : guessReceivedAt(p);
     const stored = await rpc("crm_ingest_backfill", {
       p_source: source,
-      p_event_name: typeof p["event_name"] === "string" ? p["event_name"] : null,
-      p_source_event_id: sourceEventId(p),
+      p_event_name: (() => {
+        const v = p[source === "paylog" ? "event" : "event_name"];
+        return typeof v === "string" ? v : null;
+      })(),
+      p_source_event_id: sourceEventId(source, p),
       p_payload: p,
       p_redacted: redacted,
       p_received_at: receivedAt,

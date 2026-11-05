@@ -3,7 +3,7 @@ import { ChannelsSection } from "@/components/crm/channels";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Download, RotateCcw, Upload } from "lucide-react";
+import { Download, RotateCcw, Truck, Upload } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { ApiErrorBox, Empty, Loading, Pill, RequireAuth, Section, Stat } from "@/components/crm/ui";
 import { count, dateTime } from "@/lib/crm-format";
@@ -124,6 +124,7 @@ function Operations({ me }: { me: Me }) {
       ) : (
         isAdmin && (
           <>
+            <PaylogSync onDone={refresh} />
             <ImportFile onDone={refresh} />
             <ImportLegacy onDone={refresh} />
           </>
@@ -210,6 +211,200 @@ const RETRIES = 4;
  * Webhooks from before the CRM, from a .jsonl file (one payload per line, or
  * { received_at, payload }). Sent in parts; customers get no message (backfill).
  */
+/** Paylog API → deliveries the CRM missed; frees customers waiting for "Entrega realizada". */
+function PaylogSync({ onDone }: { onDone: () => void }) {
+  const [info, setInfo] = useState<{
+    configured: boolean;
+    waiting: number | null;
+    waiting_error?: string | null;
+  } | null>(null);
+  const [running, setRunning] = useState(false);
+  const [progress, setProgress] = useState<{
+    page: number;
+    lastPage: number;
+    read: number;
+    counts: Record<string, number>;
+    errors: { line: number; error: string }[];
+    waitingBefore: number | null;
+    waiting: number | null;
+  } | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function load() {
+    const res = await fetch("/api/crm/admin/paylog-sync", { credentials: "same-origin" });
+    const body = (await res.json().catch(() => null)) as typeof info;
+    if (res.ok && body) setInfo(body);
+    return body;
+  }
+
+  async function run() {
+    setRunning(true);
+    setErr(null);
+    const before = (await load().catch(() => null))?.waiting ?? null;
+    const total = {
+      page: 1,
+      lastPage: 1,
+      read: 0,
+      counts: {} as Record<string, number>,
+      errors: [] as { line: number; error: string }[],
+      waitingBefore: before,
+      waiting: before,
+    };
+    let page = 1;
+    let offset = 0;
+    try {
+      for (;;) {
+        let body: {
+          page?: number;
+          last_page?: number;
+          next_page?: number;
+          next_offset?: number;
+          orders_in_page?: number;
+          done?: boolean;
+          counts?: Record<string, number>;
+          errors?: { line: number; error: string }[];
+          waiting?: number | null;
+          message?: string;
+          error?: string;
+        } = {};
+        for (let attempt = 0; ; attempt++) {
+          let res: Response | null = null;
+          try {
+            res = await fetch("/api/crm/admin/paylog-sync", {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              credentials: "same-origin",
+              body: JSON.stringify({ page, offset }),
+            });
+            body = (await res.json().catch(() => ({}))) as typeof body;
+          } catch (e) {
+            if (attempt >= RETRIES) throw new Error(`${(e as Error).message} — rode de novo`);
+          }
+          if (res?.ok) break;
+          if (res && res.status < 500)
+            throw new Error(body.message ?? body.error ?? `HTTP ${res.status}`);
+          if (res && attempt >= RETRIES)
+            throw new Error(`${body.message ?? body.error ?? `HTTP ${res.status}`} — rode de novo`);
+          await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
+        }
+        for (const [k, v] of Object.entries(body.counts ?? {}))
+          total.counts[k] = (total.counts[k] ?? 0) + v;
+        total.read += Object.values(body.counts ?? {}).reduce((a, b) => a + b, 0);
+        total.errors.push(...(body.errors ?? []));
+        total.page = body.page ?? page;
+        total.lastPage = body.last_page ?? total.lastPage;
+        if (body.waiting !== undefined) total.waiting = body.waiting;
+        setProgress({ ...total, counts: { ...total.counts }, errors: [...total.errors] });
+        if (body.done || !body.orders_in_page) break;
+        page = body.next_page ?? page + 1;
+        offset = body.next_offset ?? 0;
+      }
+      toast.success("Entregas da Paylog recuperadas", {
+        description: `${count(total.counts["importado"] ?? 0)} entregas novas no CRM. Os clientes liberados seguem no fluxo no próximo ciclo (até 5 min).`,
+      });
+      void load();
+      onDone();
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setRunning(false);
+    }
+  }
+
+  return (
+    <Section
+      title="Paylog: recuperar entregas"
+      description="Busca na API da Paylog todos os pedidos com status Entregue e registra a entrega com a data real. Quem está parado num fluxo em “Aguardar evento: Entrega realizada” segue para a próxima etapa; ninguém entra em fluxo novo e nenhuma automação dispara. Pode rodar de novo: o que já foi recuperado não é duplicado."
+      action={
+        <Button size="sm" onClick={run} disabled={running}>
+          <Truck className="size-4" /> {running ? "Recuperando…" : "Recuperar entregas"}
+        </Button>
+      }
+    >
+      <div className="surface flex flex-wrap items-center gap-3 p-3 text-sm">
+        {info ? (
+          <>
+            <span>
+              Token da API:{" "}
+              {info.configured ? (
+                <Pill tone="success">configurado</Pill>
+              ) : (
+                <Pill tone="danger">falta PAYLOG_API_TOKEN</Pill>
+              )}
+            </span>
+            <span>
+              Parados esperando a entrega:{" "}
+              <strong>{info.waiting === null ? "—" : count(info.waiting)}</strong>
+            </span>
+            {info.waiting_error && (
+              <span className="text-xs text-muted-foreground">
+                (rode a atualização 0042 no Supabase para ver este número)
+              </span>
+            )}
+          </>
+        ) : (
+          <Button size="sm" variant="outline" onClick={() => void load()} disabled={running}>
+            Ver situação
+          </Button>
+        )}
+      </div>
+      {progress && (
+        <div className="surface mt-2 space-y-2 p-3 text-sm">
+          <div className="h-2 overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full bg-primary transition-all"
+              style={{
+                width: `${Math.min(100, (progress.page / Math.max(progress.lastPage, 1)) * 100)}%`,
+              }}
+            />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <span>
+              página {count(progress.page)} de {count(progress.lastPage)} · {count(progress.read)}{" "}
+              pedidos
+            </span>
+            {Object.entries(progress.counts).map(([k, v]) => (
+              <Pill
+                key={k}
+                tone={
+                  k === "importado"
+                    ? "success"
+                    : k === "erro" || k === "não reconhecido"
+                      ? "danger"
+                      : "muted"
+                }
+              >
+                {k === "importado" ? "entregas novas" : k}: {count(v)}
+              </Pill>
+            ))}
+          </div>
+          {progress.waitingBefore !== null && progress.waiting !== null && (
+            <p>
+              Parados esperando a entrega: {count(progress.waitingBefore)} →{" "}
+              <strong>{count(progress.waiting)}</strong>
+            </p>
+          )}
+          {progress.errors.length > 0 && (
+            <details className="text-xs">
+              <summary className="cursor-pointer text-muted-foreground">
+                {progress.errors.length} pedido(s) com problema (ficam na Fila de erros)
+              </summary>
+              <ul className="mt-1 space-y-0.5">
+                {progress.errors.slice(0, 50).map((e) => (
+                  <li key={`${e.line}-${e.error}`}>
+                    pedido {e.line}: {e.error}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
+        </div>
+      )}
+      {err && <p className="mt-2 rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{err}</p>}
+    </Section>
+  );
+}
+
 function ImportFile({ onDone }: { onDone: () => void }) {
   const [file, setFile] = useState<File | null>(null);
   const [from, setFrom] = useState("1");

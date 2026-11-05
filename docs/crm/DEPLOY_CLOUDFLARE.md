@@ -43,7 +43,7 @@ as do tipo "Variável" — antes disso, cada deploy automático apagava todas el
 - E-mail: `RESEND_API_KEY`, `EMAIL_FROM`, `EMAIL_REPLY_TO`, `EMAIL_LIVE`, `RESEND_WEBHOOK_SECRET`
 - WhatsApp (Evolution): `EVOLUTION_API_URL`, `EVOLUTION_API_KEY`, `EVOLUTION_INSTANCE`,
   `EVOLUTION_WEBHOOK_TOKEN`, `EVOLUTION_DELAY_MS`, `WHATSAPP_LIVE`
-- Paylog (entregas): `PAYLOG_WEBHOOK_SECRET`
+- Paylog (entregas): `PAYLOG_WEBHOOK_SECRET` ou `PAYLOG_WEBHOOK_TOKEN`
 - Links: `CRM_LINK_BASE`, `CRM_LINK_TRACKING` (se usar)
 - **Novo:** `CRM_APP_URL` = o endereço do CRM na Cloudflare (ex.:
   `https://crm-kakauma-kakauma-crm.<sua-conta>.workers.dev`). Na Vercel ele vinha sozinho; sem ele os links
@@ -64,7 +64,7 @@ Supabase do CRM → **Authentication → URL Configuration**: **Site URL** = end
 | Pushfy (status e respostas) | `https://<novo>/api/webhooks/pushfy` (cabeçalho `x-webhook-token`) |
 | Resend (Webhooks) | `https://<novo>/api/webhooks/resend` — o segredo `whsec_` muda se criar outro endpoint |
 | Evolution | CRM novo → Operação → **Cadastrar webhook na Evolution** |
-| Paylog (Webhooks V2, eventos de Rastreamento) | `https://<novo>/api/webhooks/paylog` — assinatura com `PAYLOG_WEBHOOK_SECRET` |
+| Paylog (Webhooks V2, eventos de Rastreamento) | `https://<novo>/api/webhooks/paylog` — assinatura com `PAYLOG_WEBHOOK_SECRET`, ou `?token=<PAYLOG_WEBHOOK_TOKEN>` na URL |
 | cron-job.org | `https://<novo>/api/cron/crm-process`, mesmo cabeçalho `Authorization: Bearer <CRON_SECRET>` |
 
 ## 5. Transição

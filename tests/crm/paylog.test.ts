@@ -6,7 +6,7 @@ import postgres from "postgres";
 import { ingestWebhook, type Rpc } from "../../src/server/crm/pipeline.ts";
 import { runFlows } from "../../src/server/crm/messages.ts";
 import { isPaylogResend, normalizePaylog } from "../../src/server/crm/normalize/paylog.ts";
-import { checkPaylogSignature } from "../../src/server/crm/paylog.ts";
+import { checkPaylogAuth } from "../../src/server/crm/paylog.ts";
 import { b4 } from "./fixtures.ts";
 import { makeRpc, resetCrm, TEST_DB_URL } from "./db.ts";
 
@@ -177,20 +177,53 @@ describe("Paylog signature", () => {
   const sign = (s: string, b: string) =>
     "sha256=" + createHmac("sha256", s).update(b, "utf8").digest("hex");
 
+  const URL_ = "https://crm.example/api/webhooks/paylog";
+  const auth = (o: {
+    secret?: string;
+    token?: string;
+    body?: string;
+    signature?: string | null;
+    url?: string;
+    dev?: boolean;
+  }) =>
+    checkPaylogAuth({
+      secret: o.secret,
+      token: o.token,
+      rawBody: o.body ?? body,
+      signature: o.signature ?? null,
+      url: o.url ?? URL_,
+      dev: o.dev ?? false,
+    });
+
   test("valid signature over the raw body", async () => {
-    assert.equal(await checkPaylogSignature("segredo", body, sign("segredo", body)), null);
+    assert.equal(await auth({ secret: "segredo", signature: sign("segredo", body) }), null);
   });
   test("wrong secret, changed body or no header → 401", async () => {
-    assert.equal((await checkPaylogSignature("segredo", body, sign("outro", body)))?.status, 401);
+    assert.equal((await auth({ secret: "segredo", signature: sign("outro", body) }))?.status, 401);
     assert.equal(
-      (await checkPaylogSignature("segredo", body + " ", sign("segredo", body)))?.status,
+      (await auth({ secret: "segredo", body: body + " ", signature: sign("segredo", body) }))
+        ?.status,
       401,
     );
-    assert.equal((await checkPaylogSignature("segredo", body, null))?.status, 401);
+    assert.equal((await auth({ secret: "segredo" }))?.status, 401);
   });
-  test("no secret on the server: 503 in production, open in development", async () => {
-    assert.equal((await checkPaylogSignature(undefined, body, null))?.status, 503);
-    assert.equal(await checkPaylogSignature(undefined, body, null, true), null);
+  test("without the secret: a token in the URL", async () => {
+    assert.equal(await auth({ token: "tok123", url: URL_ + "?token=tok123" }), null);
+    assert.equal((await auth({ token: "tok123", url: URL_ + "?token=errado" }))?.status, 401);
+    assert.equal((await auth({ token: "tok123" }))?.status, 401);
+    // both configured: either one is enough
+    assert.equal(
+      await auth({ secret: "segredo", token: "tok123", url: URL_ + "?token=tok123" }),
+      null,
+    );
+    assert.equal(
+      await auth({ secret: "segredo", token: "tok123", signature: sign("segredo", body) }),
+      null,
+    );
+  });
+  test("nothing configured on the server: 503 in production, open in development", async () => {
+    assert.equal((await auth({}))?.status, 503);
+    assert.equal(await auth({ dev: true }), null);
   });
 });
 

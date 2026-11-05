@@ -5,7 +5,8 @@ import { createFileRoute } from "@tanstack/react-router";
  * Register in Paylog → Ferramentas → Integrações → Webhooks V2:
  *   URL  https://<crm>/api/webhooks/paylog
  *   events  Rastreamento (shipment.*)
- * and put the secret Paylog shows once in PAYLOG_WEBHOOK_SECRET.
+ * and put the secret Paylog shows once in PAYLOG_WEBHOOK_SECRET — or, without it, a token of our
+ * own in PAYLOG_WEBHOOK_TOKEN and the URL …/api/webhooks/paylog?token=<the same value>.
  *
  * Every delivery is signed: X-Webhook-Signature = sha256=<HMAC-SHA256 of the raw body>.
  * Paylog retries on anything other than 2xx; repeats are deduplicated by idempotency_key.
@@ -17,13 +18,13 @@ export const Route = createFileRoute("/api/webhooks/paylog")({
       // opening the URL in a browser: tells whether it is ready
       GET: async () => {
         const { env } = await import("@/server/crm/supabase.server");
-        const ready = !!env("PAYLOG_WEBHOOK_SECRET");
+        const ready = !!(env("PAYLOG_WEBHOOK_SECRET") || env("PAYLOG_WEBHOOK_TOKEN"));
         return Response.json(
           {
             ok: ready,
             message: ready
               ? "Webhook da Paylog ativo. Cadastre esta URL em Webhooks V2 da Paylog (eventos de Rastreamento)."
-              : "Falta PAYLOG_WEBHOOK_SECRET: cole no servidor o segredo que a Paylog mostra ao criar o webhook.",
+              : "Falta PAYLOG_WEBHOOK_SECRET (segredo que a Paylog mostra ao criar o webhook) ou PAYLOG_WEBHOOK_TOKEN (token na URL ?token=…).",
           },
           { status: ready ? 200 : 503 },
         );
@@ -31,13 +32,15 @@ export const Route = createFileRoute("/api/webhooks/paylog")({
       POST: async ({ request }) => {
         const rawBody = await request.text();
         const { env } = await import("@/server/crm/supabase.server");
-        const { checkPaylogSignature } = await import("@/server/crm/paylog");
-        const denied = await checkPaylogSignature(
-          env("PAYLOG_WEBHOOK_SECRET"),
+        const { checkPaylogAuth } = await import("@/server/crm/paylog");
+        const denied = await checkPaylogAuth({
+          secret: env("PAYLOG_WEBHOOK_SECRET"),
+          token: env("PAYLOG_WEBHOOK_TOKEN"),
           rawBody,
-          request.headers.get("x-webhook-signature"),
-          import.meta.env.DEV,
-        );
+          signature: request.headers.get("x-webhook-signature"),
+          url: request.url,
+          dev: import.meta.env.DEV,
+        });
         if (denied) return denied;
 
         // "Enviar teste" in the Paylog panel: synthetic data, never stored as a real delivery

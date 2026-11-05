@@ -4,7 +4,8 @@ import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
 import postgres from "postgres";
 import { ingestWebhook, type Rpc } from "../../src/server/crm/pipeline.ts";
-import { normalizePaylog } from "../../src/server/crm/normalize/paylog.ts";
+import { runFlows } from "../../src/server/crm/messages.ts";
+import { isPaylogResend, normalizePaylog } from "../../src/server/crm/normalize/paylog.ts";
 import { checkPaylogSignature } from "../../src/server/crm/paylog.ts";
 import { b4 } from "./fixtures.ts";
 import { makeRpc, resetCrm, TEST_DB_URL } from "./db.ts";
@@ -121,16 +122,39 @@ describe("Paylog normalizer", () => {
     }
   });
 
-  test("batch resend (no carrier date) is ignored: old deliveries never start flows", () => {
-    const n = normalizePaylog(
-      paylog("shipment.delivered", {
-        shipment: { occurred_at: null, description: null, location: null },
-      }),
-      { receivedAt: RECEIVED },
-    );
-    assert.ok(n.ok);
-    assert.equal(n.event?.event_type, "UNKNOWN");
-    assert.ok(n.event?.warnings.some((w) => w.code === "paylog_without_tracking_date"));
+  test("batch resend (no carrier date): only an order delivered today counts", () => {
+    const resend = (event: string, label: string) =>
+      normalizePaylog(
+        paylog(event, {
+          shipment: {
+            occurred_at: null,
+            description: null,
+            location: null,
+            tracking_status: { code: 1, label },
+          },
+        }),
+        { receivedAt: RECEIVED },
+      );
+    assert.ok(isPaylogResend(paylog("shipment.delivered", { shipment: { occurred_at: null } })));
+    assert.ok(!isPaylogResend(paylog("shipment.delivered")));
+
+    const ok = resend("shipment.delivered", "Entregue");
+    assert.equal(ok.event?.event_type, "TRACKING");
+    assert.equal(ok.event?.fulfillment?.status, "DELIVERED");
+    assert.equal(ok.event?.occurred_at, "2026-11-05T12:15:30.000Z"); // the resend time
+    assert.ok(ok.event?.warnings.some((w) => w.code === "paylog_resend"));
+    // "delivered" emitted for orders that were not delivered: ignored
+    for (const label of [
+      "Em Trânsito",
+      "Saiu para Entrega",
+      "Não entregue",
+      "Entregue ao remetente",
+    ]) {
+      const n = resend("shipment.delivered", label);
+      assert.equal(n.event?.event_type, "UNKNOWN", label);
+    }
+    // the other steps from a resend: ignored
+    assert.equal(resend("shipment.in_transit", "Em Trânsito").event?.event_type, "UNKNOWN");
   });
 
   test("a delivery with no customer and no reference is invalid", () => {
@@ -243,13 +267,102 @@ describe("Paylog → CRM", { skip: !sql && "CRM_TEST_DATABASE_URL not set" }, ()
     // Paylog retries with the same idempotency_key: one stored event, one fact
     const again = await ingestWebhook(rpc, "paylog", JSON.stringify(body));
     assert.equal(again.body["duplicate"], true);
-    // a batch resend of the same delivery (new key, no carrier date): ignored
+    // a batch resend of the same delivery (new key, no carrier date): history, same fact
     const resend = paylog("shipment.delivered", { shipment: { occurred_at: null } });
-    const r2 = await ingestWebhook(rpc, "paylog", JSON.stringify(resend));
-    assert.equal(r2.body["status"], "IGNORED");
+    const r2 = await ingestWebhook(rpc, "paylog", JSON.stringify(resend), { backfill: true });
+    assert.equal(r2.body["status"], "PROCESSED");
     const facts2 =
       await sql!`select count(*)::int as n from crm.customer_events where fact_type = 'FULFILLMENT_DELIVERED'`;
     assert.equal(facts2[0]!["n"], 1);
+  });
+
+  test("batch resend frees the customer stuck waiting for the delivery, starts no flow", async () => {
+    await call("crm_save_flow", {
+      p_key: "pl_stuck",
+      p_name: "Pós-compra",
+      p_trigger_fact: "PURCHASE_PAID",
+      p_graph: {
+        nodes: [
+          { id: "start", type: "trigger", config: {} },
+          {
+            id: "env",
+            type: "wait_event",
+            config: { fact: "FULFILLMENT_DELIVERED", timeout_hours: 720 },
+          },
+          { id: "after", type: "wait", config: { amount: 1, unit: "days" } },
+        ],
+        edges: [
+          { source: "start", target: "env", handle: "next" },
+          { source: "env", target: "after", handle: "event" },
+        ],
+      },
+    });
+    await call("crm_publish_flow", { p_key: "pl_stuck" });
+    const buyer = {
+      ...(b4("x")["customer"] as Obj),
+      id: "cus_pl2",
+      email: "joao@example.com",
+      whatsapp: "(31) 97777-6666",
+      document_number: "987.654.321-00",
+    };
+    const paid = await ingestWebhook(
+      rpc,
+      "b4you",
+      JSON.stringify(
+        b4("approved-payment", {
+          customer: buyer,
+          sale_id: "S-PL2",
+          charges: [{ id: "CH-PL2", amount: 227 }],
+          // a recent purchase: the post-purchase flow takes it
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          paid_at: new Date().toISOString(),
+        }),
+      ),
+    );
+    assert.ok(paid.status < 300, JSON.stringify(paid.body));
+    await runFlows(rpc, {});
+    const state = async () =>
+      (
+        await sql!`select en.status, en.current_node from crm.flow_enrollments en join crm.flows f using (flow_id)
+                    join crm.customers c using (customer_id)
+                    where f.key = 'pl_stuck' and c.external_customer_id = 'cus_pl2'`
+      )[0];
+    assert.equal((await state())!["status"], "WAITING"); // stuck at "Aguardar entrega"
+    // the stuck customer started waiting a while ago
+    await sql!`update crm.flow_enrollments set wait_started_at = now() - interval '5 days', entered_at = now() - interval '5 days'
+                where status = 'WAITING' and wait_fact = 'FULFILLMENT_DELIVERED'`;
+    const before =
+      await sql!`select count(*)::int as n from crm.flow_enrollments en join crm.flows f using (flow_id)
+                               where f.key = 'pl_delivered'`;
+
+    const resend = paylog("shipment.delivered", {
+      order: {
+        codigo_transacao: "S-PL2",
+        customer: {
+          nome: "João",
+          cpf: "987.654.321-00",
+          email: "joao@example.com",
+          telefone: "(31) 97777-6666",
+          endereco: {},
+        },
+      },
+      shipment: {
+        tracking_code: "BB222BR",
+        occurred_at: null,
+        tracking_status: { code: 70, label: "Entregue" },
+      },
+    });
+    const r = await ingestWebhook(rpc, "paylog", JSON.stringify(resend), { backfill: true });
+    assert.equal(r.body["status"], "PROCESSED", JSON.stringify(r.body));
+    const s = await state();
+    assert.equal(s!["status"], "ACTIVE");
+    assert.equal(s!["current_node"], "after");
+    // nobody new in "Entrega realizada"
+    const afterCount =
+      await sql!`select count(*)::int as n from crm.flow_enrollments en join crm.flows f using (flow_id)
+                                   where f.key = 'pl_delivered'`;
+    assert.equal(afterCount[0]!["n"], before[0]!["n"]);
   });
 
   test("an order event is stored and ignored", async () => {

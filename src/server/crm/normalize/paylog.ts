@@ -11,8 +11,10 @@ import type { FulfillmentStatus, Issue, NormalizedEvent, NormalizeResult } from 
  *
  * The Paylog batch resend ("Reenvio por data / produto") rebuilds events from the current order
  * state, with a new idempotency_key, every marked event for every order (even ones that never
- * happened) and without the carrier's date (occurred_at null). Those are ignored: with no date,
- * an old delivery would look new and start the delivery flows again for everyone.
+ * happened) and without the carrier's date (occurred_at null). Of those, only "delivered" for an
+ * order whose tracking says delivered counts: the route stores it as history (crm.events.backfill),
+ * so it frees customers waiting for the delivery in a flow but never starts a flow. The rest is
+ * ignored.
  *
  * Pure function: no I/O, so stored events can be replayed.
  */
@@ -57,6 +59,32 @@ const SHIPMENT_STATUS: Record<string, FulfillmentStatus> = {
 
 export const PAYLOG_EVENTS = Object.keys(SHIPMENT_STATUS);
 
+/**
+ * Batch resend ("Reenvio por data / produto"): rebuilt from the current order state, without the
+ * carrier's date (shipment.occurred_at null), for every order, whether the event happened or not.
+ */
+export function isPaylogResend(raw: unknown): boolean {
+  const o = obj(raw);
+  return (str(o["event"]) ?? "").startsWith("shipment.") && !str(obj(o["shipment"])["occurred_at"]);
+}
+
+/** The order's current tracking says delivered (the only proof a batch resend carries). */
+export function isDeliveredNow(raw: unknown): boolean {
+  const ship = obj(obj(raw)["shipment"]);
+  const label = (str(obj(ship["tracking_status"])["label"]) ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  const proof = obj(ship["delivery_proof"]);
+  const labelSaysDelivered =
+    /\bentregue\b|\bentrega realizada\b|\bdelivered\b/.test(label) &&
+    !/saiu|\bnao\b|tentativa|problema|devolu|remetente|aguardando|retirada/.test(label);
+  return (
+    labelSaysDelivered ||
+    !!(str(proof["image_url"]) || str(proof["received_by"]) || str(proof["signatory"]))
+  );
+}
+
 export function normalizePaylog(raw: unknown, opts: { receivedAt: string }): NormalizeResult {
   const warnings: Issue[] = [];
   const errors: Issue[] = [];
@@ -75,12 +103,21 @@ export function normalizePaylog(raw: unknown, opts: { receivedAt: string }): Nor
 
   let type: NormalizedEvent["event_type"] = shipStatus ? "TRACKING" : "UNKNOWN";
   if (shipStatus && !occurredAt) {
-    type = "UNKNOWN";
-    warnings.push({
-      code: "paylog_without_tracking_date",
-      message:
-        "shipment event without shipment.occurred_at (Paylog batch resend): ignored so old deliveries do not start flows",
-    });
+    if (shipStatus === "DELIVERED" && isDeliveredNow(raw)) {
+      // batch resend of an order whose tracking says delivered today: kept as history
+      // (the route stores it marked, so it only frees customers waiting for the delivery)
+      warnings.push({
+        code: "paylog_resend",
+        message: "delivery from a Paylog batch resend: carrier date unknown, resend time used",
+      });
+    } else {
+      type = "UNKNOWN";
+      warnings.push({
+        code: "paylog_without_tracking_date",
+        message:
+          "shipment event without shipment.occurred_at (Paylog batch resend) for an order not delivered: ignored",
+      });
+    }
   }
 
   const tracking = str(ship["tracking_code"]);

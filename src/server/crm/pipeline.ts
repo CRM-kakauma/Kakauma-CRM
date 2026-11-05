@@ -51,6 +51,8 @@ export async function ingestWebhook(
   rpc: Rpc,
   source: string,
   rawBody: string,
+  /** history (e.g. a provider's batch resend): its facts never start flows or automations */
+  opts: { backfill?: boolean } = {},
 ): Promise<IngestResponse> {
   let parsed: unknown;
   try {
@@ -72,14 +74,19 @@ export async function ingestWebhook(
       ? ((payload as Record<string, unknown>)[source === "paylog" ? "event" : "event_name"] ?? null)
       : null;
 
-  const { data, error } = await rpc("crm_ingest_event", {
+  const common = {
     p_source: source,
     p_event_name: typeof eventName === "string" ? eventName : null,
     p_source_event_id: sourceEventId(source, payload),
     p_payload: payload,
-    p_schema_version: CURRENT_SCHEMA_VERSION[source] ?? "v1",
     p_redacted: redacted,
-  });
+  };
+  const { data, error } = opts.backfill
+    ? await rpc("crm_ingest_backfill", { ...common, p_received_at: new Date().toISOString() })
+    : await rpc("crm_ingest_event", {
+        ...common,
+        p_schema_version: CURRENT_SCHEMA_VERSION[source] ?? "v1",
+      });
   if (error) {
     // Nothing was stored: fail loudly so the provider retries the webhook.
     return { status: 500, body: { ok: false, error: "store_failed", message: error.message } };

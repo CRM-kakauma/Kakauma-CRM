@@ -63,7 +63,16 @@ export const Route = createFileRoute("/api/webhooks/paylog")({
 
         const { ingestWebhook } = await import("@/server/crm/pipeline.server");
         try {
-          const result = await ingestWebhook("paylog", rawBody);
+          // batch resend ("Reenvio por data / produto"): history, it only frees customers
+          // already waiting for the delivery in a flow
+          const { isPaylogResend } = await import("@/server/crm/normalize/paylog");
+          let resend = false;
+          try {
+            resend = isPaylogResend(JSON.parse(rawBody));
+          } catch {
+            // invalid JSON: ingestWebhook keeps it in the dead-letter queue
+          }
+          const result = await ingestWebhook("paylog", rawBody, { backfill: resend });
           // a delivery may start a flow ("Entrega realizada"): its first message goes now
           if (result.status < 300) {
             const { runFlows } = await import("@/server/crm/pipeline.server");

@@ -15,8 +15,8 @@ export const isOn = (name: string) =>
   );
 
 // Everything runs against the CRM's own Supabase project (CRM_SUPABASE_* in .env).
-export const ingestWebhook = (source: string, rawBody: string) =>
-  core.ingestWebhook(rpc, source, rawBody);
+export const ingestWebhook = (source: string, rawBody: string, opts: { backfill?: boolean } = {}) =>
+  core.ingestWebhook(rpc, source, rawBody, opts);
 export const processPending = (opts: { limit?: number; id?: string } = {}) =>
   core.processPending(rpc, opts);
 export const backfillFromLegacy = (limit = 5000) => core.backfillFromLegacy(rpc, limit);

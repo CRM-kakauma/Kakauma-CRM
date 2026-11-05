@@ -31,10 +31,15 @@ export interface IngestResponse {
   body: Record<string, unknown>;
 }
 
-function sourceEventId(payload: unknown): string | null {
+/** Provider id of the event (deduplication): Paylog repeats idempotency_key on every retry. */
+const EVENT_ID_KEYS: Record<string, string[]> = {
+  paylog: ["idempotency_key"],
+};
+
+function sourceEventId(source: string, payload: unknown): string | null {
   if (!payload || typeof payload !== "object") return null;
   const o = payload as Record<string, unknown>;
-  for (const k of ["event_id", "webhook_id", "notification_id"]) {
+  for (const k of EVENT_ID_KEYS[source] ?? ["event_id", "webhook_id", "notification_id"]) {
     const v = o[k];
     if (typeof v === "string" && v.trim()) return v.trim();
     if (typeof v === "number") return String(v);
@@ -64,13 +69,13 @@ export async function ingestWebhook(
   const { payload, redacted } = redactCardData(parsed);
   const eventName =
     payload && typeof payload === "object"
-      ? ((payload as Record<string, unknown>)["event_name"] ?? null)
+      ? ((payload as Record<string, unknown>)[source === "paylog" ? "event" : "event_name"] ?? null)
       : null;
 
   const { data, error } = await rpc("crm_ingest_event", {
     p_source: source,
     p_event_name: typeof eventName === "string" ? eventName : null,
-    p_source_event_id: sourceEventId(payload),
+    p_source_event_id: sourceEventId(source, payload),
     p_payload: payload,
     p_schema_version: CURRENT_SCHEMA_VERSION[source] ?? "v1",
     p_redacted: redacted,

@@ -42,6 +42,7 @@ import { Route as ApiCronCrmProcessRouteImport } from './routes/api/cron/crm-pro
 import { Route as ApiPublicEventsRouteImport } from './routes/api/public/events'
 import { Route as ApiWebhooksB4youRouteImport } from './routes/api/webhooks/b4you'
 import { Route as ApiWebhooksEvolutionRouteImport } from './routes/api/webhooks/evolution'
+import { Route as ApiWebhooksPaylogRouteImport } from './routes/api/webhooks/paylog'
 import { Route as ApiWebhooksPushfyRouteImport } from './routes/api/webhooks/pushfy'
 import { Route as ApiWebhooksResendRouteImport } from './routes/api/webhooks/resend'
 import { Route as ApiWebhooksWhatsappRouteImport } from './routes/api/webhooks/whatsapp'
@@ -225,6 +226,11 @@ const ApiWebhooksEvolutionRoute = ApiWebhooksEvolutionRouteImport.update({
   path: '/api/webhooks/evolution',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiWebhooksPaylogRoute = ApiWebhooksPaylogRouteImport.update({
+  id: '/api/webhooks/paylog',
+  path: '/api/webhooks/paylog',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiWebhooksPushfyRoute = ApiWebhooksPushfyRouteImport.update({
   id: '/api/webhooks/pushfy',
   path: '/api/webhooks/pushfy',
@@ -347,6 +353,7 @@ export interface FileRoutesByFullPath {
   '/api/public/events': typeof ApiPublicEventsRoute
   '/api/webhooks/b4you': typeof ApiWebhooksB4youRoute
   '/api/webhooks/evolution': typeof ApiWebhooksEvolutionRoute
+  '/api/webhooks/paylog': typeof ApiWebhooksPaylogRoute
   '/api/webhooks/pushfy': typeof ApiWebhooksPushfyRoute
   '/api/webhooks/resend': typeof ApiWebhooksResendRoute
   '/api/webhooks/whatsapp': typeof ApiWebhooksWhatsappRoute
@@ -399,6 +406,7 @@ export interface FileRoutesByTo {
   '/api/public/events': typeof ApiPublicEventsRoute
   '/api/webhooks/b4you': typeof ApiWebhooksB4youRoute
   '/api/webhooks/evolution': typeof ApiWebhooksEvolutionRoute
+  '/api/webhooks/paylog': typeof ApiWebhooksPaylogRoute
   '/api/webhooks/pushfy': typeof ApiWebhooksPushfyRoute
   '/api/webhooks/resend': typeof ApiWebhooksResendRoute
   '/api/webhooks/whatsapp': typeof ApiWebhooksWhatsappRoute
@@ -452,6 +460,7 @@ export interface FileRoutesById {
   '/api/public/events': typeof ApiPublicEventsRoute
   '/api/webhooks/b4you': typeof ApiWebhooksB4youRoute
   '/api/webhooks/evolution': typeof ApiWebhooksEvolutionRoute
+  '/api/webhooks/paylog': typeof ApiWebhooksPaylogRoute
   '/api/webhooks/pushfy': typeof ApiWebhooksPushfyRoute
   '/api/webhooks/resend': typeof ApiWebhooksResendRoute
   '/api/webhooks/whatsapp': typeof ApiWebhooksWhatsappRoute
@@ -506,6 +515,7 @@ export interface FileRouteTypes {
     | '/api/public/events'
     | '/api/webhooks/b4you'
     | '/api/webhooks/evolution'
+    | '/api/webhooks/paylog'
     | '/api/webhooks/pushfy'
     | '/api/webhooks/resend'
     | '/api/webhooks/whatsapp'
@@ -558,6 +568,7 @@ export interface FileRouteTypes {
     | '/api/public/events'
     | '/api/webhooks/b4you'
     | '/api/webhooks/evolution'
+    | '/api/webhooks/paylog'
     | '/api/webhooks/pushfy'
     | '/api/webhooks/resend'
     | '/api/webhooks/whatsapp'
@@ -610,6 +621,7 @@ export interface FileRouteTypes {
     | '/api/public/events'
     | '/api/webhooks/b4you'
     | '/api/webhooks/evolution'
+    | '/api/webhooks/paylog'
     | '/api/webhooks/pushfy'
     | '/api/webhooks/resend'
     | '/api/webhooks/whatsapp'
@@ -663,6 +675,7 @@ export interface RootRouteChildren {
   ApiPublicEventsRoute: typeof ApiPublicEventsRoute
   ApiWebhooksB4youRoute: typeof ApiWebhooksB4youRoute
   ApiWebhooksEvolutionRoute: typeof ApiWebhooksEvolutionRoute
+  ApiWebhooksPaylogRoute: typeof ApiWebhooksPaylogRoute
   ApiWebhooksPushfyRoute: typeof ApiWebhooksPushfyRoute
   ApiWebhooksResendRoute: typeof ApiWebhooksResendRoute
   ApiWebhooksWhatsappRoute: typeof ApiWebhooksWhatsappRoute
@@ -915,6 +928,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiWebhooksEvolutionRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/webhooks/paylog': {
+      id: '/api/webhooks/paylog'
+      path: '/api/webhooks/paylog'
+      fullPath: '/api/webhooks/paylog'
+      preLoaderRoute: typeof ApiWebhooksPaylogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/webhooks/pushfy': {
       id: '/api/webhooks/pushfy'
       path: '/api/webhooks/pushfy'
@@ -1071,6 +1091,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicEventsRoute: ApiPublicEventsRoute,
   ApiWebhooksB4youRoute: ApiWebhooksB4youRoute,
   ApiWebhooksEvolutionRoute: ApiWebhooksEvolutionRoute,
+  ApiWebhooksPaylogRoute: ApiWebhooksPaylogRoute,
   ApiWebhooksPushfyRoute: ApiWebhooksPushfyRoute,
   ApiWebhooksResendRoute: ApiWebhooksResendRoute,
   ApiWebhooksWhatsappRoute: ApiWebhooksWhatsappRoute,

@@ -1,5 +1,6 @@
 import type { NormalizeResult } from "../types.ts";
 import { normalizeB4you } from "./b4you.ts";
+import { normalizePaylog } from "./paylog.ts";
 
 type Normalizer = (raw: unknown, opts: { receivedAt: string }) => NormalizeResult;
 
@@ -10,9 +11,10 @@ type Normalizer = (raw: unknown, opts: { receivedAt: string }) => NormalizeResul
  */
 const NORMALIZERS: Record<string, Record<string, Normalizer>> = {
   b4you: { v1: normalizeB4you },
+  paylog: { v1: normalizePaylog },
 };
 
-export const CURRENT_SCHEMA_VERSION: Record<string, string> = { b4you: "v1" };
+export const CURRENT_SCHEMA_VERSION: Record<string, string> = { b4you: "v1", paylog: "v1" };
 
 export function normalize(
   source: string,

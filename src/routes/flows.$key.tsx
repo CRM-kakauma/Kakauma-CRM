@@ -887,6 +887,7 @@ export const MESSAGE_STATUS: Record<
 export const SKIP_REASON: Record<string, string> = {
   opt_out: "cliente pediu para não receber",
   daily_cap: "limite diário de mensagens",
+  repeated_24h: "mesma mensagem já enviada nas últimas 24 h",
   no_contact_for_email: "sem e-mail",
   no_contact_for_sms: "sem telefone",
   no_contact_for_whatsapp: "sem WhatsApp",

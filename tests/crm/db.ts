@@ -4,7 +4,7 @@ import type { Rpc } from "../../src/server/crm/pipeline.ts";
 export const TEST_DB_URL = process.env["CRM_TEST_DATABASE_URL"];
 
 /** text[] parameters (every other array/object is sent as jsonb). */
-const TEXT_ARRAYS = new Set(["p_redacted", "p_events"]);
+const TEXT_ARRAYS = new Set(["p_redacted", "p_events", "p_ids"]);
 
 /** Direct-connection implementation of the Supabase RPC call used by the pipeline. */
 export function makeRpc(sql: postgres.Sql): Rpc {

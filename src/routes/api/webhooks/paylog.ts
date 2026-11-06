@@ -97,7 +97,7 @@ export const Route = createFileRoute("/api/webhooks/paylog")({
           if (result.status < 300) {
             const { runFlows } = await import("@/server/crm/pipeline.server");
             // V1 gives up after 10 s (and never retries): a few only, the cron does the rest
-            await runFlows(v1 ? 10 : 50).catch((e) =>
+            await runFlows(v1 ? 10 : 50, v1 ? 3_000 : 10_000).catch((e) =>
               console.error("[crm] flows after paylog event", e),
             );
           }

@@ -75,7 +75,9 @@ export const Route = createFileRoute("/api/webhooks/pushfy")({
           if (r.matched > 0) {
             const { runFlows } = await import("@/server/crm/pipeline.server");
             // a few only: the answer must reach Pushfy within its ~30 s; the cron does the rest
-            await runFlows(20).catch((e) => console.error("[crm] flows after pushfy event", e));
+            await runFlows(20, 4_000).catch((e) =>
+              console.error("[crm] flows after pushfy event", e),
+            );
           }
           return Response.json({ ok: true, received: events.length, ...r });
         } catch (e) {

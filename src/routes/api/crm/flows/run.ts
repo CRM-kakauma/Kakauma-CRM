@@ -15,7 +15,7 @@ export const Route = createFileRoute("/api/crm/flows/run")({
           if (!session) return json({ error: "unauthenticated" }, 401);
           if (!atLeast(session.role, "operator"))
             return json({ error: "forbidden" }, 403, session.setCookies);
-          const run = await runFlows(200);
+          const run = await runFlows(200, 20_000);
           const count = (s: string) => run.messages.filter((m) => m.status === s).length;
           return json(
             {

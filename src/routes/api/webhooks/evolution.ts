@@ -60,7 +60,9 @@ export const Route = createFileRoute("/api/webhooks/evolution")({
           // a status may continue a flow waiting on it ("Aguardar entrega")
           if (matched) {
             const { runFlows } = await import("@/server/crm/pipeline.server");
-            await runFlows(100).catch((e) => console.error("[crm] flows after evolution event", e));
+            await runFlows(100, 5_000).catch((e) =>
+              console.error("[crm] flows after evolution event", e),
+            );
           }
           return Response.json({ ok: true, received: items.length });
         } catch (e) {

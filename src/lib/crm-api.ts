@@ -167,6 +167,7 @@ export const SKIP_LABEL: Record<string, string> = {
   conditions_not_met: "condições não atendidas no momento do envio",
   cooldown: "intervalo mínimo entre envios",
   daily_cap: "limite diário do cliente",
+  repeated_24h: "mesma mensagem já enviada nas últimas 24 h",
   automation_inactive: "automação desligada",
 };
 

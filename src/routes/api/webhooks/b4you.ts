@@ -60,7 +60,9 @@ export const Route = createFileRoute("/api/webhooks/b4you")({
           // the flow this event starts sends its first message now, not at the next cron run
           if (result.status < 300) {
             const { runFlows } = await import("@/server/crm/pipeline.server");
-            await runFlows(50).catch((e) => console.error("[crm] flows after b4you event", e));
+            await runFlows(50, 5_000).catch((e) =>
+              console.error("[crm] flows after b4you event", e),
+            );
           }
           return Response.json(result.body, { status: result.status });
         } catch (e) {

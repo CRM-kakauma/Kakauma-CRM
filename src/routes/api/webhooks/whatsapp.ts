@@ -66,7 +66,9 @@ export const Route = createFileRoute("/api/webhooks/whatsapp")({
           // a status may continue a flow waiting on it ("Aguardar entrega")
           if (r.matched) {
             const { runFlows } = await import("@/server/crm/pipeline.server");
-            await runFlows(100).catch((e) => console.error("[crm] flows after whatsapp event", e));
+            await runFlows(100, 5_000).catch((e) =>
+              console.error("[crm] flows after whatsapp event", e),
+            );
           }
           return Response.json({ ok: true, received: r.results.length });
         } catch (e) {

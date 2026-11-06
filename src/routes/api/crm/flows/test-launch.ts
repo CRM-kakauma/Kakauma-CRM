@@ -42,7 +42,7 @@ export const Route = createFileRoute("/api/crm/flows/test-launch")({
               session.setCookies,
             );
           // the scheduled job runs once a day on the Hobby plan: process now
-          const run = await runFlows(200);
+          const run = await runFlows(200, 20_000);
           return json({ ok: true, launch: launch.data, run }, 200, session.setCookies);
         } catch (e) {
           return json({ error: "server_error", message: (e as Error).message }, 500);

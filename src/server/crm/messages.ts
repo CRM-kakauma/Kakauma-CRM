@@ -61,6 +61,12 @@ export interface MessageOptions {
   /** click tracking: links become <base>/l/<code>; e-mail only with a domain of the brand */
   links?: { base: string; email: boolean } | undefined;
   fetchImpl?: typeof fetch;
+  /**
+   * Stop sending at this time (ms since the epoch): the caller must answer before its client
+   * gives up (a webhook), because a request cut midway may stop after the provider got a message
+   * and before the CRM wrote it down. What is left goes back to the queue for the cron.
+   */
+  deadline?: number | undefined;
 }
 
 export interface FlowSummary {
@@ -190,7 +196,14 @@ export async function runMessages(rpc: Rpc, opts: MessageOptions = {}) {
   const orderVars = await messageVars(rpc, claimed);
   const names = await utmNames(rpc, claimed);
 
-  for (const m of claimed) {
+  for (const [i, m] of claimed.entries()) {
+    if (opts.deadline !== undefined && Date.now() > opts.deadline) {
+      // out of time: the rest goes back to the queue now (the cron sends it)
+      const rest = claimed.slice(i).map((x) => x.message_id);
+      const r = await rpc("crm_release_messages", { p_ids: rest });
+      if (r.error) console.error("[crm] release messages", r.error.message);
+      break;
+    }
     // order data ({{order_number}}, {{product_name}}…); a test contact without orders gets the samples
     const order = orderVars.get(m.message_id) ?? {};
     // UTM values: the flow's and the message's names (keys when a name is missing)
@@ -435,6 +448,8 @@ export async function runFlows(rpc: Rpc, opts: MessageOptions = {}): Promise<Flo
   const tick = await rpc("crm_flow_tick", { p_limit: 500 });
   if (tick.error) throw new Error(tick.error.message);
   const messages = await runMessages(rpc, opts);
+  if (opts.deadline !== undefined && Date.now() > opts.deadline)
+    return { advanced: Number(tick.data ?? 0), messages };
   // second pass: a send that failed just now wakes "Aguardar entrega", whose
   // "not delivered" path (e.g. an SMS after an RCS) then goes out in this same run
   const again = await rpc("crm_flow_tick", { p_limit: 500 });

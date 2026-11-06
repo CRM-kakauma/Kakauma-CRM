@@ -107,9 +107,14 @@ export function evolutionConfig() {
     live: isOn("WHATSAPP_LIVE"),
   };
 }
-export const runFlows = (limit = 100) =>
+/**
+ * Flow tick + sends. `budgetMs`: stop sending after that long (webhooks: their caller gives up
+ * after a few seconds; what is left goes back to the queue for the cron).
+ */
+export const runFlows = (limit = 100, budgetMs?: number) =>
   runFlowsCore(rpc, {
     limit,
+    deadline: budgetMs === undefined ? undefined : Date.now() + budgetMs,
     pushfy: pushfyConfig(),
     resend: resendConfig(),
     whatsapp: whatsappConfig(),

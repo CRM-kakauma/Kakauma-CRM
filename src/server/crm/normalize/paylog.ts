@@ -55,9 +55,87 @@ const SHIPMENT_STATUS: Record<string, FulfillmentStatus> = {
   "shipment.returning": "DELIVERY_RETURNED",
   "shipment.returned": "DELIVERY_RETURNED",
   "shipment.delivered": "DELIVERED",
+  // Webhook V1 "Código de rastreio recebido" (converted by paylogV1ToV2)
+  "v1.tracking_received": "FULFILLMENT_CREATED",
 };
 
 export const PAYLOG_EVENTS = Object.keys(SHIPMENT_STATUS);
+
+/**
+ * Webhook V1 (legacy, "E-mails e Webhook" screen): {"dados": {...}}, no event name, no date, no
+ * signature, no retry. The two kinds are told apart by the URL (?tipo=entregue|rastreio) or, as the
+ * Paylog documents, by the "transportadora" key, present only in "Código de rastreio recebido".
+ * Paylog sends it the moment it happens, so the time it arrived is the time of the event.
+ * Converted to the V2 shape (same normalizer); the original body is kept in v1_dados.
+ */
+export function isPaylogV1(raw: unknown): boolean {
+  const o = obj(raw);
+  return isObj(o["dados"]) && !("event" in o);
+}
+
+export function paylogV1Kind(raw: unknown, tipo: string | null): "entregue" | "rastreio" {
+  const t = (tipo ?? "").toLowerCase();
+  if (/rastre/.test(t)) return "rastreio";
+  if (/entreg/.test(t)) return "entregue";
+  return "transportadora" in obj(obj(raw)["dados"]) ? "rastreio" : "entregue";
+}
+
+export function paylogV1ToV2(raw: unknown, kind: "entregue" | "rastreio", receivedAt: string) {
+  const d = obj(obj(raw)["dados"]);
+  const pedido = str(d["pedido_id"]);
+  const event = kind === "entregue" ? "shipment.delivered" : "v1.tracking_received";
+  const tracking = str(d["cod_rastreio"]);
+  return {
+    event,
+    event_label: kind === "entregue" ? "Entregue" : "Código de rastreio recebido",
+    event_timestamp: receivedAt,
+    // one per order and kind: a repeated notification is not stored twice
+    idempotency_key: `v1:${kind}:${pedido ?? "?"}:${tracking ?? ""}`,
+    cancelable: false,
+    order: {
+      pedido_id: pedido,
+      codigo_transacao: str(d["cod_transacao"]),
+      referencia_externa: str(d["referencia_externa"]),
+      plataforma: str(d["plataforma"]),
+      status: { code: null, label: null },
+      motivo_parado: null,
+      customer: {
+        nome: str(d["nome_cliente"]),
+        cpf: str(d["cpf_cliente"]),
+        email: str(d["email_cliente"]),
+        telefone: str(d["telefone_cliente"]),
+        endereco: {},
+      },
+      items: [],
+      frete_cents: null,
+    },
+    shipment: {
+      tracking_code: tracking,
+      tracking_url: tracking
+        ? `https://ev.paylog.cash/rastreio/${encodeURIComponent(tracking)}`
+        : null,
+      carrier: { code: null, name: str(d["transportadora"]) },
+      tracking_status: {
+        code: null,
+        label: kind === "entregue" ? "Entregue" : "Código de rastreio recebido",
+      },
+      description: null,
+      location: null,
+      occurred_at: receivedAt,
+      collection_address: null,
+      delivery_proof: {
+        image_url: null,
+        signature_url: null,
+        received_by: null,
+        signatory: null,
+        delivery_lat: null,
+        delivery_lng: null,
+      },
+    },
+    meta: { webhook_version: 1, api_version: null },
+    v1_dados: d,
+  };
+}
 
 /**
  * Batch resend ("Reenvio por data / produto"): rebuilt from the current order state, without the

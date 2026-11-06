@@ -5,7 +5,13 @@ import { createHmac } from "node:crypto";
 import postgres from "postgres";
 import { ingestWebhook, type Rpc } from "../../src/server/crm/pipeline.ts";
 import { runFlows } from "../../src/server/crm/messages.ts";
-import { isPaylogResend, normalizePaylog } from "../../src/server/crm/normalize/paylog.ts";
+import {
+  isPaylogResend,
+  isPaylogV1,
+  normalizePaylog,
+  paylogV1Kind,
+  paylogV1ToV2,
+} from "../../src/server/crm/normalize/paylog.ts";
 import { checkPaylogAuth } from "../../src/server/crm/paylog.ts";
 import { b4 } from "./fixtures.ts";
 import { makeRpc, resetCrm, TEST_DB_URL } from "./db.ts";
@@ -398,9 +404,91 @@ describe("Paylog → CRM", { skip: !sql && "CRM_TEST_DATABASE_URL not set" }, ()
     assert.equal(afterCount[0]!["n"], before[0]!["n"]);
   });
 
+  test("V1 delivery (converted) is a live delivery: enters the delivery flow", async () => {
+    const v1 = paylogV1ToV2(
+      {
+        dados: {
+          pedido_id: 555,
+          cpf_cliente: null,
+          nome_cliente: "Carla",
+          email_cliente: "carla@example.com",
+          telefone_cliente: null,
+          cod_transacao: "S-PLV1",
+          plataforma: "B4You",
+          cod_rastreio: "CC333BR",
+          referencia_externa: null,
+        },
+      },
+      "entregue",
+      new Date().toISOString(),
+    );
+    const r = await ingestWebhook(rpc, "paylog", JSON.stringify(v1));
+    assert.equal(r.body["status"], "PROCESSED", JSON.stringify(r.body));
+    const [n] =
+      await sql!`select count(*)::int as n from crm.flow_enrollments en join crm.flows f using (flow_id)
+                            join crm.customers c using (customer_id)
+                            where f.key = 'pl_delivered' and c.email = 'carla@example.com'`;
+    assert.equal(n!["n"], 1);
+    const again = await ingestWebhook(rpc, "paylog", JSON.stringify(v1));
+    assert.equal(again.body["duplicate"], true);
+  });
+
   test("an order event is stored and ignored", async () => {
     const r = await ingestWebhook(rpc, "paylog", JSON.stringify(paylog("order.created")));
     assert.equal(r.status, 200);
     assert.equal(r.body["status"], "IGNORED");
+  });
+});
+
+describe("Paylog Webhook V1 (legacy)", () => {
+  const delivered = {
+    dados: {
+      pedido_id: 12345,
+      cpf_cliente: "123.456.789-09",
+      nome_cliente: "Maria Souza",
+      email_cliente: "maria.souza@example.com",
+      telefone_cliente: "(11) 98888-7777",
+      cod_transacao: "S-PL1",
+      plataforma: "B4You",
+      cod_rastreio: "AA123456789BR",
+      referencia_externa: null,
+    },
+  };
+  const tracking = {
+    dados: { ...delivered.dados, transportadora: "CORREIOS" },
+  };
+
+  test("recognized, and the kind comes from the URL or the transportadora key", () => {
+    assert.ok(isPaylogV1(delivered));
+    assert.ok(!isPaylogV1(paylog("shipment.delivered")));
+    assert.equal(paylogV1Kind(delivered, null), "entregue");
+    assert.equal(paylogV1Kind(tracking, null), "rastreio");
+    assert.equal(paylogV1Kind(tracking, "entregue"), "entregue");
+    assert.equal(paylogV1Kind(delivered, "rastreio"), "rastreio");
+  });
+
+  test("Pedido entregue → DELIVERED at the time it arrived", () => {
+    const v2 = paylogV1ToV2(delivered, "entregue", RECEIVED);
+    assert.equal(v2.idempotency_key, "v1:entregue:12345:AA123456789BR");
+    const n = normalizePaylog(v2, { receivedAt: RECEIVED });
+    assert.ok(n.ok);
+    assert.equal(n.event?.event_type, "TRACKING");
+    assert.equal(n.event?.fulfillment?.status, "DELIVERED");
+    assert.equal(n.event?.occurred_at, RECEIVED);
+    assert.equal(n.event?.sale_id, "S-PL1");
+    assert.equal(n.event?.customer.email, "maria.souza@example.com");
+    assert.equal(n.event?.customer.address, null);
+  });
+
+  test("Código de rastreio recebido → FULFILLMENT_CREATED with the carrier", () => {
+    const n = normalizePaylog(paylogV1ToV2(tracking, "rastreio", RECEIVED), {
+      receivedAt: RECEIVED,
+    });
+    assert.equal(n.event?.fulfillment?.status, "FULFILLMENT_CREATED");
+    assert.equal(n.event?.fulfillment?.carrier, "CORREIOS");
+    assert.equal(
+      n.event?.fulfillment?.tracking_url,
+      "https://ev.paylog.cash/rastreio/AA123456789BR",
+    );
   });
 });

@@ -9,6 +9,8 @@ import { createFileRoute } from "@tanstack/react-router";
  * own in PAYLOG_WEBHOOK_TOKEN and the URL …/api/webhooks/paylog?token=<the same value>.
  *
  * Every delivery is signed: X-Webhook-Signature = sha256=<HMAC-SHA256 of the raw body>.
+ * The legacy Webhook V1 ("E-mails e Webhook": Pedido Entregue / Rastreio, unsigned, {"dados":…})
+ * is accepted too, with the token in the URL; see paylogV1ToV2.
  * Paylog retries on anything other than 2xx; repeats are deduplicated by idempotency_key.
  */
 
@@ -43,20 +45,41 @@ export const Route = createFileRoute("/api/webhooks/paylog")({
         });
         if (denied) return denied;
 
+        const { normalizePaylog, isPaylogV1, paylogV1Kind, paylogV1ToV2, isPaylogResend } =
+          await import("@/server/crm/normalize/paylog");
+        let parsed: unknown = null;
+        try {
+          parsed = JSON.parse(rawBody);
+        } catch {
+          parsed = null; // ingestWebhook keeps it in the dead-letter queue
+        }
+        // Webhook V1 (legacy screen "E-mails e Webhook"): converted to the V2 shape
+        const v1 = parsed !== null && isPaylogV1(parsed);
+        let body = rawBody;
+        if (v1) {
+          const kind = paylogV1Kind(parsed, new URL(request.url).searchParams.get("tipo"));
+          parsed = paylogV1ToV2(parsed, kind, new Date().toISOString());
+          body = JSON.stringify(parsed);
+        }
+
         // "Enviar teste" in the Paylog panel: synthetic data, never stored as a real delivery
-        if (request.headers.get("x-webhook-test") === "true") {
-          const { normalizePaylog } = await import("@/server/crm/normalize/paylog");
-          let parsed: unknown = null;
-          try {
-            parsed = JSON.parse(rawBody);
-          } catch {
+        // (V2: X-Webhook-Test; V1: X-PayLog-Test and pedido_id "TEST-…")
+        const isTest =
+          request.headers.get("x-webhook-test") === "true" ||
+          request.headers.get("x-paylog-test") === "true" ||
+          (v1 &&
+            /^TEST-/i.test(
+              String((parsed as { order?: { pedido_id?: unknown } }).order?.pedido_id ?? ""),
+            ));
+        if (isTest) {
+          if (parsed === null)
             return Response.json({ ok: false, error: "invalid_json" }, { status: 400 });
-          }
           const n = normalizePaylog(parsed, { receivedAt: new Date().toISOString() });
           return Response.json({
             ok: true,
             test: true,
-            message: "Assinatura correta. Evento de teste recebido e não gravado.",
+            webhook: v1 ? "v1" : "v2",
+            message: "Webhook da Paylog conectado. Evento de teste recebido e não gravado.",
             event: n.event?.source_event_name ?? null,
             would_be: n.event?.fulfillment
               ? `FULFILLMENT_${n.event.fulfillment.status}`
@@ -68,22 +91,20 @@ export const Route = createFileRoute("/api/webhooks/paylog")({
         try {
           // batch resend ("Reenvio por data / produto"): history, it only frees customers
           // already waiting for the delivery in a flow
-          const { isPaylogResend } = await import("@/server/crm/normalize/paylog");
-          let resend = false;
-          try {
-            resend = isPaylogResend(JSON.parse(rawBody));
-          } catch {
-            // invalid JSON: ingestWebhook keeps it in the dead-letter queue
-          }
-          const result = await ingestWebhook("paylog", rawBody, { backfill: resend });
+          const resend = parsed !== null && !v1 && isPaylogResend(parsed);
+          const result = await ingestWebhook("paylog", body, { backfill: resend });
           // a delivery may start a flow ("Entrega realizada"): its first message goes now
           if (result.status < 300) {
             const { runFlows } = await import("@/server/crm/pipeline.server");
-            await runFlows(50).catch((e) => console.error("[crm] flows after paylog event", e));
+            // V1 gives up after 10 s (and never retries): a few only, the cron does the rest
+            await runFlows(v1 ? 10 : 50).catch((e) =>
+              console.error("[crm] flows after paylog event", e),
+            );
           }
           return Response.json(result.body, { status: result.status });
         } catch (e) {
-          // 5xx: Paylog delivers again (up to 4 tries), nothing is lost
+          // 5xx: Paylog V2 delivers again (up to 4 tries); V1 does not retry (recover with the
+          // API: Operação → Paylog: recuperar entregas)
           console.error("[crm] paylog webhook failed", e);
           return Response.json({ ok: false, error: (e as Error).message }, { status: 503 });
         }

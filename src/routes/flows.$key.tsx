@@ -82,7 +82,7 @@ const NEW: FlowDoc = {
   trigger_fact: "PURCHASE_PAID",
   trigger_filter: {},
   entry_rule: {},
-  reentry: "after_exit",
+  reentry: "once",
   max_trigger_age_hours: 72,
   goal_fact: null,
   status: "DRAFT",

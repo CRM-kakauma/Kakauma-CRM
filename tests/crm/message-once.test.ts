@@ -152,3 +152,87 @@ describe("Messages go out once", { skip: !sql && "CRM_TEST_DATABASE_URL not set"
     assert.equal(m2!["status"], "SENT");
   });
 });
+
+describe(
+  "Each flow only once per customer",
+  { skip: !sql && "CRM_TEST_DATABASE_URL not set" },
+  () => {
+    const sql2 = TEST_DB_URL ? postgres(TEST_DB_URL, { max: 1, onnotice: () => {} }) : null;
+    const rpc2: Rpc = sql2 ? makeRpc(sql2) : async () => ({ data: null, error: null });
+    const call2 = async (fn: string, args: Record<string, unknown> = {}) => {
+      const { data, error } = await rpc2(fn, args);
+      assert.equal(error, null, error?.message);
+      return data;
+    };
+    const cart = async (who: string, offer: string) => {
+      const now = new Date().toISOString();
+      const r = await ingestWebhook(
+        rpc2,
+        "b4you",
+        JSON.stringify(
+          b4("abandoned-cart", {
+            customer: { id: `cus_${who}`, full_name: who, email: `${who}@example.com` },
+            offer: { id: offer, name: offer, quantity: 1, original_price: 100 },
+            created_at: now,
+            updated_at: now,
+          }),
+        ),
+      );
+      assert.ok(r.status < 300, JSON.stringify(r.body));
+    };
+    const entries = async (who: string) =>
+      (
+        await sql2!`select count(*)::int as n from crm.flow_enrollments en join crm.flows f using (flow_id)
+                   join crm.customers c using (customer_id)
+                   where f.key = 'mo_once' and c.external_customer_id = ${"cus_" + who} and not en.is_test`
+      )[0]!["n"];
+
+    before(async () => {
+      await sql2!`update crm.flows set status = 'ARCHIVED' where status = 'ACTIVE'`;
+      await call2("crm_save_flow", {
+        p_key: "mo_once",
+        p_name: "Carrinho uma vez",
+        p_trigger_fact: "CHECKOUT_ABANDONED",
+        p_reentry: "once",
+        p_graph: {
+          nodes: [
+            { id: "start", type: "trigger", config: {} },
+            { id: "end", type: "exit", config: {} },
+          ],
+          edges: [{ source: "start", target: "end", handle: "next" }],
+        },
+      });
+      await call2("crm_publish_flow", { p_key: "mo_once" });
+    });
+    after(async () => {
+      await sql2!`update crm.flows set status = 'ARCHIVED' where key = 'mo_once'`;
+      await sql2?.end();
+    });
+
+    test("finished the flow once: a new trigger does not start it again", async () => {
+      await cart("Duda", "off_a");
+      await runFlows(rpc2, {});
+      assert.equal(await entries("Duda"), 1);
+      await cart("Duda", "off_b");
+      await runFlows(rpc2, {});
+      assert.equal(await entries("Duda"), 1);
+    });
+
+    test("a test run does not count as having been through the flow", async () => {
+      await cart("Edu", "off_a"); // creates the customer and enters
+      await sql2!`delete from crm.flow_enrollments where customer_id in
+                 (select customer_id from crm.customers where external_customer_id = 'cus_Edu')`;
+      await sql2!`insert into crm.flow_enrollments (flow_id, version, customer_id, current_node, status, is_test, finished_at)
+                 select f.flow_id, f.version, c.customer_id, 'end', 'COMPLETED', true, now()
+                   from crm.flows f, crm.customers c where f.key = 'mo_once' and c.external_customer_id = 'cus_Edu'`;
+      await cart("Edu", "off_b");
+      assert.equal(await entries("Edu"), 1);
+    });
+
+    test("every flow is 'only once' and new flows start that way", async () => {
+      const [d] = await sql2!`select column_default from information_schema.columns
+                             where table_schema = 'crm' and table_name = 'flows' and column_name = 'reentry'`;
+      assert.match(String(d!["column_default"]), /once/);
+    });
+  },
+);

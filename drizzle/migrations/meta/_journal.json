@@ -337,6 +337,13 @@
       "when": 1794062668474,
       "tag": "0047_crm_customer_tiers",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1794149068474,
+      "tag": "0048_crm_customer_summary",
+      "breakpoints": true
     }
   ]
 }

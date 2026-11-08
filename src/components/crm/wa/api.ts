@@ -28,18 +28,32 @@ export interface WaChat {
   last_status: string | null;
   unread: number;
   archived: boolean;
-  tier?: Tier;
+  temperature?: Temperature;
 }
 
-export type Tier = "sem_compra" | "bronze" | "prata" | "ouro";
+export type Temperature = "quente" | "morno" | "frio";
+
+export interface WaSummary {
+  orders: number;
+  pots: number;
+  spent: number;
+  gross: number;
+  avg_ticket: number | null;
+  first_purchase_at: string | null;
+  last_purchase_at: string | null;
+  last_product: string | null;
+  last_pots: number | null;
+  days_since_purchase: number | null;
+  refunds: number;
+  products: { name: string; pots: number; n: number }[];
+}
 
 export interface WaBadges {
-  tier: Tier;
-  tier_label: string;
+  temperature: Temperature;
+  temperature_label: string;
+  temperature_reason: string;
   tip: string | null;
-  orders: number;
-  revenue: number;
-  days_since_purchase: number | null;
+  summary: Partial<WaSummary>;
   auto: {
     key: string;
     label: string;
@@ -49,21 +63,43 @@ export interface WaBadges {
   manual: string[];
 }
 
-export interface TiersConfig {
-  sem_compra: { label: string; tip: string };
-  bronze: { label: string; tip: string };
-  prata: { label: string; orders: number; revenue: number; tip: string };
-  ouro: { label: string; orders: number; revenue: number; tip: string };
-  repurchase_days: number;
-  inactive_days: number;
+export interface TemperatureConfig {
+  hot_purchase_days: number;
+  warm_purchase_days: number;
+  hot_signal_days: number;
+  warm_signal_days: number;
+  quente: { label: string; tip: string };
+  morno: { label: string; tip: string };
+  frio: { label: string; tip: string };
+}
+
+export interface WaHistoryItem {
+  at: string;
+  kind: string;
+  product: string | null;
+  amount: number | null;
+  pots: number | null;
+  order_status: string | null;
+  payment_method: string | null;
+  carrier: string | null;
+  tracking_code: string | null;
 }
 
 export const useWaTags = () =>
   useQuery({
     queryKey: ["wa", "tags"],
     queryFn: () =>
-      waFetch<{ tags: string[]; tiers: TiersConfig | null; can_edit_tiers: boolean }>("tags"),
+      waFetch<{ tags: string[]; temperature: TemperatureConfig | null; can_edit: boolean }>("tags"),
     staleTime: 60_000,
+  });
+
+export const useWaHistory = (chat: string | null, enabled: boolean) =>
+  useQuery({
+    queryKey: ["wa", "history", chat],
+    queryFn: () =>
+      waFetch<{ history: WaHistoryItem[] }>(`history?${new URLSearchParams({ chat: chat ?? "" })}`),
+    enabled: !!chat && enabled,
+    staleTime: 30_000,
   });
 
 export interface WaChatDetail extends WaChat {

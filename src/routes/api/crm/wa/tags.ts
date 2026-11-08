@@ -2,9 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 
 /**
  * Tags of a WhatsApp contact (attendance).
- * GET: tags already used (suggestions) and the levels config (Sem compra / Bronze / Prata / Ouro).
+ * GET: tags already used (suggestions) and the temperature config (Quente / Morno / Frio).
  * POST { chat, tag, add }: puts / removes a manual tag (on the customer, or on the chat while the
- * contact is not a customer). POST { tiers }: saves the levels config (admin).
+ * contact is not a customer). POST { temperature }: saves the temperature config (admin).
  */
 export const Route = createFileRoute("/api/crm/wa/tags")({
   server: {
@@ -17,13 +17,13 @@ export const Route = createFileRoute("/api/crm/wa/tags")({
         const { crmRpc } = await import("@/server/crm/supabase.server");
         const [t, c] = await Promise.all([
           crmRpc("crm_wa_tag_list", {}),
-          crmRpc("crm_customer_tiers_config", {}),
+          crmRpc("crm_customer_temperature_config", {}),
         ]);
         return json(
           {
             tags: t.data ?? [],
-            tiers: c.data ?? null,
-            can_edit_tiers: a.session.role === "admin",
+            temperature: c.data ?? null,
+            can_edit: a.session.role === "admin",
           },
           200,
           a.session.setCookies,
@@ -41,12 +41,12 @@ export const Route = createFileRoute("/api/crm/wa/tags")({
           chat?: string;
           tag?: string;
           add?: boolean;
-          tiers?: unknown;
+          temperature?: unknown;
         };
-        if (b.tiers !== undefined) {
+        if (b.temperature !== undefined) {
           if (a.session.role !== "admin") return out({ error: "forbidden" }, 403);
-          const r = await crmRpc("crm_save_customer_tiers", {
-            p_value: b.tiers,
+          const r = await crmRpc("crm_save_customer_temperature", {
+            p_value: b.temperature,
             p_actor: a.session.email,
           });
           if (r.error) return out({ error: "invalid_request", message: r.error.message }, 400);

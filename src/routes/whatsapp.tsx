@@ -61,7 +61,14 @@ import {
   STATE_LABEL,
   Ticks,
 } from "@/components/crm/wa/parts";
-import { ContactTags, SalesTip, TierMedal, TiersDialog } from "@/components/crm/wa/badges";
+import {
+  ContactTags,
+  CustomerHistory,
+  CustomerPicture,
+  SalesTip,
+  TempMark,
+  TemperatureDialog,
+} from "@/components/crm/wa/badges";
 
 export const Route = createFileRoute("/whatsapp")({
   head: () => ({ meta: [{ title: "WhatsApp — Kakauma CRM" }] }),
@@ -432,7 +439,7 @@ function ChatList({
                 <div className="flex items-baseline gap-2">
                   <span className="min-w-0 flex-1 truncate text-[15.5px] text-[#111b21]">
                     {title}
-                    <TierMedal tier={c.tier} className="ml-1.5" />
+                    <TempMark temperature={c.temperature} className="ml-1.5" />
                   </span>
                   <span
                     className={cn(
@@ -486,8 +493,15 @@ function ChatPane({
   const [noMore, setNoMore] = useState(false);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [reply, setReply] = useState<WaMessage | null>(null);
-  const [showInfo, setShowInfo] = useState(false);
-  const [tiersOpen, setTiersOpen] = useState(false);
+  // the contact panel stays open (wide screens) until the attendant closes it
+  const [showInfo, setShowInfoState] = useState(() => store.get("panel") !== "closed");
+  const setShowInfo = (v: boolean | ((x: boolean) => boolean)) =>
+    setShowInfoState((cur) => {
+      const next = typeof v === "function" ? v(cur) : v;
+      store.set("panel", next ? "open" : "closed");
+      return next;
+    });
+  const [tempOpen, setTempOpen] = useState(false);
   const [tipHidden, setTipHidden] = useState(() => store.get(`tip:${chatId}`) === "hidden");
   const scroller = useRef<HTMLDivElement>(null);
   const atBottom = useRef(true);
@@ -730,7 +744,7 @@ function ChatPane({
       </div>
 
       {showInfo && chat && (
-        <aside className="hidden w-[300px] shrink-0 flex-col border-l border-border bg-white xl:flex">
+        <aside className="hidden w-[320px] shrink-0 flex-col overflow-y-auto border-l border-border bg-white xl:flex">
           <header className="flex items-center gap-2 bg-[#f0f2f5] px-4 py-3.5">
             <button type="button" onClick={() => setShowInfo(false)} className="text-[#54656f]">
               <X className="size-5" />
@@ -743,44 +757,42 @@ function ChatPane({
             <p className="text-sm text-[#667781]">{formatPhone(chat.phone)}</p>
           </div>
           {chat.badges && (
-            <div className="space-y-2 border-t border-border px-5 py-4 text-sm">
-              <div className="flex items-center justify-between">
-                <TierMedal tier={chat.badges.tier} />
+            <div className="space-y-3 border-t border-border px-5 py-4">
+              <CustomerPicture badges={chat.badges} />
+              <div className="flex flex-wrap gap-x-3 gap-y-1">
+                {tipHidden && (
+                  <button
+                    type="button"
+                    className="text-xs text-[#008069] hover:underline"
+                    onClick={() => {
+                      setTipHidden(false);
+                      store.set(`tip:${chatId}`, "shown");
+                    }}
+                  >
+                    Mostrar a dica na conversa
+                  </button>
+                )}
                 {me.role === "admin" && (
                   <button
                     type="button"
-                    onClick={() => setTiersOpen(true)}
+                    onClick={() => setTempOpen(true)}
                     className="text-xs text-[#008069] hover:underline"
                   >
-                    Ajustar níveis
+                    Ajustar quente / morno / frio
                   </button>
                 )}
               </div>
-              {chat.badges.tip && (
-                <p className="text-[13px] text-[#41525d]">💡 {chat.badges.tip}</p>
-              )}
-              {chat.badges.auto.map((t) => (
-                <p key={t.key} className="text-[13px] text-[#41525d]">
-                  <strong>{t.label}:</strong> {t.hint}
-                </p>
-              ))}
-              {tipHidden && (
-                <button
-                  type="button"
-                  className="text-xs text-[#008069] hover:underline"
-                  onClick={() => {
-                    setTipHidden(false);
-                    store.set(`tip:${chatId}`, "shown");
-                  }}
-                >
-                  Mostrar a dica de venda na conversa
-                </button>
-              )}
             </div>
           )}
-          <div className="space-y-3 border-t border-border px-5 py-4 text-sm">
-            {chat.customer_id ? (
-              <>
+          {chat.customer_id ? (
+            <>
+              <div className="border-t border-border px-5 py-4">
+                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#667781]">
+                  Tudo o que o cliente já fez
+                </p>
+                <CustomerHistory chatId={chatId} enabled={showInfo} />
+              </div>
+              <div className="space-y-3 border-t border-border px-5 py-4 text-sm">
                 <Info label="E-mail" value={chat.customer_email} />
                 <Info
                   label="Etapa"
@@ -790,45 +802,22 @@ function ChatPane({
                       : null
                   }
                 />
-                <Info
-                  label="Pedidos pagos"
-                  value={chat.total_paid_orders != null ? String(chat.total_paid_orders) : null}
-                />
-                <Info
-                  label="Total comprado"
-                  value={
-                    chat.total_net_revenue != null
-                      ? Number(chat.total_net_revenue).toLocaleString("pt-BR", {
-                          style: "currency",
-                          currency: "BRL",
-                        })
-                      : null
-                  }
-                />
-                <Info
-                  label="Última compra"
-                  value={
-                    chat.last_purchase_at
-                      ? new Date(chat.last_purchase_at).toLocaleDateString("pt-BR")
-                      : null
-                  }
-                />
                 <Button asChild size="sm" className="mt-2 w-full">
                   <Link to="/customers/$customerId" params={{ customerId: chat.customer_id }}>
                     Abrir ficha do cliente
                   </Link>
                 </Button>
-              </>
-            ) : (
-              <p className="text-[#667781]">
-                Este número não está ligado a nenhum cliente da B4you (procuramos pelo WhatsApp do
-                cadastro).
-              </p>
-            )}
-          </div>
+              </div>
+            </>
+          ) : (
+            <p className="border-t border-border px-5 py-4 text-sm text-[#667781]">
+              Este número não está ligado a nenhum cliente da B4you (procuramos pelo WhatsApp do
+              cadastro).
+            </p>
+          )}
         </aside>
       )}
-      {me.role === "admin" && <TiersDialog open={tiersOpen} onOpenChange={setTiersOpen} />}
+      {me.role === "admin" && <TemperatureDialog open={tempOpen} onOpenChange={setTempOpen} />}
     </div>
   );
 }

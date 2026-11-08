@@ -61,6 +61,7 @@ import { Route as ApiCrmMessagesExpandLinksRouteImport } from './routes/api/crm/
 import { Route as ApiCrmMessagesProviderStatusRouteImport } from './routes/api/crm/messages/provider-status'
 import { Route as ApiCrmMessagesTestRouteImport } from './routes/api/crm/messages/test'
 import { Route as ApiCrmWaChatsRouteImport } from './routes/api/crm/wa/chats'
+import { Route as ApiCrmWaHistoryRouteImport } from './routes/api/crm/wa/history'
 import { Route as ApiCrmWaInstancesRouteImport } from './routes/api/crm/wa/instances'
 import { Route as ApiCrmWaMediaRouteImport } from './routes/api/crm/wa/media'
 import { Route as ApiCrmWaMessagesRouteImport } from './routes/api/crm/wa/messages'
@@ -331,6 +332,11 @@ const ApiCrmWaChatsRoute = ApiCrmWaChatsRouteImport.update({
   path: '/api/crm/wa/chats',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCrmWaHistoryRoute = ApiCrmWaHistoryRouteImport.update({
+  id: '/api/crm/wa/history',
+  path: '/api/crm/wa/history',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiCrmWaInstancesRoute = ApiCrmWaInstancesRouteImport.update({
   id: '/api/crm/wa/instances',
   path: '/api/crm/wa/instances',
@@ -420,6 +426,7 @@ export interface FileRoutesByFullPath {
   '/api/crm/messages/provider-status': typeof ApiCrmMessagesProviderStatusRoute
   '/api/crm/messages/test': typeof ApiCrmMessagesTestRoute
   '/api/crm/wa/chats': typeof ApiCrmWaChatsRoute
+  '/api/crm/wa/history': typeof ApiCrmWaHistoryRoute
   '/api/crm/wa/instances': typeof ApiCrmWaInstancesRoute
   '/api/crm/wa/media': typeof ApiCrmWaMediaRoute
   '/api/crm/wa/messages': typeof ApiCrmWaMessagesRoute
@@ -481,6 +488,7 @@ export interface FileRoutesByTo {
   '/api/crm/messages/provider-status': typeof ApiCrmMessagesProviderStatusRoute
   '/api/crm/messages/test': typeof ApiCrmMessagesTestRoute
   '/api/crm/wa/chats': typeof ApiCrmWaChatsRoute
+  '/api/crm/wa/history': typeof ApiCrmWaHistoryRoute
   '/api/crm/wa/instances': typeof ApiCrmWaInstancesRoute
   '/api/crm/wa/media': typeof ApiCrmWaMediaRoute
   '/api/crm/wa/messages': typeof ApiCrmWaMessagesRoute
@@ -543,6 +551,7 @@ export interface FileRoutesById {
   '/api/crm/messages/provider-status': typeof ApiCrmMessagesProviderStatusRoute
   '/api/crm/messages/test': typeof ApiCrmMessagesTestRoute
   '/api/crm/wa/chats': typeof ApiCrmWaChatsRoute
+  '/api/crm/wa/history': typeof ApiCrmWaHistoryRoute
   '/api/crm/wa/instances': typeof ApiCrmWaInstancesRoute
   '/api/crm/wa/media': typeof ApiCrmWaMediaRoute
   '/api/crm/wa/messages': typeof ApiCrmWaMessagesRoute
@@ -606,6 +615,7 @@ export interface FileRouteTypes {
     | '/api/crm/messages/provider-status'
     | '/api/crm/messages/test'
     | '/api/crm/wa/chats'
+    | '/api/crm/wa/history'
     | '/api/crm/wa/instances'
     | '/api/crm/wa/media'
     | '/api/crm/wa/messages'
@@ -667,6 +677,7 @@ export interface FileRouteTypes {
     | '/api/crm/messages/provider-status'
     | '/api/crm/messages/test'
     | '/api/crm/wa/chats'
+    | '/api/crm/wa/history'
     | '/api/crm/wa/instances'
     | '/api/crm/wa/media'
     | '/api/crm/wa/messages'
@@ -728,6 +739,7 @@ export interface FileRouteTypes {
     | '/api/crm/messages/provider-status'
     | '/api/crm/messages/test'
     | '/api/crm/wa/chats'
+    | '/api/crm/wa/history'
     | '/api/crm/wa/instances'
     | '/api/crm/wa/media'
     | '/api/crm/wa/messages'
@@ -790,6 +802,7 @@ export interface RootRouteChildren {
   ApiCrmMessagesProviderStatusRoute: typeof ApiCrmMessagesProviderStatusRoute
   ApiCrmMessagesTestRoute: typeof ApiCrmMessagesTestRoute
   ApiCrmWaChatsRoute: typeof ApiCrmWaChatsRoute
+  ApiCrmWaHistoryRoute: typeof ApiCrmWaHistoryRoute
   ApiCrmWaInstancesRoute: typeof ApiCrmWaInstancesRoute
   ApiCrmWaMediaRoute: typeof ApiCrmWaMediaRoute
   ApiCrmWaMessagesRoute: typeof ApiCrmWaMessagesRoute
@@ -1165,6 +1178,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCrmWaChatsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/crm/wa/history': {
+      id: '/api/crm/wa/history'
+      path: '/api/crm/wa/history'
+      fullPath: '/api/crm/wa/history'
+      preLoaderRoute: typeof ApiCrmWaHistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/crm/wa/instances': {
       id: '/api/crm/wa/instances'
       path: '/api/crm/wa/instances'
@@ -1270,6 +1290,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCrmMessagesProviderStatusRoute: ApiCrmMessagesProviderStatusRoute,
   ApiCrmMessagesTestRoute: ApiCrmMessagesTestRoute,
   ApiCrmWaChatsRoute: ApiCrmWaChatsRoute,
+  ApiCrmWaHistoryRoute: ApiCrmWaHistoryRoute,
   ApiCrmWaInstancesRoute: ApiCrmWaInstancesRoute,
   ApiCrmWaMediaRoute: ApiCrmWaMediaRoute,
   ApiCrmWaMessagesRoute: ApiCrmWaMessagesRoute,

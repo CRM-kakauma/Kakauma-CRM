@@ -14,6 +14,7 @@ import {
   LineChart,
   LogOut,
   Menu,
+  MessageCircle,
   Route as RouteIcon,
   Settings,
   ShieldCheck,
@@ -39,6 +40,7 @@ const NAV_CRM: NavItem[] = [
   { to: "/crm", label: "Painel", icon: LayoutDashboard },
   { to: "/customers", label: "Clientes", icon: Users },
   { to: "/recovery", label: "Recuperação", icon: LifeBuoy },
+  { to: "/whatsapp", label: "WhatsApp", icon: MessageCircle },
   { to: "/segments", label: "Segmentos", icon: Tags },
   { to: "/flows", label: "Fluxos", icon: GitFork },
   { to: "/messages", label: "Mensagens", icon: Mail },
@@ -50,6 +52,7 @@ const NAV_CRM: NavItem[] = [
 
 // CRM screens without a period filter.
 const NO_PERIOD = [
+  "/whatsapp",
   "/customers",
   "/recovery",
   "/segments",

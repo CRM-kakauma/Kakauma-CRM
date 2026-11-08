@@ -178,6 +178,6 @@ export const label = (map: Record<string, string>, key: string | null | undefine
 export const canOperate = (me: { role: string }) => me.role === "operator" || me.role === "admin";
 
 /** Screens an X1 (attendance) user may open; everything else sends them to Clientes. */
-export const X1_PATHS = ["/customers", "/recovery", "/help"];
+export const X1_PATHS = ["/customers", "/recovery", "/whatsapp", "/help"];
 export const x1Allowed = (pathname: string) =>
   X1_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));

@@ -47,7 +47,7 @@ const ROLE_HINT: Record<string, string> = {
   admin: "tudo: regras, usuários, dados e auditoria",
   operator: "clientes, segmentos e automações",
   viewer: "só consulta",
-  x1: "só as telas Clientes e Recuperação, sem alterar nada",
+  x1: "só as telas Clientes, Recuperação (sem alterar nada) e WhatsApp (atendimento)",
 };
 
 function Admin({ me }: { me: Me }) {

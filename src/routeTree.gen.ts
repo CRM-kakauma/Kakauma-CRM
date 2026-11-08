@@ -25,6 +25,7 @@ import { Route as ResultsRouteImport } from './routes/results'
 import { Route as SalesRouteImport } from './routes/sales'
 import { Route as SegmentsRouteImport } from './routes/segments'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as WhatsappRouteImport } from './routes/whatsapp'
 import { Route as ApiIndexRouteImport } from './routes/api.index'
 import { Route as ApiEventsRouteImport } from './routes/api/events'
 import { Route as CustomersIndexRouteImport } from './routes/customers.index'
@@ -59,6 +60,11 @@ import { Route as ApiCrmFlowsTestLaunchRouteImport } from './routes/api/crm/flow
 import { Route as ApiCrmMessagesExpandLinksRouteImport } from './routes/api/crm/messages/expand-links'
 import { Route as ApiCrmMessagesProviderStatusRouteImport } from './routes/api/crm/messages/provider-status'
 import { Route as ApiCrmMessagesTestRouteImport } from './routes/api/crm/messages/test'
+import { Route as ApiCrmWaChatsRouteImport } from './routes/api/crm/wa/chats'
+import { Route as ApiCrmWaInstancesRouteImport } from './routes/api/crm/wa/instances'
+import { Route as ApiCrmWaMediaRouteImport } from './routes/api/crm/wa/media'
+import { Route as ApiCrmWaMessagesRouteImport } from './routes/api/crm/wa/messages'
+import { Route as ApiCrmWaSendRouteImport } from './routes/api/crm/wa/send'
 import { Route as ApiCrmWhatsappEvolutionRouteImport } from './routes/api/crm/whatsapp/evolution'
 import { Route as ApiCrmWhatsappTemplatesRouteImport } from './routes/api/crm/whatsapp/templates'
 
@@ -140,6 +146,11 @@ const SegmentsRoute = SegmentsRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WhatsappRoute = WhatsappRouteImport.update({
+  id: '/whatsapp',
+  path: '/whatsapp',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiIndexRoute = ApiIndexRouteImport.update({
@@ -314,6 +325,31 @@ const ApiCrmMessagesTestRoute = ApiCrmMessagesTestRouteImport.update({
   path: '/api/crm/messages/test',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCrmWaChatsRoute = ApiCrmWaChatsRouteImport.update({
+  id: '/api/crm/wa/chats',
+  path: '/api/crm/wa/chats',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCrmWaInstancesRoute = ApiCrmWaInstancesRouteImport.update({
+  id: '/api/crm/wa/instances',
+  path: '/api/crm/wa/instances',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCrmWaMediaRoute = ApiCrmWaMediaRouteImport.update({
+  id: '/api/crm/wa/media',
+  path: '/api/crm/wa/media',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCrmWaMessagesRoute = ApiCrmWaMessagesRouteImport.update({
+  id: '/api/crm/wa/messages',
+  path: '/api/crm/wa/messages',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCrmWaSendRoute = ApiCrmWaSendRouteImport.update({
+  id: '/api/crm/wa/send',
+  path: '/api/crm/wa/send',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiCrmWhatsappEvolutionRoute = ApiCrmWhatsappEvolutionRouteImport.update({
   id: '/api/crm/whatsapp/evolution',
   path: '/api/crm/whatsapp/evolution',
@@ -342,6 +378,7 @@ export interface FileRoutesByFullPath {
   '/sales': typeof SalesRoute
   '/segments': typeof SegmentsRoute
   '/settings': typeof SettingsRoute
+  '/whatsapp': typeof WhatsappRoute
   '/api/events': typeof ApiEventsRoute
   '/customers/$customerId': typeof CustomersCustomerIdRoute
   '/flows/$key': typeof FlowsKeyRoute
@@ -376,6 +413,11 @@ export interface FileRoutesByFullPath {
   '/api/crm/messages/expand-links': typeof ApiCrmMessagesExpandLinksRoute
   '/api/crm/messages/provider-status': typeof ApiCrmMessagesProviderStatusRoute
   '/api/crm/messages/test': typeof ApiCrmMessagesTestRoute
+  '/api/crm/wa/chats': typeof ApiCrmWaChatsRoute
+  '/api/crm/wa/instances': typeof ApiCrmWaInstancesRoute
+  '/api/crm/wa/media': typeof ApiCrmWaMediaRoute
+  '/api/crm/wa/messages': typeof ApiCrmWaMessagesRoute
+  '/api/crm/wa/send': typeof ApiCrmWaSendRoute
   '/api/crm/whatsapp/evolution': typeof ApiCrmWhatsappEvolutionRoute
   '/api/crm/whatsapp/templates': typeof ApiCrmWhatsappTemplatesRoute
 }
@@ -396,6 +438,7 @@ export interface FileRoutesByTo {
   '/sales': typeof SalesRoute
   '/segments': typeof SegmentsRoute
   '/settings': typeof SettingsRoute
+  '/whatsapp': typeof WhatsappRoute
   '/api/events': typeof ApiEventsRoute
   '/customers/$customerId': typeof CustomersCustomerIdRoute
   '/flows/$key': typeof FlowsKeyRoute
@@ -430,6 +473,11 @@ export interface FileRoutesByTo {
   '/api/crm/messages/expand-links': typeof ApiCrmMessagesExpandLinksRoute
   '/api/crm/messages/provider-status': typeof ApiCrmMessagesProviderStatusRoute
   '/api/crm/messages/test': typeof ApiCrmMessagesTestRoute
+  '/api/crm/wa/chats': typeof ApiCrmWaChatsRoute
+  '/api/crm/wa/instances': typeof ApiCrmWaInstancesRoute
+  '/api/crm/wa/media': typeof ApiCrmWaMediaRoute
+  '/api/crm/wa/messages': typeof ApiCrmWaMessagesRoute
+  '/api/crm/wa/send': typeof ApiCrmWaSendRoute
   '/api/crm/whatsapp/evolution': typeof ApiCrmWhatsappEvolutionRoute
   '/api/crm/whatsapp/templates': typeof ApiCrmWhatsappTemplatesRoute
 }
@@ -451,6 +499,7 @@ export interface FileRoutesById {
   '/sales': typeof SalesRoute
   '/segments': typeof SegmentsRoute
   '/settings': typeof SettingsRoute
+  '/whatsapp': typeof WhatsappRoute
   '/api/events': typeof ApiEventsRoute
   '/customers/$customerId': typeof CustomersCustomerIdRoute
   '/flows/$key': typeof FlowsKeyRoute
@@ -485,6 +534,11 @@ export interface FileRoutesById {
   '/api/crm/messages/expand-links': typeof ApiCrmMessagesExpandLinksRoute
   '/api/crm/messages/provider-status': typeof ApiCrmMessagesProviderStatusRoute
   '/api/crm/messages/test': typeof ApiCrmMessagesTestRoute
+  '/api/crm/wa/chats': typeof ApiCrmWaChatsRoute
+  '/api/crm/wa/instances': typeof ApiCrmWaInstancesRoute
+  '/api/crm/wa/media': typeof ApiCrmWaMediaRoute
+  '/api/crm/wa/messages': typeof ApiCrmWaMessagesRoute
+  '/api/crm/wa/send': typeof ApiCrmWaSendRoute
   '/api/crm/whatsapp/evolution': typeof ApiCrmWhatsappEvolutionRoute
   '/api/crm/whatsapp/templates': typeof ApiCrmWhatsappTemplatesRoute
 }
@@ -507,6 +561,7 @@ export interface FileRouteTypes {
     | '/sales'
     | '/segments'
     | '/settings'
+    | '/whatsapp'
     | '/api/events'
     | '/customers/$customerId'
     | '/flows/$key'
@@ -541,6 +596,11 @@ export interface FileRouteTypes {
     | '/api/crm/messages/expand-links'
     | '/api/crm/messages/provider-status'
     | '/api/crm/messages/test'
+    | '/api/crm/wa/chats'
+    | '/api/crm/wa/instances'
+    | '/api/crm/wa/media'
+    | '/api/crm/wa/messages'
+    | '/api/crm/wa/send'
     | '/api/crm/whatsapp/evolution'
     | '/api/crm/whatsapp/templates'
   fileRoutesByTo: FileRoutesByTo
@@ -561,6 +621,7 @@ export interface FileRouteTypes {
     | '/sales'
     | '/segments'
     | '/settings'
+    | '/whatsapp'
     | '/api/events'
     | '/customers/$customerId'
     | '/flows/$key'
@@ -595,6 +656,11 @@ export interface FileRouteTypes {
     | '/api/crm/messages/expand-links'
     | '/api/crm/messages/provider-status'
     | '/api/crm/messages/test'
+    | '/api/crm/wa/chats'
+    | '/api/crm/wa/instances'
+    | '/api/crm/wa/media'
+    | '/api/crm/wa/messages'
+    | '/api/crm/wa/send'
     | '/api/crm/whatsapp/evolution'
     | '/api/crm/whatsapp/templates'
   id:
@@ -615,6 +681,7 @@ export interface FileRouteTypes {
     | '/sales'
     | '/segments'
     | '/settings'
+    | '/whatsapp'
     | '/api/events'
     | '/customers/$customerId'
     | '/flows/$key'
@@ -649,6 +716,11 @@ export interface FileRouteTypes {
     | '/api/crm/messages/expand-links'
     | '/api/crm/messages/provider-status'
     | '/api/crm/messages/test'
+    | '/api/crm/wa/chats'
+    | '/api/crm/wa/instances'
+    | '/api/crm/wa/media'
+    | '/api/crm/wa/messages'
+    | '/api/crm/wa/send'
     | '/api/crm/whatsapp/evolution'
     | '/api/crm/whatsapp/templates'
   fileRoutesById: FileRoutesById
@@ -670,6 +742,7 @@ export interface RootRouteChildren {
   SalesRoute: typeof SalesRoute
   SegmentsRoute: typeof SegmentsRoute
   SettingsRoute: typeof SettingsRoute
+  WhatsappRoute: typeof WhatsappRoute
   ApiEventsRoute: typeof ApiEventsRoute
   CustomersCustomerIdRoute: typeof CustomersCustomerIdRoute
   FlowsKeyRoute: typeof FlowsKeyRoute
@@ -704,6 +777,11 @@ export interface RootRouteChildren {
   ApiCrmMessagesExpandLinksRoute: typeof ApiCrmMessagesExpandLinksRoute
   ApiCrmMessagesProviderStatusRoute: typeof ApiCrmMessagesProviderStatusRoute
   ApiCrmMessagesTestRoute: typeof ApiCrmMessagesTestRoute
+  ApiCrmWaChatsRoute: typeof ApiCrmWaChatsRoute
+  ApiCrmWaInstancesRoute: typeof ApiCrmWaInstancesRoute
+  ApiCrmWaMediaRoute: typeof ApiCrmWaMediaRoute
+  ApiCrmWaMessagesRoute: typeof ApiCrmWaMessagesRoute
+  ApiCrmWaSendRoute: typeof ApiCrmWaSendRoute
   ApiCrmWhatsappEvolutionRoute: typeof ApiCrmWhatsappEvolutionRoute
   ApiCrmWhatsappTemplatesRoute: typeof ApiCrmWhatsappTemplatesRoute
 }
@@ -820,6 +898,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/whatsapp': {
+      id: '/whatsapp'
+      path: '/whatsapp'
+      fullPath: '/whatsapp'
+      preLoaderRoute: typeof WhatsappRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/': {
@@ -1060,6 +1145,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCrmMessagesTestRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/crm/wa/chats': {
+      id: '/api/crm/wa/chats'
+      path: '/api/crm/wa/chats'
+      fullPath: '/api/crm/wa/chats'
+      preLoaderRoute: typeof ApiCrmWaChatsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/crm/wa/instances': {
+      id: '/api/crm/wa/instances'
+      path: '/api/crm/wa/instances'
+      fullPath: '/api/crm/wa/instances'
+      preLoaderRoute: typeof ApiCrmWaInstancesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/crm/wa/media': {
+      id: '/api/crm/wa/media'
+      path: '/api/crm/wa/media'
+      fullPath: '/api/crm/wa/media'
+      preLoaderRoute: typeof ApiCrmWaMediaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/crm/wa/messages': {
+      id: '/api/crm/wa/messages'
+      path: '/api/crm/wa/messages'
+      fullPath: '/api/crm/wa/messages'
+      preLoaderRoute: typeof ApiCrmWaMessagesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/crm/wa/send': {
+      id: '/api/crm/wa/send'
+      path: '/api/crm/wa/send'
+      fullPath: '/api/crm/wa/send'
+      preLoaderRoute: typeof ApiCrmWaSendRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/crm/whatsapp/evolution': {
       id: '/api/crm/whatsapp/evolution'
       path: '/api/crm/whatsapp/evolution'
@@ -1094,6 +1214,7 @@ const rootRouteChildren: RootRouteChildren = {
   SalesRoute: SalesRoute,
   SegmentsRoute: SegmentsRoute,
   SettingsRoute: SettingsRoute,
+  WhatsappRoute: WhatsappRoute,
   ApiEventsRoute: ApiEventsRoute,
   CustomersCustomerIdRoute: CustomersCustomerIdRoute,
   FlowsKeyRoute: FlowsKeyRoute,
@@ -1128,6 +1249,11 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCrmMessagesExpandLinksRoute: ApiCrmMessagesExpandLinksRoute,
   ApiCrmMessagesProviderStatusRoute: ApiCrmMessagesProviderStatusRoute,
   ApiCrmMessagesTestRoute: ApiCrmMessagesTestRoute,
+  ApiCrmWaChatsRoute: ApiCrmWaChatsRoute,
+  ApiCrmWaInstancesRoute: ApiCrmWaInstancesRoute,
+  ApiCrmWaMediaRoute: ApiCrmWaMediaRoute,
+  ApiCrmWaMessagesRoute: ApiCrmWaMessagesRoute,
+  ApiCrmWaSendRoute: ApiCrmWaSendRoute,
   ApiCrmWhatsappEvolutionRoute: ApiCrmWhatsappEvolutionRoute,
   ApiCrmWhatsappTemplatesRoute: ApiCrmWhatsappTemplatesRoute,
 }

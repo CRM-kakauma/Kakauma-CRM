@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 
 /**
  * Evolution API webhook (WhatsApp unofficial): message statuses (sent, delivered, read, error)
- * and customers answering PARAR / SAIR (opt-out of WhatsApp). The CRM registers it in the
+ * and customers answering PARAR / SAIR (opt-out of WhatsApp); every 1:1 conversation of every
+ * number also goes to the WhatsApp screen (atendimento). The CRM registers it in the
  * instance itself (Operação → Canais de envio → "Cadastrar webhook na Evolution") as
  * https://<crm>/api/webhooks/evolution?token=<EVOLUTION_WEBHOOK_TOKEN>.
  */
@@ -49,6 +50,24 @@ export const Route = createFileRoute("/api/webhooks/evolution")({
         }
         const { crmRpc } = await import("@/server/crm/supabase.server");
         const { evolutionItems } = await import("@/server/crm/evolution");
+        // the inbox (WhatsApp screen): every 1:1 message of every number. Never holds up the
+        // flows' statuses below (e.g. before the database update that creates the inbox)
+        try {
+          const { parseWaWebhook } = await import("@/server/crm/wa-inbox");
+          const wa = parseWaWebhook(body);
+          if (wa.instance && (wa.messages.length || wa.statuses.length || wa.state)) {
+            const r = await crmRpc("crm_wa_ingest", {
+              p_instance: wa.instance,
+              p_messages: wa.messages,
+              p_statuses: wa.statuses,
+              p_state: wa.state,
+              p_history: false,
+            });
+            if (r.error) console.error("[crm] whatsapp inbox", r.error.message);
+          }
+        } catch (e) {
+          console.error("[crm] whatsapp inbox", e);
+        }
         try {
           let matched = false;
           const items = evolutionItems(body);

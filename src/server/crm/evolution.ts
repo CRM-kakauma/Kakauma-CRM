@@ -37,7 +37,12 @@ export interface EvolutionResult {
 const root = (c: EvolutionConfig) => c.baseUrl.replace(/\/+$/, "");
 const inst = (c: EvolutionConfig) => encodeURIComponent(c.instance);
 
-async function call(c: EvolutionConfig, method: "GET" | "POST", path: string, body?: unknown) {
+export async function evolutionCall(
+  c: EvolutionConfig,
+  method: "GET" | "POST" | "DELETE" | "PUT",
+  path: string,
+  body?: unknown,
+) {
   const res = await (c.fetchImpl ?? fetch)(`${root(c)}${path}`, {
     method,
     headers: {
@@ -142,7 +147,7 @@ export async function evolutionSend(
   try {
     const res =
       plan.kind === "media"
-        ? await call(c, "POST", `/message/sendMedia/${inst(c)}`, {
+        ? await evolutionCall(c, "POST", `/message/sendMedia/${inst(c)}`, {
             number,
             mediatype: plan.mediatype,
             media: plan.media,
@@ -150,7 +155,7 @@ export async function evolutionSend(
             ...(plan.mediatype === "document" ? { fileName: "arquivo.pdf" } : {}),
             ...delay,
           })
-        : await call(c, "POST", `/message/sendText/${inst(c)}`, {
+        : await evolutionCall(c, "POST", `/message/sendText/${inst(c)}`, {
             number,
             text: plan.text,
             linkPreview: true,
@@ -180,7 +185,7 @@ export async function evolutionSend(
 
 /** Connection of the instance and, when available, its number and profile name. */
 export async function evolutionStatus(c: EvolutionConfig) {
-  const st = await call(c, "GET", `/instance/connectionState/${inst(c)}`);
+  const st = await evolutionCall(c, "GET", `/instance/connectionState/${inst(c)}`);
   if (st.status !== 200)
     return { ok: false as const, error: evolutionError(st.status, st.body).error };
   const state = String(
@@ -191,7 +196,7 @@ export async function evolutionStatus(c: EvolutionConfig) {
   let number: string | null = null;
   let name: string | null = null;
   try {
-    const f = await call(c, "GET", `/instance/fetchInstances?instanceName=${inst(c)}`);
+    const f = await evolutionCall(c, "GET", `/instance/fetchInstances?instanceName=${inst(c)}`);
     const list = Array.isArray(f.body) ? f.body : [f.body];
     const i = (list[0] ?? {}) as Record<string, unknown>;
     const nested = (i["instance"] ?? {}) as Record<string, unknown>;
@@ -206,7 +211,7 @@ export async function evolutionStatus(c: EvolutionConfig) {
 
 /** QR code (data URI) to connect the phone, or the state when it is already connected. */
 export async function evolutionConnect(c: EvolutionConfig) {
-  const res = await call(c, "GET", `/instance/connect/${inst(c)}`);
+  const res = await evolutionCall(c, "GET", `/instance/connect/${inst(c)}`);
   if (res.status !== 200)
     return { ok: false as const, error: evolutionError(res.status, res.body).error };
   const b = (res.body ?? {}) as {
@@ -236,11 +241,11 @@ export const EVOLUTION_EVENTS = [
  */
 export async function evolutionSetWebhook(c: EvolutionConfig, url: string) {
   const path = `/webhook/set/${inst(c)}`;
-  let res = await call(c, "POST", path, {
+  let res = await evolutionCall(c, "POST", path, {
     webhook: { enabled: true, url, byEvents: false, base64: false, events: EVOLUTION_EVENTS },
   });
   if (res.status === 400)
-    res = await call(c, "POST", path, {
+    res = await evolutionCall(c, "POST", path, {
       enabled: true,
       url,
       webhookByEvents: false,

@@ -6,7 +6,7 @@ import { crmConfig, crmRpc, demoMode, env, keyHeaders } from "./supabase.server.
  * valid session + an active row in crm.app_users with a role.
  */
 
-/** x1: attendance only — Clientes and Recuperação, read-only (see gateway X1_FUNCTIONS). */
+/** x1: attendance only — Clientes, Recuperação (read-only, see gateway X1_FUNCTIONS) and WhatsApp. */
 export type Role = "admin" | "operator" | "viewer" | "x1";
 const ROLE_RANK: Record<Role, number> = { x1: 0, viewer: 1, operator: 2, admin: 3 };
 /** true when the role is at least `min` (x1 is below viewer: it only reaches its own screens). */

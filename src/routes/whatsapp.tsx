@@ -61,6 +61,7 @@ import {
   STATE_LABEL,
   Ticks,
 } from "@/components/crm/wa/parts";
+import { ContactTags, SalesTip, TierMedal, TiersDialog } from "@/components/crm/wa/badges";
 
 export const Route = createFileRoute("/whatsapp")({
   head: () => ({ meta: [{ title: "WhatsApp — Kakauma CRM" }] }),
@@ -431,11 +432,7 @@ function ChatList({
                 <div className="flex items-baseline gap-2">
                   <span className="min-w-0 flex-1 truncate text-[15.5px] text-[#111b21]">
                     {title}
-                    {c.customer_id && (
-                      <span className="ml-1.5 rounded bg-[#e7f3ff] px-1 py-px align-middle text-[10px] font-medium text-[#075DA8]">
-                        cliente
-                      </span>
-                    )}
+                    <TierMedal tier={c.tier} className="ml-1.5" />
                   </span>
                   <span
                     className={cn(
@@ -490,6 +487,8 @@ function ChatPane({
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [reply, setReply] = useState<WaMessage | null>(null);
   const [showInfo, setShowInfo] = useState(false);
+  const [tiersOpen, setTiersOpen] = useState(false);
+  const [tipHidden, setTipHidden] = useState(() => store.get(`tip:${chatId}`) === "hidden");
   const scroller = useRef<HTMLDivElement>(null);
   const atBottom = useRef(true);
   const lastCount = useRef(0);
@@ -626,6 +625,18 @@ function ChatPane({
             </Button>
           )}
         </header>
+        {chat?.badges && <ContactTags chatId={chatId} badges={chat.badges} canEdit={canSend} />}
+        {chat?.badges && !tipHidden && (
+          <div className="border-l border-border bg-[#efeae2] px-[4%] pt-2">
+            <SalesTip
+              badges={chat.badges}
+              onHide={() => {
+                setTipHidden(true);
+                store.set(`tip:${chatId}`, "hidden");
+              }}
+            />
+          </div>
+        )}
 
         <div
           ref={scroller}
@@ -731,6 +742,42 @@ function ChatPane({
             <p className="mt-2 text-lg font-medium">{title}</p>
             <p className="text-sm text-[#667781]">{formatPhone(chat.phone)}</p>
           </div>
+          {chat.badges && (
+            <div className="space-y-2 border-t border-border px-5 py-4 text-sm">
+              <div className="flex items-center justify-between">
+                <TierMedal tier={chat.badges.tier} />
+                {me.role === "admin" && (
+                  <button
+                    type="button"
+                    onClick={() => setTiersOpen(true)}
+                    className="text-xs text-[#008069] hover:underline"
+                  >
+                    Ajustar níveis
+                  </button>
+                )}
+              </div>
+              {chat.badges.tip && (
+                <p className="text-[13px] text-[#41525d]">💡 {chat.badges.tip}</p>
+              )}
+              {chat.badges.auto.map((t) => (
+                <p key={t.key} className="text-[13px] text-[#41525d]">
+                  <strong>{t.label}:</strong> {t.hint}
+                </p>
+              ))}
+              {tipHidden && (
+                <button
+                  type="button"
+                  className="text-xs text-[#008069] hover:underline"
+                  onClick={() => {
+                    setTipHidden(false);
+                    store.set(`tip:${chatId}`, "shown");
+                  }}
+                >
+                  Mostrar a dica de venda na conversa
+                </button>
+              )}
+            </div>
+          )}
           <div className="space-y-3 border-t border-border px-5 py-4 text-sm">
             {chat.customer_id ? (
               <>
@@ -781,6 +828,7 @@ function ChatPane({
           </div>
         </aside>
       )}
+      {me.role === "admin" && <TiersDialog open={tiersOpen} onOpenChange={setTiersOpen} />}
     </div>
   );
 }

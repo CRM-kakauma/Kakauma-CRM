@@ -65,6 +65,7 @@ import { Route as ApiCrmWaInstancesRouteImport } from './routes/api/crm/wa/insta
 import { Route as ApiCrmWaMediaRouteImport } from './routes/api/crm/wa/media'
 import { Route as ApiCrmWaMessagesRouteImport } from './routes/api/crm/wa/messages'
 import { Route as ApiCrmWaSendRouteImport } from './routes/api/crm/wa/send'
+import { Route as ApiCrmWaTagsRouteImport } from './routes/api/crm/wa/tags'
 import { Route as ApiCrmWhatsappEvolutionRouteImport } from './routes/api/crm/whatsapp/evolution'
 import { Route as ApiCrmWhatsappTemplatesRouteImport } from './routes/api/crm/whatsapp/templates'
 
@@ -350,6 +351,11 @@ const ApiCrmWaSendRoute = ApiCrmWaSendRouteImport.update({
   path: '/api/crm/wa/send',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCrmWaTagsRoute = ApiCrmWaTagsRouteImport.update({
+  id: '/api/crm/wa/tags',
+  path: '/api/crm/wa/tags',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiCrmWhatsappEvolutionRoute = ApiCrmWhatsappEvolutionRouteImport.update({
   id: '/api/crm/whatsapp/evolution',
   path: '/api/crm/whatsapp/evolution',
@@ -418,6 +424,7 @@ export interface FileRoutesByFullPath {
   '/api/crm/wa/media': typeof ApiCrmWaMediaRoute
   '/api/crm/wa/messages': typeof ApiCrmWaMessagesRoute
   '/api/crm/wa/send': typeof ApiCrmWaSendRoute
+  '/api/crm/wa/tags': typeof ApiCrmWaTagsRoute
   '/api/crm/whatsapp/evolution': typeof ApiCrmWhatsappEvolutionRoute
   '/api/crm/whatsapp/templates': typeof ApiCrmWhatsappTemplatesRoute
 }
@@ -478,6 +485,7 @@ export interface FileRoutesByTo {
   '/api/crm/wa/media': typeof ApiCrmWaMediaRoute
   '/api/crm/wa/messages': typeof ApiCrmWaMessagesRoute
   '/api/crm/wa/send': typeof ApiCrmWaSendRoute
+  '/api/crm/wa/tags': typeof ApiCrmWaTagsRoute
   '/api/crm/whatsapp/evolution': typeof ApiCrmWhatsappEvolutionRoute
   '/api/crm/whatsapp/templates': typeof ApiCrmWhatsappTemplatesRoute
 }
@@ -539,6 +547,7 @@ export interface FileRoutesById {
   '/api/crm/wa/media': typeof ApiCrmWaMediaRoute
   '/api/crm/wa/messages': typeof ApiCrmWaMessagesRoute
   '/api/crm/wa/send': typeof ApiCrmWaSendRoute
+  '/api/crm/wa/tags': typeof ApiCrmWaTagsRoute
   '/api/crm/whatsapp/evolution': typeof ApiCrmWhatsappEvolutionRoute
   '/api/crm/whatsapp/templates': typeof ApiCrmWhatsappTemplatesRoute
 }
@@ -601,6 +610,7 @@ export interface FileRouteTypes {
     | '/api/crm/wa/media'
     | '/api/crm/wa/messages'
     | '/api/crm/wa/send'
+    | '/api/crm/wa/tags'
     | '/api/crm/whatsapp/evolution'
     | '/api/crm/whatsapp/templates'
   fileRoutesByTo: FileRoutesByTo
@@ -661,6 +671,7 @@ export interface FileRouteTypes {
     | '/api/crm/wa/media'
     | '/api/crm/wa/messages'
     | '/api/crm/wa/send'
+    | '/api/crm/wa/tags'
     | '/api/crm/whatsapp/evolution'
     | '/api/crm/whatsapp/templates'
   id:
@@ -721,6 +732,7 @@ export interface FileRouteTypes {
     | '/api/crm/wa/media'
     | '/api/crm/wa/messages'
     | '/api/crm/wa/send'
+    | '/api/crm/wa/tags'
     | '/api/crm/whatsapp/evolution'
     | '/api/crm/whatsapp/templates'
   fileRoutesById: FileRoutesById
@@ -782,6 +794,7 @@ export interface RootRouteChildren {
   ApiCrmWaMediaRoute: typeof ApiCrmWaMediaRoute
   ApiCrmWaMessagesRoute: typeof ApiCrmWaMessagesRoute
   ApiCrmWaSendRoute: typeof ApiCrmWaSendRoute
+  ApiCrmWaTagsRoute: typeof ApiCrmWaTagsRoute
   ApiCrmWhatsappEvolutionRoute: typeof ApiCrmWhatsappEvolutionRoute
   ApiCrmWhatsappTemplatesRoute: typeof ApiCrmWhatsappTemplatesRoute
 }
@@ -1180,6 +1193,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCrmWaSendRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/crm/wa/tags': {
+      id: '/api/crm/wa/tags'
+      path: '/api/crm/wa/tags'
+      fullPath: '/api/crm/wa/tags'
+      preLoaderRoute: typeof ApiCrmWaTagsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/crm/whatsapp/evolution': {
       id: '/api/crm/whatsapp/evolution'
       path: '/api/crm/whatsapp/evolution'
@@ -1254,6 +1274,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCrmWaMediaRoute: ApiCrmWaMediaRoute,
   ApiCrmWaMessagesRoute: ApiCrmWaMessagesRoute,
   ApiCrmWaSendRoute: ApiCrmWaSendRoute,
+  ApiCrmWaTagsRoute: ApiCrmWaTagsRoute,
   ApiCrmWhatsappEvolutionRoute: ApiCrmWhatsappEvolutionRoute,
   ApiCrmWhatsappTemplatesRoute: ApiCrmWhatsappTemplatesRoute,
 }

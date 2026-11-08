@@ -28,9 +28,46 @@ export interface WaChat {
   last_status: string | null;
   unread: number;
   archived: boolean;
+  tier?: Tier;
 }
 
+export type Tier = "sem_compra" | "bronze" | "prata" | "ouro";
+
+export interface WaBadges {
+  tier: Tier;
+  tier_label: string;
+  tip: string | null;
+  orders: number;
+  revenue: number;
+  days_since_purchase: number | null;
+  auto: {
+    key: string;
+    label: string;
+    tone: "warning" | "info" | "success" | "danger";
+    hint: string;
+  }[];
+  manual: string[];
+}
+
+export interface TiersConfig {
+  sem_compra: { label: string; tip: string };
+  bronze: { label: string; tip: string };
+  prata: { label: string; orders: number; revenue: number; tip: string };
+  ouro: { label: string; orders: number; revenue: number; tip: string };
+  repurchase_days: number;
+  inactive_days: number;
+}
+
+export const useWaTags = () =>
+  useQuery({
+    queryKey: ["wa", "tags"],
+    queryFn: () =>
+      waFetch<{ tags: string[]; tiers: TiersConfig | null; can_edit_tiers: boolean }>("tags"),
+    staleTime: 60_000,
+  });
+
 export interface WaChatDetail extends WaChat {
+  badges?: WaBadges;
   customer_email: string | null;
   lifecycle_stage: string | null;
   customer_type: string | null;

@@ -314,6 +314,20 @@ describe("Inbox in the database", { skip: !sql && "CRM_TEST_DATABASE_URL not set
     );
   });
 
+  test("opening from the customer page reuses the conversation (with or without the 9th digit)", async () => {
+    const [existing] = await sql!`select chat_id from crm.wa_chats where phone = '553188887777'`;
+    // the customer page has the number with the 9; WhatsApp uses it without
+    const id = await call("crm_wa_open_chat", {
+      p_instance: "Kakauma",
+      p_remote_jid: "5531988887777@s.whatsapp.net",
+      p_phone: "5531988887777",
+      p_name: "Maria",
+    });
+    assert.equal(id, existing!["chat_id"]);
+    const [n] = await sql!`select count(*)::int as n from crm.wa_chats where instance = 'Kakauma'`;
+    assert.equal(n!["n"], 1);
+  });
+
   test("numbers: several instances, each with its own conversations", async () => {
     await call("crm_wa_save_instance", { p_name: "vendas", p_label: "Vendas", p_color: "#7C3AED" });
     await save(upsert(inbound("V1", "Quero comprar", "5511977776666@s.whatsapp.net"), "vendas"));

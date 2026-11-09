@@ -2,7 +2,8 @@ import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ArrowLeft, Mail, MessageCircle, ShieldOff } from "lucide-react";
+import { ArrowLeft, Mail, ShieldOff } from "lucide-react";
+import { OpenWhatsappButton } from "@/components/crm/wa/open-chat";
 import {
   ApiErrorBox,
   Empty,
@@ -166,17 +167,7 @@ function Customer360({ me }: { me: Me }) {
               name={id["full_name"] ?? id["email"] ?? "este cliente"}
             />
           )}
-          {wa.length >= 10 && (
-            <Button variant="outline" size="sm" asChild>
-              <a
-                href={`https://wa.me/${wa.length <= 11 ? `55${wa}` : wa}`}
-                target="_blank"
-                rel="noreferrer"
-              >
-                <MessageCircle className="size-4" /> WhatsApp
-              </a>
-            </Button>
-          )}
+          {wa.length >= 10 && <OpenWhatsappButton phone={wa} name={id["full_name"] ?? null} />}
           {id["email"] && (
             <Button variant="outline" size="sm" asChild>
               <a href={`mailto:${id["email"]}`}>

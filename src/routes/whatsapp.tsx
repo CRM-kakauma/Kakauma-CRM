@@ -72,6 +72,13 @@ import {
 
 export const Route = createFileRoute("/whatsapp")({
   head: () => ({ meta: [{ title: "WhatsApp — Kakauma CRM" }] }),
+  // ?n=<number (instance)>&c=<conversation>: opens that conversation (e.g. from the customer page)
+  validateSearch: (
+    s: Record<string, unknown>,
+  ): { n?: string | undefined; c?: string | undefined } => ({
+    n: typeof s["n"] === "string" && s["n"] ? s["n"] : undefined,
+    c: typeof s["c"] === "string" && s["c"] ? s["c"] : undefined,
+  }),
   component: () => <RequireAuth>{(me) => <Inbox me={me} />}</RequireAuth>,
 });
 
@@ -131,8 +138,18 @@ function Inbox({ me }: { me: Me }) {
   const qc = useQueryClient();
   const inst = useWaInstances();
   const instances = useMemo(() => inst.data?.instances ?? [], [inst.data]);
-  const [current, setCurrent] = useState<string | null>(() => store.get("instance"));
-  const [chat, setChat] = useState<string | null>(null);
+  const search = Route.useSearch();
+  const [current, setCurrent] = useState<string | null>(() => search.n ?? store.get("instance"));
+  const [chat, setChat] = useState<string | null>(search.c ?? null);
+  // another conversation asked through the address while the screen is open
+  useEffect(() => {
+    if (search.n) setCurrent(search.n);
+    if (search.c) {
+      setChat(search.c);
+      setFilter("all");
+      setQ("");
+    }
+  }, [search.n, search.c]);
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<"all" | "unread" | "archived">("all");
   const [adding, setAdding] = useState(false);

@@ -391,6 +391,8 @@ describe("Paylog → CRM", { skip: !sql && "CRM_TEST_DATABASE_URL not set" }, ()
         occurred_at: null,
         tracking_status: { code: 70, label: "Entregue" },
       },
+      // a batch resend is dated when it is sent: now
+      root: { event_timestamp: new Date().toISOString() },
     });
     const r = await ingestWebhook(rpc, "paylog", JSON.stringify(resend), { backfill: true });
     assert.equal(r.body["status"], "PROCESSED", JSON.stringify(r.body));

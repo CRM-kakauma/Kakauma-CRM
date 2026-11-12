@@ -143,6 +143,7 @@ function Results() {
           <span className="px-2 text-xs text-muted-foreground">depois da mensagem</span>
         </div>
       </PageHeader>
+      <CrmImpact />
       <ApiErrorBox error={error} />
       {isLoading || !data || !t ? (
         <Loading rows={4} />
@@ -301,6 +302,216 @@ const tooltip = (fmt: (v: number) => string) => ({
   formatter: (v: number, name: string) => [fmt(Number(v)), name],
   cursor: { fill: "var(--color-muted)", opacity: 0.6 },
 });
+
+interface ImpactBucket {
+  orders: number;
+  revenue: number;
+}
+interface ImpactRow {
+  orders: number;
+  revenue: number;
+  recovered: number;
+  clicked: number;
+  influenced: number;
+}
+interface Impact {
+  since: string | null;
+  store: { orders: number; revenue: number };
+  totals: Partial<Record<"recovered" | "clicked" | "influenced", ImpactBucket>> | null;
+  by_month: ({ month: string } & Omit<ImpactRow, "revenue">)[];
+  by_flow: ({ name: string } & ImpactRow)[];
+  by_channel: ({ channel: string } & ImpactRow)[];
+}
+const CH_LABEL: Record<string, string> = {
+  email: "E-mail",
+  sms: "SMS",
+  rcs: "RCS",
+  whatsapp: "WhatsApp",
+  link: "Link (UTM)",
+};
+const MONTHS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+
+/**
+ * Since the first real send: how much the CRM brought, in three buckets (each order in one):
+ * recovered (a lost sale that came back after a message), clicked (checkout with the CRM's UTM)
+ * and influenced (bought up to 7 days after a message).
+ */
+function CrmImpact() {
+  const { data, isLoading, error } = useCrm<Impact>("crm_impact", {});
+  if (error) return null; // before the database update (0050): the period numbers below still work
+  if (isLoading || !data) return <Loading rows={2} />;
+  if (!data.since) return null;
+  const b = (k: "recovered" | "clicked" | "influenced") =>
+    data.totals?.[k] ?? { orders: 0, revenue: 0 };
+  const rec = b("recovered");
+  const clk = b("clicked");
+  const inf = b("influenced");
+  const sure = Number(rec.revenue) + Number(clk.revenue);
+  const all = sure + Number(inf.revenue);
+  const store = Number(data.store.revenue);
+  const since = new Date(data.since).toLocaleDateString("pt-BR");
+  const maxMonth = Math.max(1, ...data.by_month.map((m) => m.recovered + m.clicked + m.influenced));
+  const parts = [
+    {
+      key: "recovered",
+      label: "Recuperado",
+      v: rec,
+      cls: "bg-emerald-600",
+      hint: "Abandonou carrinho, gerou Pix ou teve pagamento recusado, recebeu mensagem do CRM e comprou em até 7 dias",
+    },
+    {
+      key: "clicked",
+      label: "Clique confirmado",
+      v: clk,
+      cls: "bg-sky-600",
+      hint: "Comprou pelo link de uma mensagem do CRM (checkout com a UTM do CRM)",
+    },
+    {
+      key: "influenced",
+      label: "Influenciado",
+      v: inf,
+      cls: "bg-slate-400",
+      hint: "Comprou até 7 dias depois de receber mensagem, sem clique registrado (pode ter comprado de qualquer jeito)",
+    },
+  ] as const;
+
+  return (
+    <section className="mb-6 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+      <div className="grid gap-6 bg-gradient-to-br from-emerald-50 via-card to-sky-50 p-5 sm:p-6 lg:grid-cols-[1.1fr_1fr]">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
+            Desde {since}, o CRM trouxe
+          </p>
+          <p className="mt-1 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
+            {money(sure)}
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            recuperado + clique confirmado · {count(rec.orders + clk.orders)}{" "}
+            {rec.orders + clk.orders === 1 ? "pedido" : "pedidos"}
+            {store > 0 && <> · {pct((100 * sure) / store)} do faturamento da loja no período</>}
+          </p>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Somando os influenciados: <strong className="text-foreground">{money(all)}</strong> em{" "}
+            {count(rec.orders + clk.orders + inf.orders)} pedidos.
+          </p>
+        </div>
+        <div className="grid gap-2">
+          {parts.map((p) => (
+            <div
+              key={p.key}
+              className="flex items-start gap-3 rounded-xl bg-card/80 p-3 ring-1 ring-border"
+              title={p.hint}
+            >
+              <span className={cn("mt-1.5 size-2.5 shrink-0 rounded-full", p.cls)} />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="text-sm font-medium">{p.label}</span>
+                  <span className="text-base font-semibold tabular-nums">{money(p.v.revenue)}</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {count(p.v.orders)} {Number(p.v.orders) === 1 ? "pedido" : "pedidos"} · {p.hint}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid gap-6 border-t border-border p-5 sm:p-6 lg:grid-cols-2">
+        <div>
+          <p className="mb-3 text-sm font-semibold">Por mês</p>
+          {data.by_month.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhuma venda ainda.</p>
+          ) : (
+            <ul className="space-y-2.5">
+              {data.by_month.map((m) => {
+                const [y, mo] = m.month.split("-");
+                const total = m.recovered + m.clicked + m.influenced;
+                return (
+                  <li
+                    key={m.month}
+                    className="grid grid-cols-[70px_1fr_auto] items-center gap-3 text-sm"
+                  >
+                    <span className="text-muted-foreground">
+                      {MONTHS[Number(mo) - 1]}/{y?.slice(2)}
+                    </span>
+                    <span
+                      className="flex h-3 overflow-hidden rounded-full bg-muted"
+                      title={`${count(m.orders)} pedidos`}
+                    >
+                      <span
+                        className="bg-emerald-600"
+                        style={{ width: `${(100 * m.recovered) / maxMonth}%` }}
+                      />
+                      <span
+                        className="ml-px bg-sky-600"
+                        style={{ width: `${(100 * m.clicked) / maxMonth}%` }}
+                      />
+                      <span
+                        className="ml-px bg-slate-400"
+                        style={{ width: `${(100 * m.influenced) / maxMonth}%` }}
+                      />
+                    </span>
+                    <span className="text-right tabular-nums">
+                      <strong>{money(m.recovered + m.clicked)}</strong>
+                      <span className="block text-[11px] text-muted-foreground">
+                        + {money(m.influenced)} infl.
+                      </span>
+                    </span>
+                    <span className="sr-only">{money(total)}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+        <div className="space-y-5">
+          <ImpactTable
+            title="Por fluxo"
+            rows={data.by_flow.slice(0, 8).map((r) => ({ ...r, label: r.name }))}
+          />
+          <ImpactTable
+            title="Por canal"
+            rows={data.by_channel.map((r) => ({ ...r, label: CH_LABEL[r.channel] ?? r.channel }))}
+          />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ImpactTable({ title, rows }: { title: string; rows: ({ label: string } & ImpactRow)[] }) {
+  if (!rows.length) return null;
+  return (
+    <div>
+      <p className="mb-2 text-sm font-semibold">{title}</p>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead />
+            <TableHead className="text-right">Recuperado</TableHead>
+            <TableHead className="text-right">Clique</TableHead>
+            <TableHead className="text-right">Influenciado</TableHead>
+            <TableHead className="text-right">Pedidos</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rows.map((r) => (
+            <TableRow key={r.label}>
+              <TableCell className="max-w-[180px] truncate font-medium">{r.label}</TableCell>
+              <TableCell className="text-right tabular-nums">{money(r.recovered)}</TableCell>
+              <TableCell className="text-right tabular-nums">{money(r.clicked)}</TableCell>
+              <TableCell className="text-right tabular-nums text-muted-foreground">
+                {money(r.influenced)}
+              </TableCell>
+              <TableCell className="text-right tabular-nums">{count(r.orders)}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
 
 function Daily({ rows }: { rows: Day[] }) {
   const [table, setTable] = useState(false);

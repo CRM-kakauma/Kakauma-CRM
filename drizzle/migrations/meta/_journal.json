@@ -351,6 +351,13 @@
       "when": 1794235468474,
       "tag": "0049_crm_wa_open_existing",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1794321868474,
+      "tag": "0050_crm_impact",
+      "breakpoints": true
     }
   ]
 }

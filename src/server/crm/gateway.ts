@@ -53,6 +53,7 @@ export const RPC_PERMISSIONS: Record<string, { role: Role; actor?: true }> = {
   crm_archive_template: { role: "operator", actor: true },
   crm_save_flow: { role: "operator", actor: true },
   crm_publish_flow: { role: "operator", actor: true },
+  crm_enroll_customer: { role: "operator", actor: true },
   crm_set_flow_status: { role: "operator", actor: true },
   crm_set_optout: { role: "operator", actor: true },
   // admin: data, rules, people

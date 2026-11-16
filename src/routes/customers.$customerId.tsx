@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ArrowLeft, Mail, ShieldOff } from "lucide-react";
+import { ArrowLeft, GitFork, Mail, ShieldOff } from "lucide-react";
 import { OpenWhatsappButton } from "@/components/crm/wa/open-chat";
 import {
   ApiErrorBox,
@@ -163,6 +163,12 @@ function Customer360({ me }: { me: Me }) {
         <div className="flex flex-wrap gap-2">
           {me.role === "admin" && !id["anonymized_at"] && (
             <Anonymize
+              customerId={id["customer_id"]}
+              name={id["full_name"] ?? id["email"] ?? "este cliente"}
+            />
+          )}
+          {canOperate(me) && !id["anonymized_at"] && (
+            <EnrollInFlow
               customerId={id["customer_id"]}
               name={id["full_name"] ?? id["email"] ?? "este cliente"}
             />
@@ -627,6 +633,119 @@ function profitHint(fin: C360) {
     return `${fin["cogs_missing_sales"]} venda(s) sem custo cadastrado`;
   if (fin["tax_rate_pct"] == null) return "defina a alíquota de impostos em Operação";
   return `CMV ${money(fin["cogs"])} · impostos ${money(fin["taxes"])}`;
+}
+
+/**
+ * "Colocar em fluxo": a real enrollment (not a test) — the person goes through the flow like a
+ * customer who triggered it: waits, entry rule, send window, daily limit and LIVE switches apply.
+ */
+function EnrollInFlow({ customerId, name }: { customerId: string; name: string }) {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [flow, setFlow] = useState("");
+  const [onceAsk, setOnceAsk] = useState<string | null>(null);
+  const flows = useCrm<{ key: string; name: string; status: string; trigger_fact: string }[]>(
+    "crm_list_flows",
+    {},
+    { enabled: open },
+  );
+  const active = (flows.data ?? []).filter((f) => f.status === "ACTIVE");
+  const run = useMutation({
+    mutationFn: (force: boolean) =>
+      crmCall<{ flow: string }>("crm_enroll_customer", {
+        p_flow_key: flow,
+        p_customer: customerId,
+        p_force: force,
+      }),
+    onSuccess: (r) => {
+      toast.success(`${name} entrou no fluxo "${r.flow}"`, {
+        description:
+          "A primeira mensagem sai no próximo ciclo (até 5 minutos), respeitando as esperas do fluxo.",
+      });
+      setOpen(false);
+      setOnceAsk(null);
+      setFlow("");
+      void qc.invalidateQueries({ queryKey: ["crm"] });
+    },
+    onError: (e) => {
+      const msg = (e as Error).message;
+      if (/ONCE:/.test(msg)) setOnceAsk(msg.replace(/^.*ONCE:\s*/, ""));
+      else toast.error(msg);
+    },
+  });
+  return (
+    <>
+      <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
+        <GitFork className="size-4" /> Colocar em fluxo
+      </Button>
+      <Dialog
+        open={open}
+        onOpenChange={(v) => {
+          setOpen(v);
+          if (!v) setOnceAsk(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Colocar {name} em um fluxo</DialogTitle>
+            <DialogDescription>
+              Vale de verdade, não é teste: a pessoa recebe as mensagens do fluxo no tempo normal
+              (com as esperas), como um cliente que disparou o gatilho. Só saem pelos canais ligados
+              (LIVE).
+            </DialogDescription>
+          </DialogHeader>
+          {flows.isLoading ? (
+            <Loading rows={2} />
+          ) : active.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhum fluxo ativo.</p>
+          ) : (
+            <div className="grid max-h-72 gap-1.5 overflow-y-auto">
+              {active.map((f) => (
+                <label
+                  key={f.key}
+                  className={cn(
+                    "flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 text-sm transition",
+                    flow === f.key
+                      ? "border-primary bg-primary-soft"
+                      : "border-border hover:bg-muted",
+                  )}
+                >
+                  <input
+                    type="radio"
+                    name="flow"
+                    checked={flow === f.key}
+                    onChange={() => {
+                      setFlow(f.key);
+                      setOnceAsk(null);
+                    }}
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-medium">{f.name}</span>
+                    <span className="block text-xs text-muted-foreground">
+                      gatilho: {label(FACT_LABEL, f.trigger_fact)}
+                    </span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          )}
+          {onceAsk && (
+            <p className="rounded-lg bg-warning-soft px-3 py-2 text-sm text-warning-foreground">
+              {onceAsk}. Colocar de novo mesmo assim?
+            </p>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>
+              Cancelar
+            </Button>
+            <Button disabled={!flow || run.isPending} onClick={() => run.mutate(!!onceAsk)}>
+              {onceAsk ? "Sim, colocar de novo" : "Colocar no fluxo"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
 }
 
 function Anonymize({ customerId, name }: { customerId: string; name: string }) {

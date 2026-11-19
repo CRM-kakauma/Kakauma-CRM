@@ -20,7 +20,34 @@ export default definePlugin((nitroApp) => {
       }),
     );
     const body = await res.text();
-    if (res.ok) console.log("[crm] cron trigger ok", body.slice(0, 300));
-    else console.error("[crm] cron trigger failed", res.status, body.slice(0, 500));
+    if (!res.ok) {
+      console.error("[crm] cron trigger failed", res.status, body.slice(0, 500));
+      return;
+    }
+    // what went out, per channel and status (the full answer is too long for the logs)
+    try {
+      const r = JSON.parse(body) as {
+        claimed?: number;
+        flows?: {
+          advanced?: number;
+          messages?: { channel: string; status: string; error?: string }[];
+        };
+      };
+      const sends: Record<string, number> = {};
+      const errors: string[] = [];
+      for (const m of r.flows?.messages ?? []) {
+        const k = `${m.channel}:${m.status}`;
+        sends[k] = (sends[k] ?? 0) + 1;
+        if (m.error && errors.length < 5) errors.push(`${m.channel}: ${m.error}`);
+      }
+      console.log("[crm] cron trigger ok", {
+        events: r.claimed ?? 0,
+        advanced: r.flows?.advanced ?? 0,
+        sends,
+        errors,
+      });
+    } catch {
+      console.log("[crm] cron trigger ok", body.slice(0, 300));
+    }
   });
 });

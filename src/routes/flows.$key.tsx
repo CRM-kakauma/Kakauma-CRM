@@ -21,6 +21,7 @@ import { ApiErrorBox, Empty, Loading, Pill, RequireAuth } from "@/components/crm
 import { FlowCanvas, NODE_ICON, type NodeStats } from "@/components/crm/flow-canvas";
 import { FlowPanel, type FlowSettings, type TemplateLite } from "@/components/crm/flow-panel";
 import { Simulator } from "@/components/crm/simulators";
+import { FlowEntryDiagnosis } from "@/components/crm/flow-diagnosis";
 import { ProviderStatus, TestLaunchDialog, TestRuns } from "@/components/crm/test-launch";
 import { Button } from "@/components/ui/button";
 import {
@@ -412,6 +413,9 @@ function Builder({ me, initial, isNew }: { me: Me; initial: FlowDoc; isNew: bool
           {!isNew && initial.version > 0 && (
             <TabsTrigger value="messages">Mensagens enviadas</TabsTrigger>
           )}
+          {!isNew && initial.version > 0 && (
+            <TabsTrigger value="entry">Por que não entrou?</TabsTrigger>
+          )}
           {!isNew && <TabsTrigger value="tests">Testes</TabsTrigger>}
         </TabsList>
 
@@ -508,6 +512,11 @@ function Builder({ me, initial, isNew }: { me: Me; initial: FlowDoc; isNew: bool
         <TabsContent value="messages" className="mt-4">
           <SentMessages flowKey={initial.key} />
         </TabsContent>
+        {!isNew && initial.version > 0 && (
+          <TabsContent value="entry" className="mt-4">
+            <FlowEntryDiagnosis flowKey={initial.key} />
+          </TabsContent>
+        )}
         <TabsContent value="tests" className="mt-4">
           <TestRuns tests={stats.data?.tests} skipReason={SKIP_REASON} flowKey={initial.key} />
         </TabsContent>

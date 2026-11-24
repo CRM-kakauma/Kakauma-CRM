@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { RuleBuilder, type Rule } from "@/components/crm/rule-builder";
 import { TriggerFilter } from "@/components/crm/automation-dialog";
 import { BroadcastSettings } from "@/components/crm/broadcast-settings";
+import { TemplatePicker } from "@/components/crm/template-picker";
 import { NODE_ICON } from "@/components/crm/flow-canvas";
 import { FACT_LABEL, label, useCrm } from "@/lib/crm-api";
 import { NODE_META, type FlowNode, type SplitBranch } from "@/lib/crm-flows";
@@ -427,22 +428,11 @@ function SendConfig({
         </Select>
       </Row>
       <Row title="Mensagem">
-        <Select
-          value={String(c["template_key"] || "__none")}
-          onValueChange={(v) => set({ template_key: v === "__none" ? "" : v })}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Escolha…" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__none">Escolha…</SelectItem>
-            {list.map((t) => (
-              <SelectItem key={t.key} value={t.key}>
-                {CHANNEL_LABEL[t.channel]} · {t.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <TemplatePicker
+          value={String(c["template_key"] || "")}
+          templates={list}
+          onChange={(k) => set({ template_key: k })}
+        />
       </Row>
       {current ? (
         <div className="rounded-lg border border-border p-3 text-xs">

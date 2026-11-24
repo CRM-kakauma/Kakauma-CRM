@@ -43,7 +43,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { canOperate, FACT_LABEL, crmCall, label, useCrm, type Me } from "@/lib/crm-api";
-import { duplicateFlow } from "@/lib/crm-flow-copy";
+import { duplicateFlow, freeFlowKey } from "@/lib/crm-flow-copy";
 import {
   EMPTY_GRAPH,
   NODE_META,
@@ -244,7 +244,8 @@ function Builder({ me, initial, isNew }: { me: Me; initial: FlowDoc; isNew: bool
 
   const save = useMutation({
     mutationFn: async (publish: boolean) => {
-      const key = settings.key || slug(settings.name);
+      // a new flow gets a key of its own (never an existing flow's, which saving would overwrite)
+      const key = settings.key || (await freeFlowKey(slug(settings.name)));
       if (isBroadcast && !settings.broadcast?.segment)
         throw new Error("Escolha o segmento que vai receber (clique em “Início” no fluxo).");
       await crmCall("crm_save_flow", {
@@ -259,6 +260,8 @@ function Builder({ me, initial, isNew }: { me: Me; initial: FlowDoc; isNew: bool
         p_goal_fact: settings.goal_fact,
         p_graph: graph,
       });
+      // saved: a retry after an error below (segment, publish) updates this flow, not a new copy
+      if (!settings.key) setSettings((s) => ({ ...s, key }));
       if (isBroadcast && settings.broadcast)
         await crmCall("crm_set_broadcast", {
           p_key: key,

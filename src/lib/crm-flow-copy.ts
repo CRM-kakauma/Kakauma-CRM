@@ -15,6 +15,20 @@ interface SavedFlow {
 }
 
 /**
+ * A key no saved flow uses (archived ones included): base, base_2, base_3…
+ * A new flow must never take the key of an existing one — saving would overwrite it.
+ */
+export async function freeFlowKey(base: string): Promise<string> {
+  const root = (base.length >= 3 ? base : `${base}_fluxo`.replace(/^_/, "")).slice(0, 55);
+  let key = root;
+  for (let i = 2; await crmCall<unknown>("crm_get_flow", { p_key: key }); i++) {
+    if (i > 50) throw new Error("Não achei uma chave livre: mude o nome");
+    key = `${root}_${i}`;
+  }
+  return key;
+}
+
+/**
  * Copies a flow as a new draft (never published, nobody inside): same trigger, rules,
  * goal and steps. The key gets a free "_copia" suffix — a saved key is never overwritten,
  * archived ones included.

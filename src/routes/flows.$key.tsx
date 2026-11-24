@@ -14,6 +14,7 @@ import {
   Play,
   Rocket,
   Save,
+  Search,
   Send,
   X,
 } from "lucide-react";
@@ -58,6 +59,7 @@ import {
 } from "@/lib/crm-flows";
 import { CHANNEL_LABEL } from "@/lib/crm-messages";
 import { count, dateTime, pct } from "@/lib/crm-format";
+import { useDebounced } from "@/lib/crm-search";
 import { FLOW_STATUS } from "./flows.index";
 import { BROADCAST_FACT, defaultBroadcast, describeSchedule } from "@/lib/crm-broadcast";
 import { BroadcastRuns, RunBroadcastNow } from "@/components/crm/broadcast-runs";
@@ -67,9 +69,15 @@ export const Route = createFileRoute("/flows/$key")({
   // /flows/new?tipo=disparo starts a disparo instead of a jornada
   validateSearch: (
     s: Record<string, unknown>,
-  ): { tipo?: "disparo" | undefined; segmento?: string | undefined } => ({
+  ): {
+    tipo?: "disparo" | undefined;
+    segmento?: string | undefined;
+    etapa?: string | undefined;
+  } => ({
     tipo: s["tipo"] === "disparo" ? "disparo" : undefined,
     segmento: typeof s["segmento"] === "string" && s["segmento"] ? s["segmento"] : undefined,
+    // the step to open (from the search in Fluxos)
+    etapa: typeof s["etapa"] === "string" && s["etapa"] ? s["etapa"] : undefined,
   }),
   component: () => <RequireAuth>{(me) => <Loader me={me} />}</RequireAuth>,
 });
@@ -168,7 +176,10 @@ function Builder({ me, initial, isNew }: { me: Me; initial: FlowDoc; isNew: bool
   const [savedSnapshot, setSavedSnapshot] = useState(
     JSON.stringify([settingsOf(initial), initial.graph]),
   );
-  const [selected, setSelected] = useState<string | null>(isNew ? "start" : null);
+  const { etapa } = Route.useSearch();
+  const [selected, setSelected] = useState<string | null>(
+    isNew ? "start" : etapa && initial.graph.nodes.some((n) => n.id === etapa) ? etapa : null,
+  );
   const [errors, setErrors] = useState<string[] | null>(null);
   const [sim, setSim] = useState<Obj | null>(null);
   const [simOpen, setSimOpen] = useState(false);
@@ -988,70 +999,130 @@ export const SKIP_REASON: Record<string, string> = {
 };
 
 function SentMessages({ flowKey }: { flowKey: string }) {
-  const { data, isLoading, error } = useCrm<Obj[]>("crm_list_messages", {
-    p_flow_key: flowKey,
-    p_limit: 200,
-  });
-  if (error) return <ApiErrorBox error={error} />;
-  if (isLoading) return <Loading />;
-  if (!data?.length) return <Empty>Nenhuma mensagem ainda.</Empty>;
-  return (
-    <div className="surface overflow-x-auto">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Quando</TableHead>
-            <TableHead>Cliente</TableHead>
-            <TableHead>Canal</TableHead>
-            <TableHead>Situação</TableHead>
-            <TableHead>Conteúdo</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {data.map((m) => (
-            <TableRow key={m.message_id}>
-              <TableCell className="whitespace-nowrap text-muted-foreground">
-                {dateTime(m.at)}
-              </TableCell>
-              <TableCell>
-                <Link
-                  to="/customers/$customerId"
-                  params={{ customerId: m.customer_id }}
-                  className="hover:text-primary"
-                >
-                  {m.full_name ?? "—"}
-                </Link>
-              </TableCell>
-              <TableCell>
-                {CHANNEL_LABEL[m.channel as keyof typeof CHANNEL_LABEL] ?? m.channel}
-              </TableCell>
-              <TableCell>
-                <Pill tone={MESSAGE_STATUS[m.status]?.tone ?? "muted"}>
-                  {MESSAGE_STATUS[m.status]?.label ?? m.status}
-                </Pill>
-                {m.skip_reason && (
-                  <span className="ml-1.5 text-xs text-muted-foreground">
-                    {SKIP_REASON[m.skip_reason] ?? m.skip_reason}
-                  </span>
-                )}
-                <span className="ml-1.5 inline-flex flex-wrap items-center gap-1.5 text-xs">
-                  <ProviderStatus status={m.provider_status} sentAs={m.sent_as} />
-                </span>
-                {m.status === "FAILED" && m.error && (
-                  <div className="mt-1 max-w-xs text-xs text-danger">{String(m.error)}</div>
-                )}
-              </TableCell>
-              <TableCell className="max-w-md truncate text-xs text-muted-foreground">
-                {m.rendered?.subject ??
-                  m.rendered?.text ??
-                  m.rendered?.body ??
-                  m.rendered?.cards?.[0]?.title ??
-                  "—"}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+  const [query, setQuery] = useState("");
+  const q = useDebounced(query.trim());
+  const searching = q.length >= 2;
+  const list = useCrm<Obj[]>(
+    "crm_list_messages",
+    { p_flow_key: flowKey, p_limit: 200 },
+    { enabled: !searching },
+  );
+  const found = useCrm<Obj[]>(
+    "crm_search_messages",
+    { p_flow_key: flowKey, p_query: q, p_limit: 200 },
+    { enabled: searching, placeholderData: (prev) => prev },
+  );
+  const { data, isLoading, error } = searching ? found : list;
+  const box = (
+    <div className="mb-3 flex flex-wrap items-center gap-3">
+      <div className="relative w-full max-w-md">
+        <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Buscar por cliente, e-mail, telefone ou texto da mensagem"
+          className="pl-9 pr-9"
+          aria-label="Buscar mensagens"
+        />
+        {query && (
+          <button
+            type="button"
+            onClick={() => setQuery("")}
+            className="absolute top-1/2 right-2.5 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            aria-label="Limpar busca"
+          >
+            <X className="size-4" />
+          </button>
+        )}
+      </div>
+      {searching && data && (
+        <span className="text-xs text-muted-foreground">
+          {data.length >= 200 ? "200+ (as mais recentes)" : `${data.length} encontrada(s)`}
+        </span>
+      )}
     </div>
+  );
+  if (error)
+    return (
+      <>
+        {box}
+        <ApiErrorBox error={error} />
+      </>
+    );
+  if (isLoading)
+    return (
+      <>
+        {box}
+        <Loading />
+      </>
+    );
+  if (!data?.length)
+    return (
+      <>
+        {box}
+        <Empty>{searching ? `Nenhuma mensagem com “${q}”.` : "Nenhuma mensagem ainda."}</Empty>
+      </>
+    );
+  return (
+    <>
+      {box}
+      <div className="surface overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Quando</TableHead>
+              <TableHead>Cliente</TableHead>
+              <TableHead>Canal</TableHead>
+              <TableHead>Situação</TableHead>
+              <TableHead>Conteúdo</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {data.map((m) => (
+              <TableRow key={m.message_id}>
+                <TableCell className="whitespace-nowrap text-muted-foreground">
+                  {dateTime(m.at)}
+                </TableCell>
+                <TableCell>
+                  <Link
+                    to="/customers/$customerId"
+                    params={{ customerId: m.customer_id }}
+                    className="hover:text-primary"
+                  >
+                    {m.full_name ?? "—"}
+                  </Link>
+                </TableCell>
+                <TableCell>
+                  {CHANNEL_LABEL[m.channel as keyof typeof CHANNEL_LABEL] ?? m.channel}
+                </TableCell>
+                <TableCell>
+                  <Pill tone={MESSAGE_STATUS[m.status]?.tone ?? "muted"}>
+                    {MESSAGE_STATUS[m.status]?.label ?? m.status}
+                  </Pill>
+                  {m.skip_reason && (
+                    <span className="ml-1.5 text-xs text-muted-foreground">
+                      {SKIP_REASON[m.skip_reason] ?? m.skip_reason}
+                    </span>
+                  )}
+                  <span className="ml-1.5 inline-flex flex-wrap items-center gap-1.5 text-xs">
+                    <ProviderStatus status={m.provider_status} sentAs={m.sent_as} />
+                  </span>
+                  {m.status === "FAILED" && m.error && (
+                    <div className="mt-1 max-w-xs text-xs text-danger">{String(m.error)}</div>
+                  )}
+                </TableCell>
+                <TableCell className="max-w-md truncate text-xs text-muted-foreground">
+                  {m.rendered?.subject ??
+                    m.rendered?.text ??
+                    m.rendered?.body ??
+                    m.rendered?.cards?.[0]?.title ??
+                    "—"}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </>
   );
 }

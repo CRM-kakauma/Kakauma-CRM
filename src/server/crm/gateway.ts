@@ -47,6 +47,8 @@ export const RPC_PERMISSIONS: Record<string, { role: Role; actor?: true }> = {
   crm_results: { role: "viewer" },
   crm_flow_entry_diagnosis: { role: "viewer" },
   crm_broadcast_runs: { role: "viewer" },
+  crm_search_flows: { role: "viewer" },
+  crm_search_messages: { role: "viewer" },
   crm_customer_raw_events: { role: "viewer" },
   crm_remove_segment_contact: { role: "operator", actor: true },
   crm_set_automation_active: { role: "operator", actor: true },

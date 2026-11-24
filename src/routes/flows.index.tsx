@@ -2,10 +2,13 @@ import { useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { CalendarClock, Copy, Megaphone, Play, Plus, Workflow } from "lucide-react";
+import { CalendarClock, Copy, Megaphone, Play, Plus, Search, Workflow, X } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { ApiErrorBox, Empty, Loading, Pill, RequireAuth } from "@/components/crm/ui";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { CHANNEL_LABEL } from "@/lib/crm-messages";
+import { fold, snippet, useDebounced } from "@/lib/crm-search";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   AUDIENCE_LABEL,
@@ -26,6 +29,18 @@ export const Route = createFileRoute("/flows/")({
   }),
   component: () => <RequireAuth>{(me) => <Flows me={me} />}</RequireAuth>,
 });
+
+interface FlowHit {
+  key: string;
+  name: string;
+  matches: {
+    node_id: string;
+    channel: string;
+    template_key: string | null;
+    template_name: string | null;
+    text: string;
+  }[];
+}
 
 interface FlowRow {
   key: string;
@@ -83,8 +98,56 @@ function Flows({ me }: { me: Me }) {
   };
   const { aba } = Route.useSearch();
   const tab = aba ?? "jornadas";
-  const journeys = (data ?? []).filter((f) => f.trigger_fact !== BROADCAST_FACT);
-  const broadcasts = (data ?? []).filter((f) => f.trigger_fact === BROADCAST_FACT);
+  const [query, setQuery] = useState("");
+  const q = useDebounced(query.trim());
+  const searching = q.length >= 2;
+  const found = useCrm<FlowHit[]>(
+    "crm_search_flows",
+    { p_query: q },
+    { enabled: searching, placeholderData: (prev) => prev },
+  );
+  const hits = new Map((found.data ?? []).map((h) => [h.key, h.matches]));
+  const shown = (data ?? []).filter(
+    (f) =>
+      !searching ||
+      hits.has(f.key) ||
+      fold(`${f.name} ${f.description ?? ""} ${f.key}`).includes(fold(q)),
+  );
+  const journeys = shown.filter((f) => f.trigger_fact !== BROADCAST_FACT);
+  const broadcasts = shown.filter((f) => f.trigger_fact === BROADCAST_FACT);
+  const firstStep = (key: string) => hits.get(key)?.[0]?.node_id;
+  const matchesOf = (key: string) => {
+    const m = hits.get(key);
+    if (!searching || !m?.length) return null;
+    return (
+      <div className="mt-2 space-y-1 rounded-lg bg-muted/60 p-2 text-xs">
+        <p className="font-medium text-muted-foreground">
+          {m.length === 1 ? "1 mensagem com o texto" : `${m.length} mensagens com o texto`}
+        </p>
+        {m.slice(0, 3).map((x) => {
+          const sn = snippet(x.text, q);
+          return (
+            <p key={x.node_id} className="line-clamp-2">
+              <span className="font-medium">
+                {CHANNEL_LABEL[x.channel as keyof typeof CHANNEL_LABEL] ?? x.channel}
+                {x.template_name ? ` · ${x.template_name}` : ""}:
+              </span>{" "}
+              {sn ? (
+                <>
+                  {sn.before}
+                  <mark className="rounded bg-warning-soft px-0.5 text-foreground">{sn.hit}</mark>
+                  {sn.after}
+                </>
+              ) : (
+                x.text.slice(0, 120)
+              )}
+            </p>
+          );
+        })}
+      </div>
+    );
+  };
+  const nothing = searching ? <Empty>Nada encontrado para “{q}” nesta aba.</Empty> : null;
   const copyButton = (f: FlowRow) =>
     canOperate(me) && (
       <Button
@@ -126,6 +189,26 @@ function Flows({ me }: { me: Me }) {
           ))}
       </PageHeader>
       <ApiErrorBox error={error} />
+      <div className="relative mb-3 max-w-xl">
+        <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Buscar fluxo pelo nome ou pelo texto das mensagens (ex.: cortisol)"
+          className="pl-9 pr-9"
+          aria-label="Buscar fluxos"
+        />
+        {query && (
+          <button
+            type="button"
+            onClick={() => setQuery("")}
+            className="absolute top-1/2 right-2.5 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            aria-label="Limpar busca"
+          >
+            <X className="size-4" />
+          </button>
+        )}
+      </div>
       <Tabs
         value={tab}
         onValueChange={(v) =>
@@ -153,7 +236,7 @@ function Flows({ me }: { me: Me }) {
           {isLoading ? (
             <Loading />
           ) : !journeys.length ? (
-            <Empty>Nenhuma jornada ainda. Crie a primeira com “Nova jornada”.</Empty>
+            (nothing ?? <Empty>Nenhuma jornada ainda. Crie a primeira com “Nova jornada”.</Empty>)
           ) : (
             <div className="grid gap-3 lg:grid-cols-2">
               {journeys.map((f) => {
@@ -163,6 +246,7 @@ function Flows({ me }: { me: Me }) {
                     key={f.key}
                     to="/flows/$key"
                     params={{ key: f.key }}
+                    search={{ etapa: firstStep(f.key) }}
                     className="surface block p-4 transition-colors hover:border-primary/40"
                   >
                     <div className="flex items-start justify-between gap-3">
@@ -186,6 +270,7 @@ function Flows({ me }: { me: Me }) {
                         {f.description}
                       </p>
                     )}
+                    {matchesOf(f.key)}
                     <div className="mt-3 grid grid-cols-4 gap-2 border-t border-border pt-3 text-center">
                       <Mini label="no fluxo agora" v={count(f.live)} />
                       <Mini label="entraram (30d)" v={count(f.entered_30d)} />
@@ -219,10 +304,13 @@ function Flows({ me }: { me: Me }) {
           {isLoading ? (
             <Loading />
           ) : !broadcasts.length ? (
-            <Empty>
-              Nenhum disparo ainda. Com “Novo disparo” você escolhe o segmento, o dia e horário (uma
-              vez ou todo dia) e se cada cliente recebe uma vez na vida ou uma vez por jornada.
-            </Empty>
+            (nothing ?? (
+              <Empty>
+                Nenhum disparo ainda. Com “Novo disparo” você escolhe o segmento, o dia e horário
+                (uma vez ou todo dia) e se cada cliente recebe uma vez na vida ou uma vez por
+                jornada.
+              </Empty>
+            ))
           ) : (
             <div className="grid gap-3 lg:grid-cols-2">
               {broadcasts.map((f) => {
@@ -233,6 +321,7 @@ function Flows({ me }: { me: Me }) {
                     key={f.key}
                     to="/flows/$key"
                     params={{ key: f.key }}
+                    search={{ etapa: firstStep(f.key) }}
                     className="surface block p-4 transition-colors hover:border-primary/40"
                   >
                     <div className="flex items-start justify-between gap-3">
@@ -259,6 +348,7 @@ function Flows({ me }: { me: Me }) {
                         </span>
                       )}
                     </div>
+                    {matchesOf(f.key)}
                     <div className="mt-3 grid grid-cols-3 gap-2 border-t border-border pt-3 text-center">
                       <Mini label="no disparo agora" v={count(f.live)} />
                       <Mini

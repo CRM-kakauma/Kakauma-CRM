@@ -59,9 +59,15 @@ import {
 import { CHANNEL_LABEL } from "@/lib/crm-messages";
 import { count, dateTime, pct } from "@/lib/crm-format";
 import { FLOW_STATUS } from "./flows.index";
+import { BROADCAST_FACT, defaultBroadcast, describeSchedule } from "@/lib/crm-broadcast";
+import { BroadcastRuns, RunBroadcastNow } from "@/components/crm/broadcast-runs";
 
 export const Route = createFileRoute("/flows/$key")({
   head: () => ({ meta: [{ title: "Fluxo — Kakauma CRM" }] }),
+  // /flows/new?tipo=disparo starts a disparo instead of a jornada
+  validateSearch: (s: Record<string, unknown>): { tipo?: "disparo" | undefined } => ({
+    tipo: s["tipo"] === "disparo" ? "disparo" : undefined,
+  }),
   component: () => <RequireAuth>{(me) => <Loader me={me} />}</RequireAuth>,
 });
 
@@ -74,6 +80,8 @@ interface FlowDoc extends FlowSettings {
   graph: Graph;
   published_at: string | null;
   has_unpublished_changes: boolean;
+  next_run_at?: string | null;
+  last_run_at?: string | null;
 }
 
 const NEW: FlowDoc = {
@@ -93,15 +101,31 @@ const NEW: FlowDoc = {
   has_unpublished_changes: true,
 };
 
+const NEW_BROADCAST = (): FlowDoc => ({
+  ...NEW,
+  trigger_fact: BROADCAST_FACT,
+  max_trigger_age_hours: 72,
+  broadcast: defaultBroadcast(),
+});
+
 function Loader({ me }: { me: Me }) {
   const { key } = Route.useParams();
+  const { tipo } = Route.useSearch();
   const isNew = key === "new";
   const { data, isLoading, error } = useCrm<FlowDoc | null>(
     "crm_get_flow",
     { p_key: key },
     { enabled: !isNew },
   );
-  if (isNew) return <Builder me={me} initial={NEW} isNew />;
+  if (isNew)
+    return (
+      <Builder
+        key={tipo ?? "jornada"}
+        me={me}
+        initial={tipo === "disparo" ? NEW_BROADCAST() : NEW}
+        isNew
+      />
+    );
   if (isLoading) return <Loading rows={6} />;
   if (error) return <ApiErrorBox error={error} />;
   if (!data) return <Empty>Fluxo não encontrado.</Empty>;
@@ -127,12 +151,15 @@ const settingsOf = (d: FlowDoc): FlowSettings => ({
   reentry: d.reentry,
   max_trigger_age_hours: d.max_trigger_age_hours,
   goal_fact: d.goal_fact,
+  ...(d.trigger_fact === BROADCAST_FACT ? { broadcast: d.broadcast ?? defaultBroadcast() } : {}),
 });
 
 function Builder({ me, initial, isNew }: { me: Me; initial: FlowDoc; isNew: boolean }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const canEdit = canOperate(me) && initial.status !== "ARCHIVED";
+  const isBroadcast = initial.trigger_fact === BROADCAST_FACT;
+  const noun = isBroadcast ? "Disparo" : "Fluxo";
   const [settings, setSettings] = useState<FlowSettings>(settingsOf(initial));
   const [graph, setGraph] = useState<Graph>(initial.graph);
   const [savedSnapshot, setSavedSnapshot] = useState(
@@ -148,6 +175,13 @@ function Builder({ me, initial, isNew }: { me: Me; initial: FlowDoc; isNew: bool
 
   const { data: templates = [] } = useCrm<TemplateLite[]>("crm_list_templates", {});
   const tplMap = useMemo(() => new Map(templates.map((t) => [t.key, t])), [templates]);
+  const { data: segments = [] } = useCrm<{ key: string; name: string }[]>(
+    "crm_list_segments",
+    {},
+    { enabled: isBroadcast },
+  );
+  const segmentName = (k?: string) =>
+    k ? (segments.find((g) => g.key === k)?.name ?? k) : "Escolha o segmento";
   const stats = useCrm<Obj>(
     "crm_flow_stats",
     { p_key: initial.key },
@@ -197,6 +231,8 @@ function Builder({ me, initial, isNew }: { me: Me; initial: FlowDoc; isNew: bool
   const save = useMutation({
     mutationFn: async (publish: boolean) => {
       const key = settings.key || slug(settings.name);
+      if (isBroadcast && !settings.broadcast?.segment)
+        throw new Error("Escolha o segmento que vai receber (clique em “Início” no fluxo).");
       await crmCall("crm_save_flow", {
         p_key: key,
         p_name: settings.name,
@@ -209,13 +245,22 @@ function Builder({ me, initial, isNew }: { me: Me; initial: FlowDoc; isNew: bool
         p_goal_fact: settings.goal_fact,
         p_graph: graph,
       });
+      if (isBroadcast && settings.broadcast)
+        await crmCall("crm_set_broadcast", {
+          p_key: key,
+          p_segment: settings.broadcast.segment,
+          p_schedule: settings.broadcast.schedule,
+          p_audience: settings.broadcast.audience,
+        });
       if (publish) await crmCall("crm_publish_flow", { p_key: key });
       return key;
     },
     onSuccess: (key, publish) => {
-      toast.success(publish ? "Fluxo publicado" : "Rascunho salvo", {
+      toast.success(publish ? `${noun} publicado` : "Rascunho salvo", {
         description: publish
-          ? "Novos fatos já entram nesta versão. Quem já estava segue a versão anterior."
+          ? isBroadcast
+            ? `Agendado: ${describeSchedule(settings.broadcast?.schedule)}.`
+            : "Novos fatos já entram nesta versão. Quem já estava segue a versão anterior."
           : undefined,
       });
       setSavedSnapshot(JSON.stringify([{ ...settings, key }, graph]));
@@ -238,7 +283,13 @@ function Builder({ me, initial, isNew }: { me: Me; initial: FlowDoc; isNew: bool
   });
 
   const node = graph.nodes.find((n) => n.id === selected) ?? null;
-  const ctx = { templates: tplMap, triggerFact: settings.trigger_fact };
+  const ctx = {
+    templates: tplMap,
+    triggerFact: settings.trigger_fact,
+    triggerText: isBroadcast
+      ? `${segmentName(settings.broadcast?.segment)} · ${describeSchedule(settings.broadcast?.schedule)}`
+      : undefined,
+  };
   const path = useMemo(() => {
     if (!sim?.path) return null;
     const nodes = new Set<string>(sim.path.map((s: Obj) => s.node_id));
@@ -252,9 +303,10 @@ function Builder({ me, initial, isNew }: { me: Me; initial: FlowDoc; isNew: bool
     <>
       <Link
         to="/flows"
+        search={{ aba: isBroadcast ? "disparos" : undefined }}
         className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary"
       >
-        <ArrowLeft className="size-4" /> Fluxos
+        <ArrowLeft className="size-4" /> {isBroadcast ? "Disparos" : "Jornadas"}
       </Link>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         {/* the name keeps room for itself; when narrow the buttons go to the next line */}
@@ -264,7 +316,7 @@ function Builder({ me, initial, isNew }: { me: Me; initial: FlowDoc; isNew: bool
               value={settings.name}
               disabled={!canEdit}
               onChange={(e) => setSettings((s) => ({ ...s, name: e.target.value }))}
-              placeholder="Nome do fluxo"
+              placeholder={isBroadcast ? "Nome do disparo" : "Nome da jornada"}
               className="h-10 w-full max-w-xl min-w-0 flex-1 border-transparent bg-transparent px-1 text-xl font-semibold shadow-none md:text-xl hover:border-border focus-visible:border-input"
             />
             {!isNew && <Pill tone={st.tone}>{st.label}</Pill>}
@@ -284,6 +336,19 @@ function Builder({ me, initial, isNew }: { me: Me; initial: FlowDoc; isNew: bool
           <Button variant="outline" onClick={() => setSimOpen((o) => !o)}>
             <FlaskConical className="size-4" /> Simular
           </Button>
+          {canEdit && !isNew && isBroadcast && (
+            <RunBroadcastNow
+              flowKey={initial.key}
+              blocked={
+                initial.status !== "ACTIVE" || initial.version === 0
+                  ? "Publique o disparo antes."
+                  : dirty
+                    ? "Salve as alterações antes."
+                    : undefined
+              }
+              onDone={() => setTab("runs")}
+            />
+          )}
           {canEdit && !isNew && (
             <Button variant="outline" onClick={() => setTestOpen(true)}>
               <Send className="size-4" /> Disparar teste
@@ -302,7 +367,9 @@ function Builder({ me, initial, isNew }: { me: Me; initial: FlowDoc; isNew: bool
                 onClick={() => {
                   if (
                     confirm(
-                      "Publicar? A partir de agora, novos fatos colocam clientes nesta versão do fluxo (mensagens de verdade quando o canal estiver conectado).",
+                      isBroadcast
+                        ? `Publicar? O disparo fica agendado (${describeSchedule(settings.broadcast?.schedule)}) e envia mensagens de verdade para o segmento.`
+                        : "Publicar? A partir de agora, novos fatos colocam clientes nesta versão do fluxo (mensagens de verdade quando o canal estiver conectado).",
                     )
                   )
                     save.mutate(true);
@@ -413,9 +480,10 @@ function Builder({ me, initial, isNew }: { me: Me; initial: FlowDoc; isNew: bool
           {!isNew && initial.version > 0 && (
             <TabsTrigger value="messages">Mensagens enviadas</TabsTrigger>
           )}
-          {!isNew && initial.version > 0 && (
+          {!isNew && initial.version > 0 && !isBroadcast && (
             <TabsTrigger value="entry">Por que não entrou?</TabsTrigger>
           )}
+          {!isNew && isBroadcast && <TabsTrigger value="runs">Disparos feitos</TabsTrigger>}
           {!isNew && <TabsTrigger value="tests">Testes</TabsTrigger>}
         </TabsList>
 
@@ -512,7 +580,15 @@ function Builder({ me, initial, isNew }: { me: Me; initial: FlowDoc; isNew: bool
         <TabsContent value="messages" className="mt-4">
           <SentMessages flowKey={initial.key} />
         </TabsContent>
-        {!isNew && initial.version > 0 && (
+        {!isNew && isBroadcast && (
+          <TabsContent value="runs" className="mt-4">
+            <BroadcastRuns
+              flowKey={initial.key}
+              nextRunAt={initial.status === "ACTIVE" ? (initial.next_run_at ?? null) : null}
+            />
+          </TabsContent>
+        )}
+        {!isNew && initial.version > 0 && !isBroadcast && (
           <TabsContent value="entry" className="mt-4">
             <FlowEntryDiagnosis flowKey={initial.key} />
           </TabsContent>

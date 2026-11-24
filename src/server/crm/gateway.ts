@@ -46,6 +46,7 @@ export const RPC_PERMISSIONS: Record<string, { role: Role; actor?: true }> = {
   crm_list_short_links: { role: "viewer" },
   crm_results: { role: "viewer" },
   crm_flow_entry_diagnosis: { role: "viewer" },
+  crm_broadcast_runs: { role: "viewer" },
   crm_customer_raw_events: { role: "viewer" },
   crm_remove_segment_contact: { role: "operator", actor: true },
   crm_set_automation_active: { role: "operator", actor: true },
@@ -55,6 +56,8 @@ export const RPC_PERMISSIONS: Record<string, { role: Role; actor?: true }> = {
   crm_save_flow: { role: "operator", actor: true },
   crm_publish_flow: { role: "operator", actor: true },
   crm_enroll_customer: { role: "operator", actor: true },
+  crm_set_broadcast: { role: "operator", actor: true },
+  crm_run_broadcast_now: { role: "operator", actor: true },
   crm_set_flow_status: { role: "operator", actor: true },
   crm_set_optout: { role: "operator", actor: true },
   // admin: data, rules, people

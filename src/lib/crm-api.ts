@@ -120,6 +120,7 @@ export const TYPE_LABEL: Record<string, string> = {
 };
 
 export const FACT_LABEL: Record<string, string> = {
+  BROADCAST: "Disparo agendado",
   CHECKOUT_ABANDONED: "Abandonou checkout",
   PAYMENT_PENDING: "Pagamento pendente",
   PURCHASE_PAID: "Compra aprovada",

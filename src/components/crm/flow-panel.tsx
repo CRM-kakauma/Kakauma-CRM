@@ -13,9 +13,11 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { RuleBuilder, type Rule } from "@/components/crm/rule-builder";
 import { TriggerFilter } from "@/components/crm/automation-dialog";
+import { BroadcastSettings } from "@/components/crm/broadcast-settings";
 import { NODE_ICON } from "@/components/crm/flow-canvas";
 import { FACT_LABEL, label, useCrm } from "@/lib/crm-api";
 import { NODE_META, type FlowNode, type SplitBranch } from "@/lib/crm-flows";
+import { BROADCAST_FACT, defaultBroadcast, type BroadcastConfig } from "@/lib/crm-broadcast";
 import { CHANNEL_LABEL, VARIABLES, summary, type Channel, type Content } from "@/lib/crm-messages";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +31,8 @@ export interface FlowSettings {
   reentry: "once" | "after_exit";
   max_trigger_age_hours: number;
   goal_fact: string | null;
+  /** only for disparos (trigger_fact BROADCAST): segment, schedule, who receives again */
+  broadcast?: BroadcastConfig | null;
 }
 
 export interface TemplateLite {
@@ -140,12 +144,42 @@ export function FlowPanel({
             <p className="flex gap-1.5">
               <Info className="mt-0.5 size-3.5 shrink-0 text-primary" />
               <span>
-                {meta.what} <span className="text-muted-foreground">{meta.when}</span>
+                {node.type === "trigger" && settings.trigger_fact === BROADCAST_FACT ? (
+                  <>
+                    No horário agendado, todos do segmento entram neste disparo.{" "}
+                    <span className="text-muted-foreground">
+                      Mudanças de segmento e horário valem ao salvar; as etapas valem ao publicar.
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    {meta.what} <span className="text-muted-foreground">{meta.when}</span>
+                  </>
+                )}
               </span>
             </p>
           </div>
 
-          {node.type === "trigger" && (
+          {node.type === "trigger" && settings.trigger_fact === BROADCAST_FACT && (
+            <>
+              <BroadcastSettings
+                value={settings.broadcast ?? defaultBroadcast()}
+                onChange={(b) => onSettings({ broadcast: b })}
+              />
+              <Row
+                title="Meta (conversão)"
+                hint="Quando o cliente fizer isto, sai do disparo como “meta atingida” e para os próximos envios."
+              >
+                <FactSelect
+                  value={settings.goal_fact}
+                  onChange={(v) => onSettings({ goal_fact: v })}
+                  none="Sem meta"
+                />
+              </Row>
+            </>
+          )}
+
+          {node.type === "trigger" && settings.trigger_fact !== BROADCAST_FACT && (
             <>
               <Row title="Gatilho" hint="O fato que coloca o cliente neste fluxo.">
                 <FactSelect

@@ -28,6 +28,7 @@ export default definePlugin((nitroApp) => {
     try {
       const r = JSON.parse(body) as {
         claimed?: number;
+        broadcasts?: unknown;
         flows?: {
           advanced?: number;
           messages?: { channel: string; status: string; error?: string }[];
@@ -45,6 +46,7 @@ export default definePlugin((nitroApp) => {
         advanced: r.flows?.advanced ?? 0,
         sends,
         errors,
+        ...(Array.isArray(r.broadcasts) && r.broadcasts.length ? { broadcasts: r.broadcasts } : {}),
       });
     } catch {
       console.log("[crm] cron trigger ok", body.slice(0, 300));

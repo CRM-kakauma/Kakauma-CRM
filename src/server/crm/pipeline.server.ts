@@ -15,6 +15,19 @@ export const isOn = (name: string) =>
   );
 
 // Everything runs against the CRM's own Supabase project (CRM_SUPABASE_* in .env).
+/**
+ * Disparos due now (scheduled flows for a segment): everyone in the segment enters the flow.
+ * Before the database update that creates them, nothing to do.
+ */
+export async function runBroadcasts(): Promise<unknown[]> {
+  const r = await rpc("crm_run_due_broadcasts", {});
+  if (r.error) {
+    if (/crm_run_due_broadcasts/.test(r.error.message)) return [];
+    throw new Error(r.error.message);
+  }
+  return (r.data ?? []) as unknown[];
+}
+
 export const ingestWebhook = (source: string, rawBody: string, opts: { backfill?: boolean } = {}) =>
   core.ingestWebhook(rpc, source, rawBody, opts);
 export const processPending = (opts: { limit?: number; id?: string } = {}) =>

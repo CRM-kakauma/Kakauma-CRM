@@ -49,6 +49,7 @@ async function run(request: Request) {
     processPending,
     refreshCustomers,
     runAutomations,
+    runBroadcasts,
     runFlows,
     syncPushfyOptouts,
     syncResendStatus,
@@ -61,6 +62,8 @@ async function run(request: Request) {
   const automations = await runAutomations();
   // opt-outs first, so nobody who answered PARAR gets the next marketing message
   const optouts = await syncPushfyOptouts().catch((e: Error) => ({ error: e.message }));
+  // disparos due now put their segment in the flow; the flows below send the first messages
+  const broadcasts = await runBroadcasts().catch((e: Error) => ({ error: e.message }));
   const flows = await runFlows();
   const emails = await syncResendStatus().catch((e: Error) => ({ error: e.message }));
   return Response.json({
@@ -70,6 +73,7 @@ async function run(request: Request) {
     refreshed,
     automations,
     optouts,
+    broadcasts,
     flows,
     emails,
   });

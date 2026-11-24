@@ -274,11 +274,17 @@ export function hoursText(h: number) {
 /** One-line description of what a step does, for the canvas card. */
 export function describe(
   n: FlowNode,
-  ctx: { templates: Map<string, { name: string; channel: Channel }>; triggerFact?: string },
+  ctx: {
+    templates: Map<string, { name: string; channel: Channel }>;
+    triggerFact?: string;
+    /** replaces "Quando: …" (disparos describe their schedule) */
+    triggerText?: string | undefined;
+  },
 ): string {
   const c = n.config;
   switch (n.type) {
     case "trigger":
+      if (ctx.triggerText) return ctx.triggerText;
       return ctx.triggerFact
         ? `Quando: ${label(FACT_LABEL, ctx.triggerFact)}`
         : "Escolha o gatilho";

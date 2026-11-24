@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { FlaskConical, Send, Trash2, UserPlus } from "lucide-react";
+import { FileSpreadsheet, FlaskConical, Send, Trash2, UserPlus } from "lucide-react";
 import { ApiErrorBox, Empty, Loading, Pill } from "@/components/crm/ui";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -67,10 +67,15 @@ const formatPhone = (p: string | null) => {
 export function ManualSegmentDialog({
   segment,
   canEdit,
+  isList = false,
+  onImport,
   onClose,
 }: {
   segment: { key: string; name: string; description: string | null };
   canEdit: boolean;
+  /** an imported list (real contacts), not the Teste list */
+  isList?: boolean;
+  onImport?: () => void;
   onClose: () => void;
 }) {
   const qc = useQueryClient();
@@ -81,16 +86,33 @@ export function ManualSegmentDialog({
   const [err, setErr] = useState<string | null>(null);
 
   const add = useMutation({
-    mutationFn: () =>
-      crmCall<{ customer_id: string; created: boolean }>("crm_add_test_contact", {
-        p_name: name || null,
-        p_email: email || null,
-        p_phone: phone || null,
+    mutationFn: async () => {
+      if (!isList)
+        return crmCall<{ customer_id: string; created: boolean }>("crm_add_test_contact", {
+          p_name: name || null,
+          p_email: email || null,
+          p_phone: phone || null,
+          p_segment: segment.key,
+        });
+      const r = await crmCall<{
+        created: number;
+        added: number;
+        invalid_rows: { reason: string }[];
+      }>("crm_import_list_contacts", {
         p_segment: segment.key,
-      }),
+        p_rows: [{ line: 1, name: name || null, email: email || null, phone: phone || null }],
+      });
+      if (r.invalid_rows[0]) throw new Error(`Não adicionado: ${r.invalid_rows[0].reason}`);
+      if (!r.added) throw new Error("Já está na lista");
+      return { customer_id: "", created: r.created > 0 };
+    },
     onSuccess: (r) => {
       toast.success(
-        r.created ? "Contato de teste criado" : "Cliente já existia: adicionado à lista",
+        r.created
+          ? isList
+            ? "Contato criado e adicionado à lista"
+            : "Contato de teste criado"
+          : "Cliente já existia: adicionado à lista",
       );
       setName("");
       setEmail("");
@@ -99,6 +121,15 @@ export function ManualSegmentDialog({
       void qc.invalidateQueries({ queryKey: ["crm"] });
     },
     onError: (e) => setErr((e as Error).message),
+  });
+  const drop = useMutation({
+    mutationFn: () => crmCall("crm_delete_segment", { p_key: segment.key }),
+    onSuccess: () => {
+      toast.success("Lista excluída");
+      void qc.invalidateQueries({ queryKey: ["crm"] });
+      onClose();
+    },
+    onError: (e) => toast.error((e as Error).message),
   });
   const remove = useMutation({
     mutationFn: (id: string) =>
@@ -149,7 +180,7 @@ export function ManualSegmentDialog({
                       >
                         {c.full_name ?? "—"}
                       </Link>
-                      {!c.is_test && (
+                      {!c.is_test && !isList && (
                         <span className="ml-1.5">
                           <Pill tone="warning" title="Cliente real (veio da B4you)">
                             cliente
@@ -221,10 +252,40 @@ export function ManualSegmentDialog({
             )}
           </form>
         )}
-        <p className="text-xs text-muted-foreground">
-          Quem já é cliente (mesmo e-mail ou celular) entra na lista sem ser alterado. Os demais
-          viram contatos de teste e não vêm da B4you.
-        </p>
+        {isList ? (
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs text-muted-foreground">
+              Quem já é cliente entra na lista sem ser alterado; os demais viram contatos novos.
+            </p>
+            <div className="flex gap-2">
+              {canEdit && onImport && (
+                <Button size="sm" variant="outline" onClick={onImport}>
+                  <FileSpreadsheet className="size-4" /> Importar mais
+                </Button>
+              )}
+              {canEdit && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-danger"
+                  disabled={drop.isPending}
+                  onClick={() =>
+                    confirm(
+                      `Excluir a lista “${segment.name}”? Os contatos continuam no CRM; só a lista some (e os disparos dela ficam sem ninguém).`,
+                    ) && drop.mutate()
+                  }
+                >
+                  <Trash2 className="size-4" /> Excluir lista
+                </Button>
+              )}
+            </div>
+          </div>
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            Quem já é cliente (mesmo e-mail ou celular) entra na lista sem ser alterado. Os demais
+            viram contatos de teste e não vêm da B4you.
+          </p>
+        )}
       </DialogContent>
     </Dialog>
   );

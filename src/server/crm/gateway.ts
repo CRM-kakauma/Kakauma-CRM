@@ -57,6 +57,8 @@ export const RPC_PERMISSIONS: Record<string, { role: Role; actor?: true }> = {
   crm_publish_flow: { role: "operator", actor: true },
   crm_enroll_customer: { role: "operator", actor: true },
   crm_set_broadcast: { role: "operator", actor: true },
+  crm_create_list: { role: "operator", actor: true },
+  crm_import_list_contacts: { role: "operator", actor: true },
   crm_run_broadcast_now: { role: "operator", actor: true },
   crm_set_flow_status: { role: "operator", actor: true },
   crm_set_optout: { role: "operator", actor: true },

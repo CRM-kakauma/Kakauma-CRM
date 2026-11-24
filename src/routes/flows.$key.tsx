@@ -65,8 +65,11 @@ import { BroadcastRuns, RunBroadcastNow } from "@/components/crm/broadcast-runs"
 export const Route = createFileRoute("/flows/$key")({
   head: () => ({ meta: [{ title: "Fluxo — Kakauma CRM" }] }),
   // /flows/new?tipo=disparo starts a disparo instead of a jornada
-  validateSearch: (s: Record<string, unknown>): { tipo?: "disparo" | undefined } => ({
+  validateSearch: (
+    s: Record<string, unknown>,
+  ): { tipo?: "disparo" | undefined; segmento?: string | undefined } => ({
     tipo: s["tipo"] === "disparo" ? "disparo" : undefined,
+    segmento: typeof s["segmento"] === "string" && s["segmento"] ? s["segmento"] : undefined,
   }),
   component: () => <RequireAuth>{(me) => <Loader me={me} />}</RequireAuth>,
 });
@@ -101,16 +104,16 @@ const NEW: FlowDoc = {
   has_unpublished_changes: true,
 };
 
-const NEW_BROADCAST = (): FlowDoc => ({
+const NEW_BROADCAST = (segment?: string): FlowDoc => ({
   ...NEW,
   trigger_fact: BROADCAST_FACT,
   max_trigger_age_hours: 72,
-  broadcast: defaultBroadcast(),
+  broadcast: { ...defaultBroadcast(), segment: segment ?? "" },
 });
 
 function Loader({ me }: { me: Me }) {
   const { key } = Route.useParams();
-  const { tipo } = Route.useSearch();
+  const { tipo, segmento } = Route.useSearch();
   const isNew = key === "new";
   const { data, isLoading, error } = useCrm<FlowDoc | null>(
     "crm_get_flow",
@@ -122,7 +125,7 @@ function Loader({ me }: { me: Me }) {
       <Builder
         key={tipo ?? "jornada"}
         me={me}
-        initial={tipo === "disparo" ? NEW_BROADCAST() : NEW}
+        initial={tipo === "disparo" ? NEW_BROADCAST(segmento) : NEW}
         isNew
       />
     );

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Plus, Users } from "lucide-react";
+import { FileSpreadsheet, Plus, Users } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { ApiErrorBox, Loading, Pill, RequireAuth } from "@/components/crm/ui";
 import { count } from "@/lib/crm-format";
@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RuleBuilder, type Rule } from "@/components/crm/rule-builder";
 import { ManualSegmentDialog } from "@/components/crm/test-launch";
+import { ListImportDialog } from "@/components/crm/list-import";
 import { canOperate, crmCall, useCrm, type Me } from "@/lib/crm-api";
 
 export const Route = createFileRoute("/segments")({
@@ -40,6 +41,7 @@ interface Segment {
 }
 
 const CATEGORY: Record<string, string> = {
+  list: "Listas importadas",
   test: "Teste",
   customer: "Cliente",
   revenue: "Valor",
@@ -54,6 +56,9 @@ function Segments({ me }: { me: Me }) {
   const { data, isLoading, error } = useCrm<Segment[]>("crm_list_segments");
   const [editing, setEditing] = useState<Segment | "new" | null>(null);
   const [listing, setListing] = useState<Segment | null>(null);
+  // the list to import into: "" = choose in the dialog
+  const [importing, setImporting] = useState<string | null>(null);
+  const lists = (data ?? []).filter((s) => s.kind === "manual" && !s.is_system);
   const groups = Object.entries(
     (data ?? []).reduce<Record<string, Segment[]>>((acc, s) => {
       (acc[s.category ?? "custom"] ??= []).push(s);
@@ -66,8 +71,13 @@ function Segments({ me }: { me: Me }) {
       <PageHeader
         title="Segmentos"
         help="segmentos"
-        description="Grupos dinâmicos: a participação é recalculada a cada evento e periodicamente. “Teste” é uma lista manual para testar fluxos."
+        description="Grupos dinâmicos: a participação é recalculada a cada evento e periodicamente. Listas importadas vêm de planilhas (e-mail e telefone) e podem receber disparos. “Teste” é uma lista manual para testar fluxos."
       >
+        {canOperate(me) && (
+          <Button variant="outline" onClick={() => setImporting("")}>
+            <FileSpreadsheet className="size-4" /> Importar lista
+          </Button>
+        )}
         {canOperate(me) && (
           <Button onClick={() => setEditing("new")}>
             <Plus className="size-4" /> Novo segmento
@@ -123,7 +133,19 @@ function Segments({ me }: { me: Me }) {
         <ManualSegmentDialog
           segment={listing}
           canEdit={canOperate(me)}
+          isList={!listing.is_system}
+          onImport={() => {
+            setImporting(listing.key);
+            setListing(null);
+          }}
           onClose={() => setListing(null)}
+        />
+      )}
+      {importing !== null && (
+        <ListImportDialog
+          lists={lists}
+          initialList={importing || undefined}
+          onClose={() => setImporting(null)}
         />
       )}
       {editing && (

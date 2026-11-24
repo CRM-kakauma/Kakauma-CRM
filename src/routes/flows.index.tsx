@@ -72,7 +72,25 @@ export const FLOW_STATUS: Record<string, { label: string; tone: "success" | "war
     PAUSED: { label: "Pausado", tone: "warning" },
     DRAFT: { label: "Rascunho", tone: "muted" },
     ARCHIVED: { label: "Arquivado", tone: "muted" },
+    EXECUTED: { label: "Executado", tone: "muted" },
   };
+
+/** The status shown: a one-time disparo that already fired is "Executado". */
+const statusOf = (f: {
+  status: string;
+  broadcast: BroadcastConfig | null;
+  next_run_at: string | null;
+  last_run: BroadcastRun | null;
+}) =>
+  f.status === "ACTIVE" &&
+  f.broadcast?.schedule.mode === "once" &&
+  !f.next_run_at &&
+  f.last_run &&
+  f.last_run.status !== "MISSED"
+    ? "EXECUTED"
+    : f.status;
+
+const STATUS_FILTERS = ["ACTIVE", "EXECUTED", "PAUSED", "DRAFT"] as const;
 
 function Flows({ me }: { me: Me }) {
   const { data, isLoading, error } = useCrm<FlowRow[]>(
@@ -113,8 +131,12 @@ function Flows({ me }: { me: Me }) {
       hits.has(f.key) ||
       fold(`${f.name} ${f.description ?? ""} ${f.key}`).includes(fold(q)),
   );
-  const journeys = shown.filter((f) => f.trigger_fact !== BROADCAST_FACT);
-  const broadcasts = shown.filter((f) => f.trigger_fact === BROADCAST_FACT);
+  const [status, setStatus] = useState<string>("ALL");
+  const inTab = shown.filter((f) => (f.trigger_fact === BROADCAST_FACT) === (tab === "disparos"));
+  const countOf = (st: string) => inTab.filter((f) => statusOf(f) === st).length;
+  const byStatus = (f: FlowRow) => status === "ALL" || statusOf(f) === status;
+  const journeys = shown.filter((f) => f.trigger_fact !== BROADCAST_FACT && byStatus(f));
+  const broadcasts = shown.filter((f) => f.trigger_fact === BROADCAST_FACT && byStatus(f));
   const firstStep = (key: string) => hits.get(key)?.[0]?.node_id;
   const matchesOf = (key: string) => {
     const m = hits.get(key);
@@ -147,7 +169,14 @@ function Flows({ me }: { me: Me }) {
       </div>
     );
   };
-  const nothing = searching ? <Empty>Nada encontrado para “{q}” nesta aba.</Empty> : null;
+  const nothing =
+    searching || status !== "ALL" ? (
+      <Empty>
+        Nenhum fluxo
+        {status !== "ALL" ? ` ${FLOW_STATUS[status]?.label.toLowerCase()}` : ""}
+        {searching ? ` com “${q}”` : ""} nesta aba.
+      </Empty>
+    ) : null;
   const copyButton = (f: FlowRow) =>
     canOperate(me) && (
       <Button
@@ -189,35 +218,64 @@ function Flows({ me }: { me: Me }) {
           ))}
       </PageHeader>
       <ApiErrorBox error={error} />
-      <div className="relative mb-3 max-w-xl">
-        <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Buscar fluxo pelo nome ou pelo texto das mensagens (ex.: cortisol)"
-          className="pl-9 pr-9"
-          aria-label="Buscar fluxos"
-        />
-        {query && (
-          <button
-            type="button"
-            onClick={() => setQuery("")}
-            className="absolute top-1/2 right-2.5 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-            aria-label="Limpar busca"
-          >
-            <X className="size-4" />
-          </button>
-        )}
+      <div className="mb-3 flex flex-wrap items-center gap-3">
+        <div className="relative w-full max-w-xl">
+          <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Buscar fluxo pelo nome ou pelo texto das mensagens (ex.: cortisol)"
+            className="pl-9 pr-9"
+            aria-label="Buscar fluxos"
+          />
+          {query && (
+            <button
+              type="button"
+              onClick={() => setQuery("")}
+              className="absolute top-1/2 right-2.5 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              aria-label="Limpar busca"
+            >
+              <X className="size-4" />
+            </button>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filtrar por situação">
+          {(["ALL", ...STATUS_FILTERS] as const)
+            .filter((st) => st !== "EXECUTED" || tab === "disparos")
+            .map((st) => {
+              const on = status === st;
+              return (
+                <button
+                  key={st}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() => setStatus(st)}
+                  className={
+                    on
+                      ? "h-8 rounded-full border border-primary bg-primary px-3 text-xs font-medium text-primary-foreground"
+                      : "h-8 rounded-full border border-border bg-card px-3 text-xs text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                  }
+                >
+                  {st === "ALL" ? "Todos" : FLOW_STATUS[st]!.label}{" "}
+                  <span className={on ? "opacity-80" : "opacity-60"}>
+                    {st === "ALL" ? inTab.length : countOf(st)}
+                  </span>
+                </button>
+              );
+            })}
+        </div>
       </div>
       <Tabs
         value={tab}
-        onValueChange={(v) =>
+        onValueChange={(v) => {
+          // "Executado" exists only for disparos
+          if (status === "EXECUTED") setStatus("ALL");
           void navigate({
             to: "/flows",
             search: { aba: v === "disparos" ? "disparos" : undefined },
             replace: true,
-          })
-        }
+          });
+        }}
       >
         <TabsList>
           <TabsTrigger value="jornadas">
@@ -261,8 +319,8 @@ function Flows({ me }: { me: Me }) {
                           {f.steps} etapas
                         </p>
                       </div>
-                      <Pill tone={FLOW_STATUS[f.status]?.tone ?? "muted"}>
-                        {FLOW_STATUS[f.status]?.label ?? f.status}
+                      <Pill tone={FLOW_STATUS[statusOf(f)]?.tone ?? "muted"}>
+                        {FLOW_STATUS[statusOf(f)]?.label ?? f.status}
                       </Pill>
                     </div>
                     {f.description && (
@@ -334,8 +392,8 @@ function Flows({ me }: { me: Me }) {
                           Para: {f.segment_name ?? "segmento não escolhido"} · {f.steps} etapas
                         </p>
                       </div>
-                      <Pill tone={FLOW_STATUS[f.status]?.tone ?? "muted"}>
-                        {FLOW_STATUS[f.status]?.label ?? f.status}
+                      <Pill tone={FLOW_STATUS[statusOf(f)]?.tone ?? "muted"}>
+                        {FLOW_STATUS[statusOf(f)]?.label ?? f.status}
                       </Pill>
                     </div>
                     <div className="mt-3 flex flex-wrap gap-1.5 text-xs">
